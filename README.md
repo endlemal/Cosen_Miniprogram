@@ -58,3 +58,4 @@ src/
 
 本项目已通过 `build:mp-weixin` 与 `build:h5` 编译，H5 版做过逐屏截图检查，但尚未在开发者工具 / 真机上运行。建议重点看：SVG base64 图标显示、分类栏英文竖排（`writing-mode`）、杯身 `clip-path`、iOS 底部安全区。
 # Cosen_Miniprogram
+# Cosen_Miniprogram
