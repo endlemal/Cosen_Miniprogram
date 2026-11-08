@@ -1,0 +1,52 @@
+/* ===== 苔生 Mossy · Design tokens =====
+ * 自动注入到每个 <style lang="scss"> 中，可直接使用
+ */
+
+/* Color — 取自参考稿：深林绿 / 鼠尾草绿 / 抹茶绿 */
+$forest: #3B5A40;      // 主色：卡片、侧栏、底栏
+$pine: #2C4431;        // 主色加深：按压态、深色文字
+$moss: #567A55;        // 侧栏选中、装饰圆
+$sage: #A3B48B;        // 商品底图、加号按钮
+$sage-soft: #C5D2B0;   // 大图底色
+$matcha: #6E8B3D;      // 强调条带（参考稿 2 的 Free Delivery 条）
+$mist: #E3E9D8;        // 标签、弱填充
+$fog: #EEF0EA;         // 页面底色（偏冷的灰绿，不用暖奶油色）
+$paper: #FAFBF7;       // 卡片
+$ink: #1E2A21;
+$ink-2: #566156;
+$ink-3: #97A094;
+$amber: #E7A43A;       // 只用于评分星星
+$danger: #B9543F;
+$line: rgba(30, 42, 33, 0.08);
+
+/* Type */
+$font-latin: "Avenir Next", "Helvetica Neue", "SF Pro Display", -apple-system, "PingFang SC", sans-serif;
+$font-cn: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+
+/* Elevation：带绿调的阴影，避免通用灰阴影 */
+$shadow-forest: 0 28rpx 48rpx -24rpx rgba(44, 68, 49, 0.55);
+$shadow-soft: 0 16rpx 36rpx -20rpx rgba(30, 42, 33, 0.28);
+
+@mixin num {
+  font-family: $font-latin;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5rpx;
+}
+
+@mixin ellipsis($lines: 1) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  @if $lines == 1 {
+    white-space: nowrap;
+  } @else {
+    display: -webkit-box;
+    -webkit-line-clamp: $lines;
+    -webkit-box-orient: vertical;
+  }
+}
+
+/* hover-class 统一按压反馈 */
+.tap-on {
+  opacity: 0.86;
+  transform: scale(0.97);
+}
