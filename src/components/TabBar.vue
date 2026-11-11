@@ -1,6 +1,6 @@
-<!-- 悬浮胶囊底栏（参考稿 1）：选中项展开成浅绿胶囊并显示文字 -->
+<!-- 悬浮底栏：图标、标签和当前页面指示 -->
 <template>
-  <view class="tabbar">
+  <view class="tabbar" :class="{ 'menu-dock': state.ui.tab === 'menu' }">
     <view
       v-for="t in tabs"
       :key="t.key"
@@ -10,12 +10,12 @@
       @tap="go(t.key)"
     >
       <view class="ic">
-        <Icon :name="t.icon" :size="44" :color="state.ui.tab === t.key ? '#2C4431' : '#C5D2B0'" :stroke="2.1" />
+        <Icon :name="t.icon" :size="44" :color="state.ui.tab === t.key ? '#462719' : '#EDD3AE'" :stroke="2.1" />
         <view v-if="t.key === 'menu' && cartCount > 0 && state.ui.tab !== 'menu'" class="badge" :class="{ bump: bump }">
           <text class="bt">{{ cartCount > 99 ? '99+' : cartCount }}</text>
         </view>
       </view>
-      <text v-if="state.ui.tab === t.key" class="label">{{ t.label }}</text>
+      <text class="label">{{ t.label }}</text>
     </view>
   </view>
 </template>
@@ -61,35 +61,39 @@ watch(
   margin-left: -280rpx;
   padding: 0 18rpx;
   border-radius: 44rpx;
-  background: $forest;
-  box-shadow: 0 30rpx 50rpx -24rpx rgba(31, 52, 36, 0.7), 0 2rpx 0 rgba(255, 255, 255, 0.06) inset;
+  background: $espresso;
+  box-shadow: 0 30rpx 50rpx -24rpx rgba($roast, 0.7), 0 2rpx 0 rgba(255, 255, 255, 0.06) inset;
   display: flex;
   align-items: center;
   justify-content: space-between;
   z-index: 100;
 }
+.tabbar.menu-dock {
+  left: calc(50% + 36rpx);
+}
 .item {
   height: 84rpx;
-  min-width: 120rpx;
-  padding: 0 24rpx;
-  border-radius: 30rpx;
+  flex: 1;
+  border-radius: 24rpx;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  transition: background 0.25s ease, padding 0.25s ease;
+  color: $cream;
+  transition: background 0.25s ease;
   &.on {
-    background: $sage;
-    padding: 0 30rpx 0 26rpx;
+    background: $caramel;
+    color: $roast;
   }
 }
 .ic {
   position: relative;
 }
 .label {
-  margin-left: 12rpx;
-  font-size: 28rpx;
+  margin-top: 1rpx;
+  font-size: 20rpx;
+  line-height: 1.2;
   font-weight: 700;
-  color: $pine;
 }
 .badge {
   position: absolute;
@@ -100,7 +104,7 @@ watch(
   padding: 0 8rpx;
   border-radius: 17rpx;
   background: $paper;
-  border: 3rpx solid $forest;
+  border: 3rpx solid $espresso;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -111,7 +115,7 @@ watch(
 .bt {
   font-size: 19rpx;
   font-weight: 800;
-  color: $pine;
+  color: $roast;
   @include num;
 }
 @keyframes bump {

@@ -1,8 +1,8 @@
-<!-- 商品卡（参考稿 1）：浅绿底图 + 深绿信息面板，杯子溢出到底图外，右下角加号 -->
+<!-- 商品卡：饮品插画叠在焦糖色底座和咖啡色信息面板上 -->
 <template>
   <view class="pcard" @tap="emit('open')">
     <view class="panel">
-      <Notch v-if="product.badge" bg="#EEF0EA" :r="24" pad="6rpx 18rpx 10rpx 22rpx">
+      <Notch v-if="product.badge" bg="#F8F0E3" :r="24" pad="6rpx 18rpx 10rpx 22rpx">
         <text class="badge">{{ product.badge }}</text>
       </Notch>
       <text class="name">{{ product.name }}</text>
@@ -21,7 +21,7 @@
       <DrinkArt :spec="product.art" :size="196" />
     </view>
     <view class="plus" hover-class="tap-on" @tap.stop="emit('add')">
-      <Icon name="plus" :size="38" color="#FAFBF7" :stroke="3" />
+      <Icon name="plus" :size="38" color="#462719" :stroke="3" />
       <view v-if="qty > 0" class="qty">
         <text class="qty-n">{{ qty }}</text>
       </view>
@@ -54,7 +54,7 @@ const tileBg = computed(() => `linear-gradient(165deg, ${props.product.tile[0]} 
   top: 70rpx;
   height: 204rpx;
   border-radius: 40rpx;
-  background: $forest;
+  background: $espresso;
   padding: 26rpx 22rpx 0 58rpx;
   overflow: hidden;
   display: flex;
@@ -63,7 +63,7 @@ const tileBg = computed(() => `linear-gradient(165deg, ${props.product.tile[0]} 
 .badge {
   font-size: 20rpx;
   font-weight: 700;
-  color: $forest;
+  color: $espresso;
   letter-spacing: 2rpx;
 }
 .name {
@@ -77,7 +77,7 @@ const tileBg = computed(() => `linear-gradient(165deg, ${props.product.tile[0]} 
 .en {
   margin-top: 4rpx;
   font-size: 20rpx;
-  color: rgba(197, 210, 176, 0.85);
+  color: rgba($cream, 0.85);
   font-family: $font-latin;
   @include ellipsis(1);
 }
@@ -109,7 +109,7 @@ const tileBg = computed(() => `linear-gradient(165deg, ${props.product.tile[0]} 
 .score {
   margin-left: 6rpx;
   font-size: 24rpx;
-  color: rgba(250, 251, 247, 0.9);
+  color: rgba($paper, 0.9);
   @include num;
 }
 .tile {
@@ -119,7 +119,8 @@ const tileBg = computed(() => `linear-gradient(165deg, ${props.product.tile[0]} 
   width: 214rpx;
   height: 256rpx;
   border-radius: 40rpx;
-  box-shadow: $shadow-forest;
+  border: 1rpx solid rgba($paper, 0.55);
+  box-shadow: $shadow-coffee;
 }
 .art {
   position: absolute;
@@ -133,11 +134,11 @@ const tileBg = computed(() => `linear-gradient(165deg, ${props.product.tile[0]} 
   width: 92rpx;
   height: 74rpx;
   border-radius: 24rpx;
-  background: $sage;
+  background: $caramel;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 14rpx 24rpx -10rpx rgba(44, 68, 49, 0.55);
+  box-shadow: 0 14rpx 24rpx -10rpx rgba($roast, 0.55);
 }
 .qty {
   position: absolute;
@@ -148,7 +149,7 @@ const tileBg = computed(() => `linear-gradient(165deg, ${props.product.tile[0]} 
   padding: 0 8rpx;
   border-radius: 18rpx;
   background: $paper;
-  border: 3rpx solid $sage;
+  border: 3rpx solid $caramel;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -156,7 +157,7 @@ const tileBg = computed(() => `linear-gradient(165deg, ${props.product.tile[0]} 
 .qty-n {
   font-size: 20rpx;
   font-weight: 800;
-  color: $pine;
+  color: $roast;
   @include num;
 }
 </style>

@@ -1,11 +1,11 @@
 import type { Post } from '@/types'
-import { PRODUCTS } from './products'
+import { PRODUCTS, STORE } from './products'
 
 const H = 3600 * 1000
 const art = (id: string) => PRODUCTS.find((p) => p.id === id)!.art
 
-const STORE_AVATAR: [string, string] = ['#567A55', '#2C4431']
-const MIA: [string, string] = ['#C5D2B0', '#6E8B3D']
+const STORE_AVATAR: [string, string] = ['#905D3B', '#462719']
+const MIA: [string, string] = ['#D0A578', '#87512E']
 const SEN: [string, string] = ['#D9CBB4', '#8A6A48']
 const YUKI: [string, string] = ['#F0D3CF', '#C98A86']
 
@@ -13,7 +13,7 @@ const YUKI: [string, string] = ['#F0D3CF', '#C98A86']
 const BASE: (Omit<Post, 'at'> & { ago: number })[] = [
   {
     id: 'p1',
-    author: '苔生 新天地店',
+    author: STORE.name,
     role: '官方',
     avatar: STORE_AVATAR,
     title: '栗子抹茶拿铁回来了，今年的栗子更甜',
@@ -64,7 +64,7 @@ const BASE: (Omit<Post, 'at'> & { ago: number })[] = [
   },
   {
     id: 'p4',
-    author: '苔生 新天地店',
+    author: STORE.name,
     role: '官方',
     avatar: STORE_AVATAR,
     title: '窗边那盆苔藓，三岁了',
@@ -75,7 +75,7 @@ const BASE: (Omit<Post, 'at'> & { ago: number })[] = [
     cover: { bg: ['#86A271', '#3E5A3E'], ratio: 0.9, style: 'circles', text: '3', sub: '岁的苔藓盆景', light: true },
     content: [
       '开店那天朋友送的，一直放在靠窗第二张桌子上。',
-      '每天早上喷一次水，夏天要挪到没有直射光的地方。店名也是从它来的。'
+      '每天早上喷一次水，夏天要挪到没有直射光的地方。来店时可以到窗边看看它。'
     ]
   },
   {
@@ -127,7 +127,7 @@ const BASE: (Omit<Post, 'at'> & { ago: number })[] = [
   },
   {
     id: 'p8',
-    author: '苔生会员中心',
+    author: '可森会员中心',
     role: '官方',
     avatar: STORE_AVATAR,
     title: '会员日：充 1000 送 300，充 500 送 100',
@@ -135,7 +135,7 @@ const BASE: (Omit<Post, 'at'> & { ago: number })[] = [
     likes: 612,
     comments: 88,
     ago: 52,
-    cover: { bg: ['#3B5A40', '#1F3424'], ratio: 0.94, style: 'type', text: '+300', sub: '充 1000 元赠送', light: true },
+    cover: { bg: ['#663A24', '#462719'], ratio: 0.94, style: 'type', text: '+300', sub: '充 1000 元赠送', light: true },
     content: [
       '储值长期有效，赠送金额和本金一起到账，点单时直接用余额支付。',
       '在「我的 - 会员储值」里就能充。'
@@ -184,7 +184,7 @@ const BASE: (Omit<Post, 'at'> & { ago: number })[] = [
   },
   {
     id: 'p12',
-    author: '苔生 新天地店',
+    author: STORE.name,
     role: '官方',
     avatar: STORE_AVATAR,
     title: '草莓季倒计时，莓莓海盐芝士先上',
@@ -198,14 +198,11 @@ const BASE: (Omit<Post, 'at'> & { ago: number })[] = [
   }
 ]
 
-export const POST_TAGS = ['全部', '新品', '日常', '门店', '活动']
-
-/** 分页生成动态。第 2、3 页为同一批内容的往期版本，用于演示瀑布流加载更多 */
-export function fetchPosts(page: number, tag = '全部'): { list: Post[]; hasMore: boolean } {
+/** 分页生成动态。第 2、3 页为同一批内容的往期版本，用于演示加载更多 */
+export function fetchPosts(page: number): { list: Post[]; hasMore: boolean } {
   const now = Date.now()
-  const pool = BASE.filter((p) => tag === '全部' || p.tag === tag)
   const offset = page * 7 * 24 // 往期按周后移
-  const list: Post[] = pool.map(({ ago, ...p }) => ({
+  const list: Post[] = BASE.map(({ ago, ...p }) => ({
     ...p,
     id: page === 0 ? p.id : `${p.id}~${page}`,
     likes: Math.max(12, p.likes - page * 37),

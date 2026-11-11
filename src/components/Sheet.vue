@@ -8,7 +8,7 @@
         <text class="title">{{ title }}</text>
         <slot name="head-right" />
         <view class="x" hover-class="tap-on" @tap="close">
-          <Icon name="close" :size="30" color="#566156" />
+          <Icon name="close" :size="30" color="#6D513D" />
         </view>
       </view>
       <slot />
@@ -22,7 +22,7 @@ import Icon from './Icon.vue'
 
 const props = withDefaults(defineProps<{ show: boolean; title?: string; bg?: string; maxHeight?: string }>(), {
   title: '',
-  bg: '#FAFBF7',
+  bg: '#FFF9F0',
   maxHeight: '86vh'
 })
 const emit = defineEmits<{ (e: 'update:show', v: boolean): void }>()
@@ -94,7 +94,7 @@ function noop() {}
   width: 72rpx;
   height: 8rpx;
   border-radius: 8rpx;
-  background: rgba(30, 42, 33, 0.14);
+  background: rgba($ink, 0.14);
   margin: 16rpx auto 0;
   flex-shrink: 0;
 }
@@ -113,7 +113,7 @@ function noop() {}
   width: 64rpx;
   height: 64rpx;
   border-radius: 50%;
-  background: $mist;
+  background: $latte;
   display: flex;
   align-items: center;
   justify-content: center;

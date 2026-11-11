@@ -1,7 +1,7 @@
 import type { Category, Product, SpecGroup } from '@/types'
 
 export const STORE = {
-  name: '苔生 新天地店',
+  name: '可森',
   address: '黄陂南路 383 弄 12 号 1F',
   distance: '1.2km',
   hours: '08:00 – 21:30',
@@ -13,7 +13,18 @@ export const CATEGORIES: Category[] = [
   { id: 'frappe', name: '星冰乐', en: 'Frappuccino', desc: '冰沙打底，奶油封顶' },
   { id: 'hot', name: '热咖啡', en: 'Hot Coffee', desc: '本周拼配：云南 × 埃塞俄比亚' },
   { id: 'cold', name: '冷萃', en: 'Cold Brew', desc: '低温慢萃 16 小时' },
-  { id: 'season', name: '秋季限定', en: 'Seasonal', desc: '栗子、焙茶与麻薯，只到 11 月底' }
+  { id: 'season', name: '秋季限定', en: 'Seasonal', desc: '栗子、焙茶与麻薯，只到 11 月底' },
+  { id: 'handbrew', name: '手冲', en: 'Pour Over', desc: '单一产地咖啡，点单后现冲' },
+  { id: 'tea', name: '原叶茶', en: 'Loose Leaf', desc: '清香原叶，慢慢泡开' },
+  { id: 'soda', name: '水果气泡', en: 'Fruit Soda', desc: '鲜果与气泡水的清爽组合' },
+  { id: 'chocolate', name: '巧克力', en: 'Cocoa', desc: '温热可可与柔滑奶香' },
+  { id: 'craft', name: '精酿', en: 'Craft Beer', desc: '从清爽酒花到烘烤麦芽' },
+  { id: 'classic', name: '经典鸡尾酒', en: 'Classics', desc: '经典配方，风味干净利落' },
+  { id: 'signature', name: '特调鸡尾酒', en: 'Signatures', desc: '可森吧台的咖啡与果香特调' },
+  { id: 'wine', name: '杯卖葡萄酒', en: 'Wine', desc: '单杯供应，适合慢慢喝' },
+  { id: 'whisky', name: '威士忌', en: 'Whisky', desc: '纯饮或配一颗大冰' },
+  { id: 'gin', name: '金酒', en: 'Gin', desc: '杜松子与柑橘的清香' },
+  { id: 'zero', name: '无酒精特调', en: 'Zero Proof', desc: '用茶、果汁和香草调成的无酒精饮品' }
 ]
 
 export const SPEC_GROUPS: Record<string, SpecGroup> = {
@@ -58,10 +69,10 @@ export const SPEC_GROUPS: Record<string, SpecGroup> = {
   }
 }
 
-const GREEN: [string, string] = ['#B9C99F', '#98AC7D']
-const LATTE: [string, string] = ['#D9CBB4', '#B9A283']
-const ROSE: [string, string] = ['#E9C9C6', '#C99A97']
-const STONE: [string, string] = ['#CFD3C4', '#A8AE9A']
+const CARAMEL: [string, string] = ['#EED6B5', '#C5976B']
+const LATTE: [string, string] = ['#F1DEC4', '#C8A381']
+const ROSE: [string, string] = ['#EED0C0', '#C79B83']
+const STONE: [string, string] = ['#E9D6BF', '#BB9578']
 
 export const PRODUCTS: Product[] = [
   // ---- 抹茶 ----
@@ -87,7 +98,7 @@ export const PRODUCTS: Product[] = [
       ice: true,
       marble: true
     },
-    tile: GREEN,
+    tile: CARAMEL,
     badge: '招牌'
   },
   {
@@ -102,7 +113,7 @@ export const PRODUCTS: Product[] = [
     ingredients: ['抹茶', '冰块', '蜂蜜', '牛奶'],
     specs: ['size', 'ice', 'sugar', 'milk'],
     art: { cup: 'rocks', liquid: ['#A9C77A', '#5E8A35'], milk: '#E3EBCB', milkRatio: 30, ice: true },
-    tile: GREEN
+    tile: CARAMEL
   },
   {
     id: 'm3',
@@ -116,7 +127,7 @@ export const PRODUCTS: Product[] = [
     ingredients: ['双倍抹茶', '椰乳', '冰块'],
     specs: ['size', 'ice', 'sugar', 'extra'],
     art: { cup: 'tall', liquid: ['#7FA64B', '#3F6A26'], milk: '#F4F2E6', milkRatio: 34, ice: true, straw: '#3B5A40' },
-    tile: GREEN
+    tile: CARAMEL
   },
   {
     id: 'm4',
@@ -177,7 +188,7 @@ export const PRODUCTS: Product[] = [
       toppingColor: '#F6F4EC',
       dust: '#5B3A29'
     },
-    tile: GREEN
+    tile: CARAMEL
   },
   {
     id: 'f3',
@@ -229,7 +240,7 @@ export const PRODUCTS: Product[] = [
     ingredients: ['双份浓缩', '鲜牛奶'],
     specs: ['size', 'hot', 'milk'],
     art: { cup: 'mug', liquid: ['#9C6C44', '#55331C'], milk: '#F1E2CD', mug: '#3B5A40' },
-    tile: GREEN
+    tile: CARAMEL
   },
   {
     id: 'h3',
@@ -350,6 +361,206 @@ export const PRODUCTS: Product[] = [
     },
     tile: LATTE,
     badge: '新品'
+  },
+  // ---- 精酿 ----
+  {
+    id: 'craft-pale',
+    cat: 'craft',
+    name: '柑橘淡色艾尔',
+    en: 'Citrus Pale Ale',
+    desc: '330ml。柑橘与松针香气，收口带一点清爽的酒花苦味。',
+    price: 42,
+    rating: 9.2,
+    sold: 126,
+    ingredients: ['麦芽', '酒花', '酵母'],
+    specs: [],
+    art: { cup: 'pint', liquid: ['#EBA33C', '#AB5117'], milk: '#FFF0C8', milkRatio: 14 },
+    tile: CARAMEL
+  },
+  {
+    id: 'craft-stout',
+    cat: 'craft',
+    name: '燕麦世涛',
+    en: 'Oatmeal Stout',
+    desc: '330ml。烘烤麦芽带来可可与咖啡香，燕麦让酒体更圆润。',
+    price: 46,
+    rating: 9.4,
+    sold: 102,
+    ingredients: ['烘烤麦芽', '燕麦', '酒花'],
+    specs: [],
+    art: { cup: 'pint', liquid: ['#4C2920', '#281815'], milk: '#D1A47A', milkRatio: 14 },
+    tile: LATTE
+  },
+  // ---- 经典鸡尾酒 ----
+  {
+    id: 'classic-negroni',
+    cat: 'classic',
+    name: '尼格罗尼',
+    en: 'Negroni',
+    desc: '金酒、苦味酒与甜味美思，收尾是一抹橙皮香。',
+    price: 58,
+    rating: 9.5,
+    sold: 168,
+    ingredients: ['金酒', '苦味酒', '甜味美思', '橙皮'],
+    specs: [],
+    art: { cup: 'rocks', liquid: ['#D8713D', '#943223'], ice: true },
+    tile: ROSE
+  },
+  {
+    id: 'classic-highball',
+    cat: 'classic',
+    name: '威士忌嗨棒',
+    en: 'Whisky Highball',
+    desc: '威士忌兑冰镇苏打水，气泡清爽，带一点柠檬香。',
+    price: 52,
+    rating: 9.1,
+    sold: 118,
+    ingredients: ['威士忌', '苏打水', '柠檬'],
+    specs: [],
+    art: { cup: 'pint', liquid: ['#F5DBA2', '#BD8241'], ice: true },
+    tile: STONE
+  },
+  // ---- 特调鸡尾酒 ----
+  {
+    id: 'signature-coldbrew',
+    cat: 'signature',
+    name: '深夜冷萃',
+    en: 'Midnight Cold Brew',
+    desc: '可森冷萃加入深色朗姆，黑糖衬出烘焙香，尾段带一点海盐。',
+    price: 62,
+    rating: 9.6,
+    sold: 144,
+    ingredients: ['冷萃咖啡', '深色朗姆', '黑糖', '海盐'],
+    specs: [],
+    art: { cup: 'rocks', liquid: ['#935233', '#42241D'], ice: true },
+    tile: LATTE,
+    badge: '可森特调'
+  },
+  {
+    id: 'signature-pomelo',
+    cat: 'signature',
+    name: '粉柚金菲士',
+    en: 'Pink Grapefruit Fizz',
+    desc: '粉柚、迷迭香和金酒做成的气泡特调，酸甜轻盈。',
+    price: 60,
+    rating: 9.3,
+    sold: 89,
+    ingredients: ['金酒', '粉柚', '迷迭香', '苏打水'],
+    specs: [],
+    art: { cup: 'pint', liquid: ['#F3B98F', '#D27466'], ice: true },
+    tile: ROSE
+  },
+  {
+    id: 'handbrew-guji',
+    cat: 'handbrew',
+    name: '古吉手冲',
+    en: 'Guji Pour Over',
+    desc: '日晒豆现冲，入口是莓果香，尾段像红茶。',
+    price: 36,
+    rating: 9.4,
+    sold: 112,
+    ingredients: ['埃塞俄比亚咖啡豆'],
+    specs: [],
+    art: { cup: 'mug', liquid: ['#8C5432', '#512C1F'] },
+    tile: LATTE
+  },
+  {
+    id: 'tea-jasmine',
+    cat: 'tea',
+    name: '茉莉绿茶',
+    en: 'Jasmine Green Tea',
+    desc: '茉莉花香清透，茶汤柔和。',
+    price: 25,
+    rating: 9.0,
+    sold: 82,
+    ingredients: ['茉莉花茶'],
+    specs: [],
+    art: { cup: 'mug', liquid: ['#D6B96E', '#A98C46'] },
+    tile: STONE
+  },
+  {
+    id: 'soda-plum',
+    cat: 'soda',
+    name: '青梅气泡',
+    en: 'Green Plum Soda',
+    desc: '青梅果浆兑苏打水，酸甜轻盈。',
+    price: 28,
+    rating: 9.2,
+    sold: 93,
+    ingredients: ['青梅', '苏打水'],
+    specs: [],
+    art: { cup: 'pint', liquid: ['#DBD693', '#B4A755'], ice: true },
+    tile: STONE
+  },
+  {
+    id: 'chocolate-seasalt',
+    cat: 'chocolate',
+    name: '海盐热可可',
+    en: 'Sea Salt Hot Cocoa',
+    desc: '浓可可和鲜奶煮热，海盐托出巧克力香。',
+    price: 32,
+    rating: 9.3,
+    sold: 76,
+    ingredients: ['可可', '鲜牛奶', '海盐'],
+    specs: [],
+    art: { cup: 'mug', liquid: ['#8A5B44', '#4B291F'], milk: '#E9CEB3' },
+    tile: CARAMEL
+  },
+  {
+    id: 'wine-red',
+    cat: 'wine',
+    name: '单杯红葡萄酒',
+    en: 'Red Wine by the Glass',
+    desc: '150ml。红果香清晰，单宁柔和。',
+    price: 49,
+    rating: 9.2,
+    sold: 65,
+    ingredients: ['红葡萄酒'],
+    specs: [],
+    art: { cup: 'rocks', liquid: ['#944754', '#5A2436'] },
+    tile: ROSE
+  },
+  {
+    id: 'whisky-malt',
+    cat: 'whisky',
+    name: '单一麦芽威士忌',
+    en: 'Single Malt Whisky',
+    desc: '30ml。蜂蜜和橡木香，余味温暖。',
+    price: 58,
+    rating: 9.3,
+    sold: 57,
+    ingredients: ['单一麦芽威士忌'],
+    specs: [],
+    art: { cup: 'rocks', liquid: ['#D99A4A', '#A35F24'], ice: true },
+    tile: CARAMEL
+  },
+  {
+    id: 'gin-tonic',
+    cat: 'gin',
+    name: '柠檬金汤力',
+    en: 'Lemon Gin & Tonic',
+    desc: '杜松香和柠檬皮香，汤力水带一点清苦。',
+    price: 48,
+    rating: 9.0,
+    sold: 67,
+    ingredients: ['金酒', '汤力水', '柠檬'],
+    specs: [],
+    art: { cup: 'pint', liquid: ['#EEE4BC', '#C5B16F'], ice: true },
+    tile: STONE
+  },
+  {
+    id: 'zero-peach',
+    cat: 'zero',
+    name: '白桃乌龙菲士',
+    en: 'Peach Oolong Fizz',
+    desc: '白桃、冷泡乌龙和苏打水，带一点乌龙回甘。',
+    price: 34,
+    rating: 9.3,
+    sold: 91,
+    ingredients: ['白桃', '乌龙茶', '苏打水'],
+    specs: [],
+    art: { cup: 'pint', liquid: ['#F2BD9D', '#CF8A62'], ice: true },
+    tile: ROSE
   }
 ]
 

@@ -10,7 +10,7 @@ onLaunch(() => {
 <style lang="scss">
 /* 全局：app.wxss 中的标签选择器会作用到所有页面与组件 */
 page {
-  background: $fog;
+  background: $canvas;
   color: $ink;
   font-family: $font-cn;
   font-size: 28rpx;

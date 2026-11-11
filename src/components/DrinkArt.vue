@@ -1,7 +1,7 @@
 <!--
   用纯 CSS 画的饮品插画，替代商品图。
   设计画板固定为 200×260rpx，通过 scale 缩放到任意尺寸。
-  cup: tall（带盖塑料杯，参考稿 1）/ rocks（切面玻璃杯，参考稿 2）/ mug（热饮陶瓷杯）
+  cup: tall（带盖塑料杯）/ pint（高玻璃杯）/ rocks（切面玻璃杯）/ mug（热饮陶瓷杯）
 -->
 <template>
   <view class="drink-art" :style="{ width: size + 'rpx', height: size * 1.3 + 'rpx' }">
@@ -10,10 +10,10 @@
       <view v-if="spec.cup === 'rocks'" class="cast" />
       <view v-else class="pool" :class="{ wide: spec.cup === 'mug' }" />
 
-      <!-- ========== 带盖高杯 ========== -->
-      <template v-if="spec.cup === 'tall'">
+      <!-- ========== 高杯 ========== -->
+      <template v-if="spec.cup === 'tall' || spec.cup === 'pint'">
         <view v-if="spec.straw && !hasDome" class="straw" :style="{ background: spec.straw }" />
-        <view class="tall-cup" :style="{ background: bodyBg }">
+        <view class="tall-cup" :class="{ pint: spec.cup === 'pint' }" :style="{ background: bodyBg }">
           <view v-if="spec.marble" class="marble" />
           <template v-if="spec.ice">
             <view class="ice i1" />
@@ -23,7 +23,8 @@
           <view class="gloss" />
           <view class="gloss2" />
         </view>
-        <view class="lid" />
+        <view v-if="spec.cup === 'tall'" class="lid" />
+        <view v-else class="pint-rim" />
         <template v-if="hasDome">
           <view class="peak" :style="{ background: creamBg }" />
           <view class="dome" :style="{ background: creamBg }">
@@ -155,7 +156,7 @@ const surfaceBg = computed(() => {
   width: 124rpx;
   height: 24rpx;
   border-radius: 50%;
-  background: radial-gradient(ellipse at center, rgba(30, 42, 33, 0.3) 0%, rgba(30, 42, 33, 0) 70%);
+  background: radial-gradient(ellipse at center, rgba($ink, 0.3) 0%, rgba($ink, 0) 70%);
   &.wide {
     left: 10rpx;
     width: 190rpx;
@@ -167,7 +168,7 @@ const surfaceBg = computed(() => {
   width: 74rpx;
   height: 40rpx;
   border-radius: 12rpx;
-  background: linear-gradient(90deg, rgba(30, 42, 33, 0.28), rgba(30, 42, 33, 0));
+  background: linear-gradient(90deg, rgba($ink, 0.28), rgba($ink, 0));
   transform: skewX(-48deg);
 }
 
@@ -188,6 +189,23 @@ const surfaceBg = computed(() => {
   overflow: hidden;
   -webkit-clip-path: polygon(0 0, 100% 0, 87% 100%, 13% 100%);
   clip-path: polygon(0 0, 100% 0, 87% 100%, 13% 100%);
+}
+.tall-cup.pint {
+  top: 48rpx;
+  height: 192rpx;
+  border: 3rpx solid rgba(255, 255, 255, 0.44);
+  border-bottom-width: 11rpx;
+  border-radius: 4rpx 4rpx 22rpx 22rpx;
+  clip-path: polygon(0 0, 100% 0, 91% 100%, 9% 100%);
+}
+.pint-rim {
+  position: absolute;
+  top: 43rpx;
+  left: 31rpx;
+  width: 138rpx;
+  height: 14rpx;
+  border: 3rpx solid rgba(255, 255, 255, 0.72);
+  border-radius: 50%;
 }
 .marble {
   position: absolute;
@@ -247,7 +265,7 @@ const surfaceBg = computed(() => {
   height: 16rpx;
   border-radius: 10rpx;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(232, 236, 225, 0.95));
-  box-shadow: 0 4rpx 8rpx rgba(30, 42, 33, 0.1);
+  box-shadow: 0 4rpx 8rpx rgba($ink, 0.1);
 }
 .peak {
   top: 2rpx;
@@ -264,7 +282,7 @@ const surfaceBg = computed(() => {
   height: 70rpx;
   overflow: hidden;
   border-radius: 50% 50% 44% 44% / 66% 66% 34% 34%;
-  box-shadow: inset 0 -10rpx 16rpx rgba(30, 42, 33, 0.07);
+  box-shadow: inset 0 -10rpx 16rpx rgba($ink, 0.07);
 }
 .dust {
   position: absolute;

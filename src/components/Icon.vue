@@ -8,7 +8,7 @@ import { iconUri } from '@/utils/icons'
 
 const props = withDefaults(defineProps<{ name: string; size?: number; color?: string; stroke?: number }>(), {
   size: 40,
-  color: '#1E2A21',
+  color: '#38251A',
   stroke: 2
 })
 const src = computed(() => iconUri(props.name, props.color, props.stroke))

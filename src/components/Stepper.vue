@@ -1,11 +1,11 @@
 <template>
   <view class="stepper" :class="{ dark }">
     <view class="btn minus" hover-class="tap-on" @tap.stop="emit('change', -1)">
-      <Icon name="minus" :size="small ? 26 : 30" :color="dark ? '#FAFBF7' : '#3B5A40'" :stroke="2.4" />
+      <Icon name="minus" :size="small ? 26 : 30" :color="dark ? '#FFF9F0' : '#663A24'" :stroke="2.4" />
     </view>
     <text class="n" :class="{ small }">{{ value }}</text>
     <view class="btn plus" hover-class="tap-on" @tap.stop="emit('change', 1)">
-      <Icon name="plus" :size="small ? 26 : 30" color="#FAFBF7" :stroke="2.4" />
+      <Icon name="plus" :size="small ? 26 : 30" color="#FFF9F0" :stroke="2.4" />
     </view>
   </view>
 </template>
@@ -31,16 +31,16 @@ const emit = defineEmits<{ (e: 'change', delta: number): void }>()
   justify-content: center;
 }
 .minus {
-  background: $mist;
+  background: $latte;
 }
 .dark .minus {
   background: rgba(255, 255, 255, 0.16);
 }
 .plus {
-  background: $forest;
+  background: $espresso;
 }
 .dark .plus {
-  background: $sage;
+  background: $caramel;
 }
 .n {
   min-width: 56rpx;

@@ -15,7 +15,7 @@
 import { computed } from 'vue'
 
 const props = withDefaults(defineProps<{ bg?: string; r?: number; pad?: string }>(), {
-  bg: '#FAFBF7',
+  bg: '#FFF9F0',
   r: 28,
   pad: '10rpx 22rpx 14rpx 26rpx'
 })

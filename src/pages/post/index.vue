@@ -20,7 +20,7 @@
         <text v-for="(para, i) in post.content" :key="i" class="para">{{ para }}</text>
         <view class="tags">
           <text class="tag">#{{ post.tag }}</text>
-          <text class="tag">#苔生日常</text>
+          <text class="tag">#可森日常</text>
         </view>
 
         <view v-if="product" class="related">
@@ -45,17 +45,17 @@
 
       <view class="bar">
         <view class="b-act" hover-class="tap-on" @tap="toggleLike">
-          <Icon :name="liked ? 'heartFill' : 'heart'" :size="40" :color="liked ? '#B9543F' : '#566156'" />
+          <Icon :name="liked ? 'heartFill' : 'heart'" :size="40" :color="liked ? '#B9543F' : '#6D513D'" />
           <text class="b-n">{{ post.likes + (liked ? 1 : 0) }}</text>
         </view>
         <!-- #ifdef MP-WEIXIN -->
         <button class="b-act share" open-type="share" hover-class="tap-on">
-          <Icon name="share" :size="38" color="#566156" />
+          <Icon name="share" :size="38" color="#6D513D" />
           <text class="b-n">分享</text>
         </button>
         <!-- #endif -->
         <view class="b-cta" hover-class="tap-on" @tap="order">
-          <Icon name="bag" :size="32" color="#FAFBF7" :stroke="2.2" />
+          <Icon name="bag" :size="32" color="#FFF9F0" :stroke="2.2" />
           <text class="b-cta-t">{{ product ? '点一杯同款' : '去点单' }}</text>
         </view>
       </view>
@@ -77,7 +77,7 @@ import { ago } from '@/utils/format'
 import type { Post } from '@/types'
 
 const COMMENTS = [
-  { name: '林一', color: '#A3B48B', text: '上周喝过，第一口奶盖真的很绵。' },
+  { name: '林一', color: '#D0A578', text: '上周喝过，第一口奶盖真的很绵。' },
   { name: 'Coco', color: '#C9A27E', text: '求周末也能保留早上那张券！' },
   { name: '阿岚', color: '#7E9BA8', text: '窗边那个位置是我的固定座位哈哈。' }
 ]
@@ -92,7 +92,7 @@ onPageScroll((e) => {
   scrollTop.value = e.scrollTop
 })
 onShareAppMessage(() => ({
-  title: post.value?.title || '苔生 Mossy',
+  title: post.value?.title || '可森 COSEN',
   path: `/pages/post/index?id=${post.value?.id || ''}`
 }))
 
@@ -101,7 +101,7 @@ const product = computed(() => (post.value?.productId ? getProduct(post.value.pr
 const liked = computed(() => !!(post.value && state.likes[post.value.id]))
 const initial = computed(() => {
   const a = post.value?.author || ''
-  if (a.startsWith('苔生')) return '苔'
+  if (a.startsWith('可森')) return '可'
   return (a.split(' ')[1] || a).slice(0, 1)
 })
 
@@ -117,13 +117,13 @@ function order() {
 <style lang="scss" scoped>
 .page {
   min-height: 100vh;
-  background: $fog;
+  background: $canvas;
 }
 .sheet {
   position: relative;
   margin-top: -56rpx;
   border-radius: 56rpx 56rpx 0 0;
-  background: $fog;
+  background: $canvas;
   padding: 40rpx 36rpx 0;
 }
 .author {
@@ -160,9 +160,9 @@ function order() {
 .role {
   padding: 6rpx 18rpx;
   border-radius: 14rpx;
-  background: $mist;
+  background: $latte;
   font-size: 21rpx;
-  color: $forest;
+  color: $espresso;
   font-weight: 700;
 }
 .title {
@@ -188,7 +188,7 @@ function order() {
 .tag {
   margin-right: 14rpx;
   font-size: 25rpx;
-  color: $matcha;
+  color: $toffee;
   font-weight: 600;
 }
 .related {
@@ -245,7 +245,7 @@ function order() {
   right: 0;
   bottom: 0;
   padding: 16rpx 28rpx calc(env(safe-area-inset-bottom) + 16rpx) 36rpx;
-  background: rgba(250, 251, 247, 0.96);
+  background: rgba($paper, 0.96);
   box-shadow: 0 -1rpx 0 $line;
   display: flex;
   align-items: center;
@@ -274,11 +274,11 @@ function order() {
   flex: 1;
   height: 92rpx;
   border-radius: 30rpx;
-  background: $forest;
+  background: $espresso;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: $shadow-forest;
+  box-shadow: $shadow-coffee;
 }
 .b-cta-t {
   margin-left: 10rpx;

@@ -12,8 +12,8 @@ export const USER = {
 
 /** 储值档位：充 500 送 100，充 1000 送 300 */
 export const RECHARGE_TIERS = [
-  { amount: 500, bonus: 100, name: 'Sage 储值', note: '相当于 8.3 折' },
-  { amount: 1000, bonus: 300, name: 'Forest 储值', note: '相当于 7.7 折', hot: true }
+  { amount: 500, bonus: 100, name: '醇香储值', note: '相当于 8.3 折' },
+  { amount: 1000, bonus: 300, name: '深焙储值', note: '相当于 7.7 折', hot: true }
 ]
 
 /** 商家发放的礼品券（Mock） */
@@ -39,7 +39,7 @@ export function seedCoupons(now = Date.now()): Coupon[] {
       value: 0.85,
       threshold: 0,
       maxOff: 10,
-      issuer: '苔生 新天地店',
+      issuer: STORE.name,
       reason: '秋季限定上新',
       startAt: now - 2 * D,
       endAt: now + 6 * D,
@@ -52,7 +52,7 @@ export function seedCoupons(now = Date.now()): Coupon[] {
       type: 'gift',
       value: 38,
       threshold: 0,
-      issuer: '苔生会员中心',
+      issuer: '可森会员中心',
       reason: '11 月生日礼遇',
       startAt: now - 6 * D,
       endAt: now + 23 * D,
@@ -77,7 +77,7 @@ export function seedCoupons(now = Date.now()): Coupon[] {
       type: 'cash',
       value: 15,
       threshold: 60,
-      issuer: '苔生 新天地店',
+      issuer: STORE.name,
       reason: '开店三周年',
       startAt: now - 30 * D,
       endAt: now - 3 * D,
@@ -89,11 +89,11 @@ export function seedCoupons(now = Date.now()): Coupon[] {
 /** 商家兑换码（Mock）：在礼品券页输入即可领取 */
 export const REDEEM_CODES: Record<string, Omit<Coupon, 'id' | 'startAt' | 'endAt' | 'status'> & { days: number }> = {
   MOSS2026: {
-    title: '苔生兑换礼',
+    title: '可森兑换礼',
     type: 'cash',
     value: 6,
     threshold: 25,
-    issuer: '苔生 新天地店',
+    issuer: STORE.name,
     reason: '门店兑换码',
     days: 14,
     isNew: true

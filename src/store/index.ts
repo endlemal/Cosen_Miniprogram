@@ -5,7 +5,7 @@
 import { reactive, computed, watch } from 'vue'
 import type { CartItem, Coupon, Order, Product, RechargeRecord, SpecGroup, TabKey } from '@/types'
 import { STORE } from '@/mock/products'
-import { REDEEM_CODES, seedCoupons, seedOrders, seedRecharges } from '@/mock/seed'
+import { RECHARGE_TIERS, REDEEM_CODES, seedCoupons, seedOrders, seedRecharges } from '@/mock/seed'
 import { pad } from '@/utils/format'
 
 const KEY = 'mossy-state-v1'
@@ -13,6 +13,7 @@ const D = 24 * 3600 * 1000
 
 interface Persisted {
   cart: CartItem[]
+  rechargeQuantities: Record<number, number>
   balance: number
   rechargeTotal: number
   bonusTotal: number
@@ -28,6 +29,7 @@ interface Persisted {
 function initial(): Persisted {
   return {
     cart: [],
+    rechargeQuantities: {},
     balance: 236,
     rechargeTotal: 500,
     bonusTotal: 100,
@@ -150,6 +152,14 @@ export function changeQty(key: string, delta: number) {
 
 export function clearCart() {
   state.cart.splice(0, state.cart.length)
+  state.rechargeQuantities = {}
+}
+
+export function changeRechargeQty(amount: number, delta: number) {
+  const qty = (state.rechargeQuantities[amount] || 0) + delta
+  if (qty > 0) state.rechargeQuantities[amount] = qty
+  else delete state.rechargeQuantities[amount]
+  if (delta > 0) state.ui.cartPulse++
 }
 
 export function reorder(order: Order) {
@@ -161,7 +171,13 @@ export function reorder(order: Order) {
   state.ui.cartPulse++
 }
 
-export const cartCount = computed(() => state.cart.reduce((s, c) => s + c.qty, 0))
+export const rechargeCart = computed(() => RECHARGE_TIERS
+  .map((tier) => ({ ...tier, qty: state.rechargeQuantities[tier.amount] || 0 }))
+  .filter((tier) => tier.qty > 0))
+export const rechargeCartTotal = computed(() => rechargeCart.value.reduce((s, t) => s + t.amount * t.qty, 0))
+export const cartCount = computed(() =>
+  state.cart.reduce((s, c) => s + c.qty, 0) + rechargeCart.value.reduce((s, t) => s + t.qty, 0)
+)
 export const cartTotal = computed(() => state.cart.reduce((s, c) => s + c.qty * c.unitPrice, 0))
 
 export function qtyOfProduct(id: string) {
@@ -248,9 +264,9 @@ export function recharge(amount: number, bonus: number) {
 
 export const memberLevel = computed(() => {
   const t = state.rechargeTotal
-  if (t >= 2000) return { name: 'Forest 会员', next: 0, nextName: '' }
-  if (t >= 500) return { name: 'Sage 会员', next: 2000 - t, nextName: 'Forest' }
-  return { name: 'Leaf 会员', next: 500 - t, nextName: 'Sage' }
+  if (t >= 2000) return { name: '深焙会员', next: 0, nextName: '' }
+  if (t >= 500) return { name: '醇香会员', next: 2000 - t, nextName: '深焙' }
+  return { name: '可森会员', next: 500 - t, nextName: '醇香' }
 })
 
 /* ---------------- 订单 ---------------- */
@@ -298,7 +314,7 @@ export function placeOrder(input: PlaceOrderInput): Order {
   }
   state.orders.unshift(order)
   state.points += Math.floor(total)
-  clearCart()
+  state.cart.splice(0, state.cart.length)
   return order
 }
 

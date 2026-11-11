@@ -8,7 +8,7 @@
     </view>
 
     <scroll-view scroll-y class="scroll" @scroll="onScroll">
-      <view :style="{ height: L.header + 'px' }" />
+      <view :style="{ height: L.header + L.topGap + 'px' }" />
 
       <!-- 个人信息 -->
       <view class="me">
@@ -19,7 +19,7 @@
           <text class="me-name">{{ USER.name }}</text>
           <view class="me-row">
             <view class="level">
-              <Icon name="crown" :size="22" color="#2C4431" :stroke="2.2" />
+              <Icon name="crown" :size="22" color="#462719" :stroke="2.2" />
               <text class="level-t">{{ memberLevel.name }}</text>
             </view>
             <text class="me-phone">{{ USER.phone }}</text>
@@ -29,9 +29,7 @@
 
       <!-- 储值卡 -->
       <view class="card">
-        <view class="orb o1" />
-        <view class="orb o2" />
-        <view class="orb o3" />
+        <image class="card-pattern" src="/static/coffee-splash.svg" mode="aspectFill" />
         <text class="card-l">储值余额</text>
         <view class="bal">
           <text class="bal-c">¥</text>
@@ -48,29 +46,8 @@
             <text class="stat-l">礼品券</text>
           </view>
           <view class="topup" hover-class="tap-on" @tap="go('/pages/recharge/index')">
-            <Icon name="plus" :size="28" color="#2C4431" :stroke="2.8" />
+            <Icon name="plus" :size="28" color="#462719" :stroke="2.8" />
             <text class="topup-t">充值</text>
-          </view>
-        </view>
-      </view>
-
-      <!-- 储值档位 -->
-      <view class="tiers">
-        <view
-          v-for="(t, i) in RECHARGE_TIERS"
-          :key="t.amount"
-          class="tier"
-          :class="{ hot: t.hot }"
-          hover-class="tap-on"
-          @tap="go('/pages/recharge/index?tier=' + i)"
-        >
-          <view class="tier-l">
-            <text class="tier-k">充 {{ t.amount }}</text>
-            <text class="tier-s">到账 {{ t.amount + t.bonus }}</text>
-          </view>
-          <view class="tier-r">
-            <text class="tier-plus">送</text>
-            <text class="tier-n">{{ t.bonus }}</text>
           </view>
         </view>
       </view>
@@ -78,39 +55,39 @@
       <!-- 商家礼赠提醒 -->
       <view v-if="newest" class="gift" hover-class="tap-on" @tap="go('/pages/coupons/index')">
         <view class="gift-ic">
-          <Icon name="gift" :size="36" color="#FAFBF7" :stroke="2.1" />
+          <Icon name="gift" :size="36" color="#FFF9F0" :stroke="2.1" />
         </view>
         <view class="gift-txt">
           <text class="gift-t">{{ newest.issuer }}送你一张「{{ newest.title }}」</text>
           <text class="gift-s">{{ newest.reason }}，{{ newCouponCount > 1 ? '还有 ' + (newCouponCount - 1) + ' 张新券待查看' : '点开查看' }}</text>
         </view>
-        <Icon name="right" :size="30" color="#97A094" />
+        <Icon name="right" :size="30" color="#856951" />
       </view>
 
       <!-- 快捷入口 -->
       <view class="grid">
         <view class="cell" hover-class="tap-on" @tap="go('/pages/coupons/index')">
           <view class="cell-ic">
-            <Icon name="ticket" :size="40" color="#3B5A40" />
+            <Icon name="ticket" :size="40" color="#663A24" />
             <view v-if="newCouponCount" class="cell-dot" />
           </view>
           <text class="cell-t">礼品券</text>
         </view>
         <view class="cell" hover-class="tap-on" @tap="go('/pages/recharge/index')">
           <view class="cell-ic">
-            <Icon name="wallet" :size="40" color="#3B5A40" />
+            <Icon name="wallet" :size="40" color="#663A24" />
           </view>
           <text class="cell-t">会员储值</text>
         </view>
         <view class="cell" hover-class="tap-on" @tap="toMenu">
           <view class="cell-ic">
-            <Icon name="bag" :size="40" color="#3B5A40" />
+            <Icon name="bag" :size="40" color="#663A24" />
           </view>
           <text class="cell-t">继续点单</text>
         </view>
         <view class="cell" hover-class="tap-on" @tap="showStore">
           <view class="cell-ic">
-            <Icon name="store" :size="40" color="#3B5A40" />
+            <Icon name="store" :size="40" color="#663A24" />
           </view>
           <text class="cell-t">门店信息</text>
         </view>
@@ -153,10 +130,10 @@
       </view>
 
       <view class="reset" hover-class="tap-on" @tap="onReset">
-        <Icon name="refresh" :size="24" color="#97A094" />
+        <Icon name="refresh" :size="24" color="#856951" />
         <text class="reset-t">重置演示数据</text>
       </view>
-      <text class="foot">苔生 Mossy，页面中的商品、订单与支付均为 Mock 数据</text>
+      <text class="foot">可森 COSEN · 商品、订单与支付均为演示数据</text>
       <view class="tail" />
     </scroll-view>
   </view>
@@ -168,7 +145,7 @@ import type { Order } from '@/types'
 import Icon from '@/components/Icon.vue'
 import DrinkArt from '@/components/DrinkArt.vue'
 import { STORE } from '@/mock/products'
-import { RECHARGE_TIERS, USER } from '@/mock/seed'
+import { USER } from '@/mock/seed'
 import {
   state,
   memberLevel,
@@ -216,7 +193,7 @@ function showStore() {
     content: `${STORE.address}\n营业时间 ${STORE.hours}\n电话 ${STORE.phone}`,
     showCancel: false,
     confirmText: '知道了',
-    confirmColor: '#3B5A40'
+    confirmColor: '#663A24'
   })
 }
 function onReset() {
@@ -224,7 +201,7 @@ function onReset() {
     title: '重置演示数据？',
     content: '余额、礼品券、订单和购物车会恢复到初始状态',
     confirmText: '重置',
-    confirmColor: '#3B5A40',
+    confirmColor: '#663A24',
     success: (r) => {
       if (r.confirm) {
         resetDemo()
@@ -248,7 +225,7 @@ function onReset() {
   z-index: 20;
   transition: background 0.2s ease;
   &.solid {
-    background: rgba(238, 240, 234, 0.94);
+    background: rgba($canvas, 0.94);
     box-shadow: 0 1rpx 0 $line;
   }
 }
@@ -276,7 +253,7 @@ function onReset() {
   width: 112rpx;
   height: 112rpx;
   border-radius: 40rpx;
-  background: linear-gradient(140deg, $sage 0%, $moss 100%);
+  background: linear-gradient(140deg, $caramel 0%, $mocha 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -306,7 +283,7 @@ function onReset() {
   height: 42rpx;
   padding: 0 16rpx 0 12rpx;
   border-radius: 14rpx;
-  background: $sage;
+  background: $caramel;
   display: flex;
   align-items: center;
 }
@@ -314,7 +291,7 @@ function onReset() {
   margin-left: 6rpx;
   font-size: 21rpx;
   font-weight: 700;
-  color: $pine;
+  color: $roast;
 }
 .me-phone {
   margin-left: 16rpx;
@@ -329,43 +306,25 @@ function onReset() {
   margin: 40rpx 28rpx 0;
   height: 400rpx;
   border-radius: 56rpx;
-  background: $forest;
+  background: $espresso;
   padding: 44rpx 44rpx 0;
   overflow: hidden;
-  box-shadow: $shadow-forest;
+  box-shadow: $shadow-coffee;
   display: flex;
   flex-direction: column;
 }
-.orb {
+.card-pattern {
   position: absolute;
-  border-radius: 50%;
-}
-.o1 {
-  width: 300rpx;
-  height: 300rpx;
-  top: -120rpx;
-  right: -80rpx;
-  background: $moss;
-}
-.o2 {
-  width: 200rpx;
-  height: 200rpx;
-  top: -40rpx;
-  right: 120rpx;
-  background: rgba(163, 180, 139, 0.55);
-}
-.o3 {
-  width: 130rpx;
-  height: 130rpx;
-  top: -10rpx;
-  right: 40rpx;
-  background: $forest;
-  box-shadow: -8rpx 14rpx 26rpx rgba(20, 34, 24, 0.35);
+  top: 0;
+  right: 0;
+  width: 56%;
+  height: 100%;
+  opacity: 0.5;
 }
 .card-l {
   position: relative;
   font-size: 24rpx;
-  color: $sage-soft;
+  color: $cream;
 }
 .bal {
   position: relative;
@@ -390,7 +349,7 @@ function onReset() {
   position: relative;
   margin-top: 6rpx;
   font-size: 22rpx;
-  color: rgba(250, 251, 247, 0.7);
+  color: rgba($paper, 0.7);
 }
 .card-foot {
   position: absolute;
@@ -413,14 +372,14 @@ function onReset() {
 }
 .stat-l {
   font-size: 21rpx;
-  color: $sage-soft;
+  color: $cream;
 }
 .topup {
   margin-left: auto;
   height: 80rpx;
   padding: 0 36rpx 0 28rpx;
   border-radius: 28rpx;
-  background: $sage;
+  background: $caramel;
   display: flex;
   align-items: center;
 }
@@ -428,64 +387,7 @@ function onReset() {
   margin-left: 8rpx;
   font-size: 28rpx;
   font-weight: 800;
-  color: $pine;
-}
-
-/* ---------- 储值档位 ---------- */
-.tiers {
-  display: flex;
-  justify-content: space-between;
-  padding: 22rpx 28rpx 0;
-}
-.tier {
-  position: relative;
-  width: 338rpx;
-  height: 132rpx;
-  border-radius: 36rpx;
-  background: $paper;
-  box-shadow: $shadow-soft;
-  padding: 0 30rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  overflow: hidden;
-}
-.tier.hot {
-  background: $sage;
-}
-.tier-l {
-  display: flex;
-  flex-direction: column;
-}
-.tier-k {
-  font-size: 28rpx;
-  font-weight: 700;
-  color: $ink;
-}
-.tier-s {
-  font-size: 21rpx;
-  color: $ink-3;
-}
-.tier.hot .tier-s {
-  color: rgba(44, 68, 49, 0.7);
-}
-.tier.hot .tier-r {
-  color: $pine;
-}
-.tier-r {
-  display: flex;
-  align-items: baseline;
-  color: $matcha;
-}
-.tier-plus {
-  font-size: 24rpx;
-  font-weight: 700;
-  margin-right: 4rpx;
-}
-.tier-n {
-  font-size: 56rpx;
-  font-weight: 800;
-  @include num;
+  color: $roast;
 }
 
 /* ---------- 礼赠提醒 ---------- */
@@ -493,7 +395,7 @@ function onReset() {
   margin: 22rpx 28rpx 0;
   padding: 22rpx 24rpx;
   border-radius: 36rpx;
-  background: $mist;
+  background: $latte;
   display: flex;
   align-items: center;
 }
@@ -501,7 +403,7 @@ function onReset() {
   width: 76rpx;
   height: 76rpx;
   border-radius: 26rpx;
-  background: $matcha;
+  background: $toffee;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -545,7 +447,7 @@ function onReset() {
   width: 88rpx;
   height: 88rpx;
   border-radius: 30rpx;
-  background: $mist;
+  background: $latte;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -558,7 +460,7 @@ function onReset() {
   height: 16rpx;
   border-radius: 50%;
   background: #d9483b;
-  border: 3rpx solid $mist;
+  border: 3rpx solid $latte;
 }
 .cell-t {
   margin-top: 12rpx;
@@ -637,10 +539,10 @@ function onReset() {
   border-radius: 10rpx;
   font-size: 19rpx;
   color: $ink-3;
-  background: $fog;
+  background: $canvas;
   &.live {
     color: $paper;
-    background: $matcha;
+    background: $toffee;
   }
 }
 .o-items {

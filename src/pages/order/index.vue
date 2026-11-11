@@ -13,7 +13,7 @@
         <view class="steps">
           <view v-for="(s, i) in stage.steps" :key="s" class="step" :class="{ done: i <= stage.step }">
             <view class="dot">
-              <Icon v-if="i < stage.step" name="check" :size="20" color="#2C4431" :stroke="3.2" />
+              <Icon v-if="i < stage.step" name="check" :size="20" color="#462719" :stroke="3.2" />
               <view v-else-if="i === stage.step" class="dot-in" />
             </view>
             <text class="step-t">{{ s }}</text>
@@ -24,7 +24,7 @@
 
       <view class="box where">
         <view class="w-head">
-          <Icon :name="order.mode === 'pickup' ? 'store' : 'scooter'" :size="32" color="#3B5A40" />
+          <Icon :name="order.mode === 'pickup' ? 'store' : 'scooter'" :size="32" color="#663A24" />
           <text class="w-t">{{ order.mode === 'pickup' ? order.store : '外卖配送' }}</text>
         </view>
         <text class="w-s">{{ order.mode === 'pickup' ? STORE.address : '淮海中路 300 号 香港新世界大厦 18F 前台' }}</text>
@@ -80,7 +80,7 @@
 
       <view class="actions">
         <view class="btn ghost" hover-class="tap-on" @tap="call">
-          <Icon name="phone" :size="30" color="#3B5A40" />
+          <Icon name="phone" :size="30" color="#663A24" />
           <text class="btn-t ink">联系门店</text>
         </view>
         <view class="btn" hover-class="tap-on" @tap="again">
@@ -132,7 +132,7 @@ function again() {
 <style lang="scss" scoped>
 .page {
   min-height: 100vh;
-  background: $fog;
+  background: $canvas;
 }
 .wrap {
   padding: 12rpx 28rpx 0;
@@ -141,9 +141,9 @@ function again() {
   position: relative;
   padding: 44rpx 44rpx 40rpx;
   border-radius: 56rpx;
-  background: $forest;
+  background: $espresso;
   overflow: hidden;
-  box-shadow: $shadow-forest;
+  box-shadow: $shadow-coffee;
   display: flex;
   flex-direction: column;
 }
@@ -156,19 +156,19 @@ function again() {
   height: 280rpx;
   right: -90rpx;
   top: -100rpx;
-  background: $moss;
+  background: $mocha;
 }
 .o2 {
   width: 150rpx;
   height: 150rpx;
   right: 70rpx;
   top: 40rpx;
-  background: rgba(163, 180, 139, 0.5);
+  background: rgba($caramel, 0.5);
 }
 .cc-l {
   position: relative;
   font-size: 24rpx;
-  color: $sage-soft;
+  color: $cream;
 }
 .cc-code {
   position: relative;
@@ -189,7 +189,7 @@ function again() {
 .cc-hint {
   position: relative;
   font-size: 24rpx;
-  color: rgba(250, 251, 247, 0.75);
+  color: rgba($paper, 0.75);
 }
 .steps {
   position: relative;
@@ -209,24 +209,24 @@ function again() {
   width: 40rpx;
   height: 40rpx;
   border-radius: 50%;
-  background: rgba(250, 251, 247, 0.16);
+  background: rgba($paper, 0.16);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .step.done .dot {
-  background: $sage;
+  background: $caramel;
 }
 .dot-in {
   width: 14rpx;
   height: 14rpx;
   border-radius: 50%;
-  background: $pine;
+  background: $roast;
 }
 .step-t {
   margin-top: 12rpx;
   font-size: 22rpx;
-  color: rgba(250, 251, 247, 0.55);
+  color: rgba($paper, 0.55);
 }
 .step.done .step-t {
   color: $paper;
@@ -239,9 +239,9 @@ function again() {
   top: 18rpx;
   height: 4rpx;
   border-radius: 4rpx;
-  background: rgba(250, 251, 247, 0.16);
+  background: rgba($paper, 0.16);
   &.done {
-    background: $sage;
+    background: $caramel;
   }
 }
 .box {
@@ -355,13 +355,13 @@ function again() {
   flex: 1;
   height: 96rpx;
   border-radius: 32rpx;
-  background: $forest;
+  background: $espresso;
   display: flex;
   align-items: center;
   justify-content: center;
   &.ghost {
     margin-right: 20rpx;
-    background: $mist;
+    background: $latte;
   }
 }
 .btn-t {
@@ -370,7 +370,7 @@ function again() {
   font-weight: 700;
   color: $paper;
   &.ink {
-    color: $forest;
+    color: $espresso;
   }
 }
 .tail {

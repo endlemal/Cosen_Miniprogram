@@ -19,14 +19,14 @@
         <text class="title">{{ coupon.title }}</text>
       </view>
       <view class="issuer">
-        <Icon name="gift" :size="24" :color="mode === 'available' ? '#6E8B3D' : '#97A094'" />
+        <Icon name="gift" :size="24" :color="mode === 'available' ? '#87512E' : '#856951'" />
         <text class="issuer-t">{{ coupon.issuer }} 发放</text>
       </view>
       <text class="reason">{{ reason || coupon.reason }}</text>
       <view class="b-foot">
         <text class="until">{{ untilText }}</text>
         <view v-if="selectable" class="radio" :class="{ on: selected }">
-          <Icon v-if="selected" name="check" :size="26" color="#FAFBF7" :stroke="3" />
+          <Icon v-if="selected" name="check" :size="26" color="#FFF9F0" :stroke="3" />
         </view>
         <view v-else-if="mode === 'available'" class="use" hover-class="tap-on" @tap.stop="emit('use')">
           <text class="use-t">去使用</text>
@@ -59,7 +59,7 @@ const props = withDefaults(
     selected?: boolean
     holeBg?: string
   }>(),
-  { mode: 'available', reason: '', selectable: false, selected: false, holeBg: '#EEF0EA' }
+  { mode: 'available', reason: '', selectable: false, selected: false, holeBg: '#F8F0E3' }
 )
 const emit = defineEmits<{ (e: 'use'): void; (e: 'select'): void }>()
 
@@ -95,7 +95,7 @@ function onTap() {
   box-shadow: $shadow-soft;
   border: 3rpx solid transparent;
   &.selected {
-    border-color: $forest;
+    border-color: $espresso;
   }
 }
 .stub {
@@ -105,14 +105,14 @@ function onTap() {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: $forest;
+  background: $espresso;
   color: $paper;
   &.t-discount {
-    background: $matcha;
+    background: $toffee;
   }
   &.t-gift {
-    background: $sage;
-    color: $pine;
+    background: $caramel;
+    color: $roast;
   }
 }
 .unusable .stub,
@@ -169,7 +169,7 @@ function onTap() {
   top: 26rpx;
   bottom: 26rpx;
   left: -1rpx;
-  border-left: 2rpx dashed rgba(30, 42, 33, 0.14);
+  border-left: 2rpx dashed rgba($ink, 0.14);
 }
 .body {
   flex: 1;
@@ -191,7 +191,7 @@ function onTap() {
 .issuer-t {
   margin-left: 8rpx;
   font-size: 22rpx;
-  color: $matcha;
+  color: $toffee;
   font-weight: 600;
 }
 .used .issuer-t,
@@ -223,7 +223,7 @@ function onTap() {
   height: 56rpx;
   padding: 0 26rpx;
   border-radius: 20rpx;
-  background: $forest;
+  background: $espresso;
   display: flex;
   align-items: center;
 }
@@ -236,13 +236,13 @@ function onTap() {
   width: 44rpx;
   height: 44rpx;
   border-radius: 50%;
-  border: 3rpx solid rgba(30, 42, 33, 0.2);
+  border: 3rpx solid rgba($ink, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
   &.on {
-    background: $forest;
-    border-color: $forest;
+    background: $espresso;
+    border-color: $espresso;
   }
 }
 .unusable .title,
@@ -272,6 +272,6 @@ function onTap() {
 .new {
   font-size: 20rpx;
   font-weight: 700;
-  color: $forest;
+  color: $espresso;
 }
 </style>

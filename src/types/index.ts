@@ -2,7 +2,7 @@ export type TabKey = 'square' | 'menu' | 'mine'
 
 /** 用 CSS 画出来的饮品插画参数（替代真实商品图） */
 export interface DrinkArtSpec {
-  cup: 'tall' | 'rocks' | 'mug'
+  cup: 'tall' | 'pint' | 'rocks' | 'mug'
   liquid: [string, string]
   /** 顶部奶层颜色 */
   milk?: string

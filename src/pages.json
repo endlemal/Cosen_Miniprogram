@@ -13,11 +13,11 @@
   "globalStyle": {
     "navigationStyle": "custom",
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "苔生 Mossy",
-    "navigationBarBackgroundColor": "#EEF0EA",
-    "backgroundColor": "#EEF0EA",
-    "backgroundColorTop": "#EEF0EA",
-    "backgroundColorBottom": "#EEF0EA",
+    "navigationBarTitleText": "可森 COSEN",
+    "navigationBarBackgroundColor": "#F8F0E3",
+    "backgroundColor": "#F8F0E3",
+    "backgroundColorTop": "#F8F0E3",
+    "backgroundColorBottom": "#F8F0E3",
     "backgroundTextStyle": "dark"
   }
 }

@@ -13,11 +13,11 @@
       <!-- 取餐方式 -->
       <view class="mode">
         <view class="mode-i" :class="{ on: state.mode === 'pickup' }" @tap="state.mode = 'pickup'">
-          <Icon name="store" :size="34" :color="state.mode === 'pickup' ? '#FAFBF7' : '#566156'" />
+          <Icon name="store" :size="34" :color="state.mode === 'pickup' ? '#FFF9F0' : '#6D513D'" />
           <text class="mode-t">到店自取</text>
         </view>
         <view class="mode-i" :class="{ on: state.mode === 'delivery' }" @tap="state.mode = 'delivery'">
-          <Icon name="scooter" :size="34" :color="state.mode === 'delivery' ? '#FAFBF7' : '#566156'" />
+          <Icon name="scooter" :size="34" :color="state.mode === 'delivery' ? '#FFF9F0' : '#6D513D'" />
           <text class="mode-t">外卖配送</text>
         </view>
       </view>
@@ -27,7 +27,7 @@
           <text class="w-t">{{ STORE.name }}</text>
           <text class="w-s">{{ STORE.address }}，距你 {{ STORE.distance }}</text>
           <view class="w-eta">
-            <Icon name="clock" :size="26" color="#6E8B3D" />
+            <Icon name="clock" :size="26" color="#87512E" />
             <text class="w-eta-t">现在下单，约 8 分钟后可取</text>
           </view>
         </template>
@@ -35,7 +35,7 @@
           <text class="w-t">淮海中路 300 号 香港新世界大厦 18F 前台</text>
           <text class="w-s">{{ USER.name }} {{ USER.phone }}</text>
           <view class="w-eta">
-            <Icon name="clock" :size="26" color="#6E8B3D" />
+            <Icon name="clock" :size="26" color="#87512E" />
             <text class="w-eta-t">预计 30 分钟送达，配送费 4 元</text>
           </view>
         </template>
@@ -62,26 +62,26 @@
       <view class="box">
         <view class="row" hover-class="tap-on" @tap="couponOpen = true">
           <view class="row-l">
-            <Icon name="ticket" :size="32" color="#3B5A40" />
+            <Icon name="ticket" :size="32" color="#663A24" />
             <text class="row-t">礼品券</text>
           </view>
           <view class="row-r">
             <text v-if="chosen" class="off">−¥{{ money(discount) }}</text>
             <text v-else class="row-v">{{ usableCount ? usableCount + ' 张可用' : '暂无可用' }}</text>
-            <Icon name="right" :size="28" color="#97A094" />
+            <Icon name="right" :size="28" color="#856951" />
           </view>
         </view>
         <text v-if="chosen" class="row-note">已选「{{ chosen.title }}」，{{ chosen.issuer }}发放</text>
         <view v-if="fee > 0" class="row">
           <view class="row-l">
-            <Icon name="scooter" :size="32" color="#3B5A40" />
+            <Icon name="scooter" :size="32" color="#663A24" />
             <text class="row-t">配送费</text>
           </view>
           <text class="row-v ink">¥{{ fee }}</text>
         </view>
         <view class="row">
           <view class="row-l">
-            <Icon name="chat" :size="32" color="#3B5A40" />
+            <Icon name="chat" :size="32" color="#663A24" />
             <text class="row-t">备注</text>
           </view>
           <input v-model="remark" class="remark" placeholder="口味、包装等要求" placeholder-class="ph" maxlength="40" />
@@ -93,7 +93,7 @@
         <text class="box-t">支付方式</text>
         <view class="pay" :class="{ on: pay === 'balance', off: !balanceEnough }" @tap="pickBalance">
           <view class="pay-ic forest">
-            <Icon name="wallet" :size="34" color="#FAFBF7" />
+            <Icon name="wallet" :size="34" color="#FFF9F0" />
           </view>
           <view class="pay-info">
             <text class="pay-t">会员余额</text>
@@ -105,19 +105,19 @@
             <text class="pay-topup-t">去充值</text>
           </view>
           <view v-else class="radio" :class="{ on: pay === 'balance' }">
-            <Icon v-if="pay === 'balance'" name="check" :size="24" color="#FAFBF7" :stroke="3" />
+            <Icon v-if="pay === 'balance'" name="check" :size="24" color="#FFF9F0" :stroke="3" />
           </view>
         </view>
         <view class="pay" :class="{ on: pay === 'wechat' }" @tap="pay = 'wechat'">
           <view class="pay-ic wx">
-            <Icon name="chat" :size="34" color="#FAFBF7" />
+            <Icon name="chat" :size="34" color="#FFF9F0" />
           </view>
           <view class="pay-info">
             <text class="pay-t">微信支付</text>
             <text class="pay-s">演示环境，不会真实扣款</text>
           </view>
           <view class="radio" :class="{ on: pay === 'wechat' }">
-            <Icon v-if="pay === 'wechat'" name="check" :size="24" color="#FAFBF7" :stroke="3" />
+            <Icon v-if="pay === 'wechat'" name="check" :size="24" color="#FFF9F0" :stroke="3" />
           </view>
         </view>
       </view>
@@ -140,12 +140,12 @@
     </view>
 
     <!-- 选券 -->
-    <Sheet v-model:show="couponOpen" title="选择礼品券" bg="#EEF0EA" max-height="80vh">
+    <Sheet v-model:show="couponOpen" title="选择礼品券" bg="#F8F0E3" max-height="80vh">
       <scroll-view scroll-y class="c-list">
         <view class="none" :class="{ on: !couponId }" hover-class="tap-on" @tap="pickCoupon('')">
           <text class="none-t">不使用礼品券</text>
           <view class="radio" :class="{ on: !couponId }">
-            <Icon v-if="!couponId" name="check" :size="24" color="#FAFBF7" :stroke="3" />
+            <Icon v-if="!couponId" name="check" :size="24" color="#FFF9F0" :stroke="3" />
           </view>
         </view>
         <CouponCard
@@ -250,7 +250,7 @@ function submit() {
 <style lang="scss" scoped>
 .page {
   min-height: 100vh;
-  background: $fog;
+  background: $canvas;
 }
 .wrap {
   padding: 12rpx 28rpx 0;
@@ -270,7 +270,7 @@ function submit() {
   height: 84rpx;
   padding: 0 60rpx;
   border-radius: 30rpx;
-  background: $forest;
+  background: $espresso;
   display: flex;
   align-items: center;
 }
@@ -282,7 +282,7 @@ function submit() {
   display: flex;
   padding: 8rpx;
   border-radius: 34rpx;
-  background: $mist;
+  background: $latte;
 }
 .mode-i {
   flex: 1;
@@ -293,7 +293,7 @@ function submit() {
   justify-content: center;
   transition: background 0.2s ease;
   &.on {
-    background: $forest;
+    background: $espresso;
   }
 }
 .mode-t {
@@ -338,12 +338,12 @@ function submit() {
   align-self: flex-start;
   padding: 10rpx 18rpx;
   border-radius: 18rpx;
-  background: $mist;
+  background: $latte;
 }
 .w-eta-t {
   margin-left: 8rpx;
   font-size: 23rpx;
-  color: $matcha;
+  color: $toffee;
   font-weight: 600;
 }
 .item {
@@ -432,7 +432,7 @@ function submit() {
   display: block;
   margin: -10rpx 0 8rpx 46rpx;
   font-size: 21rpx;
-  color: $matcha;
+  color: $toffee;
 }
 .remark {
   flex: 1;
@@ -459,7 +459,7 @@ function submit() {
   align-items: center;
   justify-content: center;
   &.forest {
-    background: $forest;
+    background: $espresso;
   }
   &.wx {
     background: #3f9b5f;
@@ -487,26 +487,26 @@ function submit() {
   height: 56rpx;
   padding: 0 24rpx;
   border-radius: 20rpx;
-  background: $sage;
+  background: $caramel;
   display: flex;
   align-items: center;
 }
 .pay-topup-t {
   font-size: 23rpx;
   font-weight: 700;
-  color: $pine;
+  color: $roast;
 }
 .radio {
   width: 44rpx;
   height: 44rpx;
   border-radius: 50%;
-  border: 3rpx solid rgba(30, 42, 33, 0.2);
+  border: 3rpx solid rgba($ink, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
   &.on {
-    background: $forest;
-    border-color: $forest;
+    background: $espresso;
+    border-color: $espresso;
   }
 }
 .tail {
@@ -518,7 +518,7 @@ function submit() {
   right: 0;
   bottom: 0;
   padding: 20rpx 28rpx calc(env(safe-area-inset-bottom) + 20rpx) 40rpx;
-  background: rgba(250, 251, 247, 0.96);
+  background: rgba($paper, 0.96);
   box-shadow: 0 -1rpx 0 $line;
   display: flex;
   align-items: center;
@@ -555,10 +555,10 @@ function submit() {
   height: 96rpx;
   padding: 0 56rpx;
   border-radius: 32rpx;
-  background: $forest;
+  background: $espresso;
   display: flex;
   align-items: center;
-  box-shadow: $shadow-forest;
+  box-shadow: $shadow-coffee;
   &.busy {
     opacity: 0.7;
   }
@@ -583,7 +583,7 @@ function submit() {
   justify-content: space-between;
   border: 3rpx solid transparent;
   &.on {
-    border-color: $forest;
+    border-color: $espresso;
   }
 }
 .none-t {

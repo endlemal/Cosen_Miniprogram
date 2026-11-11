@@ -1,213 +1,161 @@
-<!-- 广场：问候卡（参考稿 1）+ 商家日常分享的瀑布流 -->
 <template>
   <view class="view">
-    <view class="topbar" :class="{ solid: scrolled }" :style="{ height: L.header + 'px', paddingTop: L.statusBar + 'px' }">
-      <view class="tb-row" :style="{ height: L.navHeight + 'px' }">
-        <text class="brand">苔生</text>
-        <text class="brand-en">Mossy Matcha Coffee</text>
+    <view class="topbar" :style="{ paddingTop: L.statusBar + L.topGap + 'px' }">
+      <view class="nav" :style="{ height: L.navHeight + 'px', paddingRight: L.capsule ? L.capsule + 'px' : '32rpx' }">
+        <view class="wordmark">
+          <text class="brand">可森</text>
+          <text class="brand-en">COSEN</text>
+        </view>
+        <view class="bell" hover-class="tap-on" @tap="toCoupons">
+          <Icon name="bell" :size="34" color="#462719" :stroke="2.1" />
+          <text v-if="newCouponCount > 0" class="bell-dot">{{ newCouponCount }}</text>
+        </view>
       </view>
     </view>
 
     <scroll-view
       scroll-y
       class="scroll"
-      :lower-threshold="400"
+      :lower-threshold="240"
       :refresher-enabled="true"
       :refresher-triggered="refreshing"
-      refresher-background="#EEF0EA"
-      @scroll="onScroll"
+      refresher-background="#F8F0E3"
       @scrolltolower="loadMore"
       @refresherrefresh="onRefresh"
     >
-      <view :style="{ height: L.header + 'px' }" />
-
-      <!-- 问候卡 -->
-      <view class="hello">
-        <view class="orb o1" />
-        <view class="orb o2" />
-        <view class="orb o3" />
-        <view class="bell" hover-class="tap-on" @tap="toCoupons">
-          <Icon name="bell" :size="46" color="#FAFBF7" :stroke="2.2" />
-          <view v-if="newCouponCount > 0" class="bell-dot">
-            <text class="bell-n">{{ newCouponCount }}</text>
+      <view class="content">
+        <view class="intro">
+          <image class="intro-pattern" src="/static/coffee-splash.svg" mode="aspectFill" />
+          <view class="issue">
+            <text class="issue-name">COSEN JOURNAL</text>
+            <text class="issue-date">{{ dateText }}</text>
+          </view>
+          <text class="title">可森手记</text>
+          <view class="greeting">
+            <text>{{ hi }}，{{ USER.name }}。</text>
+            <text>从白天的咖啡，到夜里的小酌。</text>
           </view>
         </view>
-        <text class="hello-t">{{ hi }}，{{ USER.name }}</text>
-        <text class="hello-s">{{ slogan }}</text>
+
         <view class="today" hover-class="tap-on" @tap="openToday">
           <view class="today-art">
-            <DrinkArt :spec="today.art" :size="58" />
+            <DrinkArt :spec="today.art" :size="54" />
           </view>
           <view class="today-info">
-            <text class="today-l">今日推荐</text>
-            <text class="today-n">{{ today.name }}</text>
+            <text class="today-label">今日推荐</text>
+            <text class="today-name">{{ today.name }}</text>
           </view>
-          <view class="today-go">
-            <Icon name="arrow" :size="28" color="#2C4431" :stroke="2.4" />
-          </view>
-        </view>
-        <text class="hello-date">{{ dateText }}</text>
-      </view>
-
-      <!-- 筛选 -->
-      <view class="sec-head">
-        <text class="sec-t">店里的日常</text>
-        <text class="sec-s">店长和咖啡师每天更新</text>
-      </view>
-      <scroll-view scroll-x class="tags" :show-scrollbar="false">
-        <view class="tags-in">
-          <view
-            v-for="t in POST_TAGS"
-            :key="t"
-            class="tag"
-            :class="{ on: tag === t }"
-            hover-class="tap-on"
-            @tap="setTag(t)"
-          >
-            <text class="tag-t">{{ t }}</text>
+          <view class="today-cta">
+            <text>去点单</text>
+            <Icon name="arrow" :size="24" color="#FFF9F0" :stroke="2.2" />
           </view>
         </view>
-      </scroll-view>
 
-      <!-- 瀑布流 -->
-      <view class="masonry">
-        <view v-for="(col, ci) in columns" :key="ci" class="col">
-          <view v-for="p in col" :key="p.id" class="post" hover-class="tap-on" @tap="openPost(p)">
-            <view class="post-cover">
-              <CoverArt :cover="p.cover" :width="COVER_W" :radius="26" />
-              <Notch bg="#FAFBF7" :r="22" pad="4rpx 16rpx 8rpx 20rpx">
-                <text class="post-tag">{{ p.tag }}</text>
-              </Notch>
-            </view>
+        <view class="feed-head">
+          <text class="feed-title">店里动态</text>
+          <text class="feed-sub">店长和咖啡师的日常</text>
+        </view>
+
+        <view
+          v-for="(p, i) in posts"
+          :key="p.id"
+          class="post"
+          :class="{ featured: i === 0 }"
+          hover-class="tap-on"
+          @tap="openPost(p)"
+        >
+          <view class="post-cover">
+            <CoverArt
+              :cover="p.cover"
+              :width="i === 0 ? 686 : 136"
+              :fixed-height="i === 0 ? 326 : 136"
+              :radius="0"
+            />
+            <text v-if="i === 0" class="featured-label">最新动态</text>
+          </view>
+          <view class="post-info">
             <text class="post-title">{{ p.title }}</text>
+            <text v-if="i === 0" class="post-excerpt">{{ p.content[0] }}</text>
             <view class="post-meta">
-              <view class="avatar" :style="{ background: 'linear-gradient(140deg,' + p.avatar[0] + ',' + p.avatar[1] + ')' }">
-                <text class="avatar-t">{{ initial(p.author) }}</text>
-              </view>
-              <text class="author">{{ p.author }}</text>
+              <text class="byline">{{ p.author }} · {{ ago(p.at) }}</text>
               <view class="like" @tap.stop="toggleLike(p.id)">
                 <Icon
                   :name="state.likes[p.id] ? 'heartFill' : 'heart'"
-                  :size="26"
-                  :color="state.likes[p.id] ? '#B9543F' : '#97A094'"
+                  :size="28"
+                  :color="state.likes[p.id] ? '#B9543F' : '#6D513D'"
                 />
-                <text class="like-n">{{ p.likes + (state.likes[p.id] ? 1 : 0) }}</text>
+                <text class="like-count">{{ p.likes + (state.likes[p.id] ? 1 : 0) }}</text>
               </view>
             </view>
           </view>
         </view>
-      </view>
 
-      <view class="more">
-        <text class="more-t">{{ loading ? '正在加载…' : hasMore ? '继续上滑，看看往期' : '已经看完了，明天见' }}</text>
+        <text class="more">{{ loading ? '正在加载…' : hasMore ? '继续上滑，看看往期' : '已经看完了，明天见' }}</text>
       </view>
-      <view class="tail" />
     </scroll-view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import type { Post } from '@/types'
 import Icon from '@/components/Icon.vue'
-import Notch from '@/components/Notch.vue'
 import CoverArt from '@/components/CoverArt.vue'
 import DrinkArt from '@/components/DrinkArt.vue'
-import { fetchPosts, POST_TAGS } from '@/mock/posts'
+import { fetchPosts } from '@/mock/posts'
 import { getProduct } from '@/mock/products'
 import { USER } from '@/mock/seed'
-import { state, newCouponCount, backToTab } from '@/store'
+import { state, newCouponCount, switchTab } from '@/store'
 import { getLayout } from '@/utils/layout'
-import { greeting, md, weekday } from '@/utils/format'
+import { ago, greeting, md, weekday } from '@/utils/format'
 
 const L = getLayout()
-/** 两列：750 - 左右边距 28*2 - 列间距 18 = 676 → 每列 338，卡片内边距 10 */
-const COL_W = 338
-const COVER_W = COL_W - 20
-
 const hi = greeting()
-const slogan = '抹茶让人松弛，\n星冰乐让人开心，\n今天想喝哪一杯？'
 const dateText = `${md(Date.now())} ${weekday()}`
 const today = getProduct('s1')!
 
-const scrolled = ref(false)
+const first = fetchPosts(0)
+const posts = ref(first.list)
+const hasMore = ref(first.hasMore)
 const refreshing = ref(false)
 const loading = ref(false)
-const hasMore = ref(true)
-const tag = ref('全部')
-const page = ref(0)
-const posts = ref<Post[]>([])
-
-function load(reset = false) {
-  if (reset) {
-    page.value = 0
-    posts.value = []
-    hasMore.value = true
-  }
-  const { list, hasMore: more } = fetchPosts(page.value, tag.value)
-  posts.value = posts.value.concat(list)
-  hasMore.value = more
-}
-load(true)
-
-/** 按估算高度把动态分到较矮的一列 */
-const columns = computed(() => {
-  const cols: Post[][] = [[], []]
-  const h = [0, 0]
-  posts.value.forEach((p) => {
-    const est = COVER_W / p.cover.ratio + (p.title.length > 11 ? 150 : 110)
-    const i = h[0] <= h[1] ? 0 : 1
-    cols[i].push(p)
-    h[i] += est
-  })
-  return cols
-})
-
-function onScroll(e: any) {
-  const top = e.detail.scrollTop
-  const next = top > 24
-  if (next !== scrolled.value) scrolled.value = next
-}
+let page = 0
 
 function loadMore() {
-  if (loading.value || !hasMore.value) return
+  if (loading.value || refreshing.value || !hasMore.value) return
   loading.value = true
   setTimeout(() => {
-    page.value += 1
-    load()
+    if (!refreshing.value) {
+      const next = fetchPosts(++page)
+      posts.value = posts.value.concat(next.list)
+      hasMore.value = next.hasMore
+    }
     loading.value = false
   }, 600)
 }
 
 function onRefresh() {
+  if (refreshing.value) return
   refreshing.value = true
   setTimeout(() => {
-    load(true)
+    page = 0
+    const next = fetchPosts(page)
+    posts.value = next.list
+    hasMore.value = next.hasMore
     refreshing.value = false
   }, 800)
-}
-
-function setTag(t: string) {
-  if (tag.value === t) return
-  tag.value = t
-  load(true)
 }
 
 function toggleLike(id: string) {
   state.likes[id] = !state.likes[id]
 }
 
-function initial(a: string) {
-  if (a.startsWith('苔生')) return '苔'
-  const name = a.split(' ')[1] || a
-  return name.slice(0, 1)
-}
-
 function openPost(p: Post) {
   uni.navigateTo({ url: `/pages/post/index?id=${encodeURIComponent(p.id)}` })
 }
 function openToday() {
-  backToTab('menu', today.id)
+  state.ui.pendingProductId = today.id
+  switchTab('menu')
 }
 function toCoupons() {
   uni.navigateTo({ url: '/pages/coupons/index' })
@@ -216,303 +164,283 @@ function toCoupons() {
 
 <style lang="scss" scoped>
 .view {
-  position: relative;
   height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: $canvas;
 }
 .topbar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  top: 0;
-  z-index: 20;
-  transition: background 0.2s ease, box-shadow 0.2s ease;
-  &.solid {
-    background: rgba(238, 240, 234, 0.94);
-    box-shadow: 0 1rpx 0 $line;
-  }
+  flex-shrink: 0;
+  border-bottom: 1rpx solid $line;
 }
-.tb-row {
+.nav,
+.wordmark {
   display: flex;
   align-items: center;
-  padding: 0 32rpx;
+}
+.nav {
+  justify-content: space-between;
+  padding-left: 32rpx;
 }
 .brand {
-  font-size: 38rpx;
+  font-size: 34rpx;
   font-weight: 800;
-  color: $forest;
-  letter-spacing: 2rpx;
+  letter-spacing: 3rpx;
+  color: $espresso;
 }
 .brand-en {
   margin-left: 14rpx;
-  font-size: 22rpx;
-  color: $ink-3;
   font-family: $font-latin;
-}
-.scroll {
-  height: 100vh;
-}
-
-/* ---------- 问候卡 ---------- */
-.hello {
-  position: relative;
-  margin: 28rpx 28rpx 0;
-  height: 480rpx;
-  border-radius: 64rpx;
-  background: $forest;
-  padding: 44rpx 44rpx 0;
-  box-shadow: $shadow-forest;
-  display: flex;
-  flex-direction: column;
-}
-.orb {
-  position: absolute;
-  border-radius: 50%;
-}
-.o1 {
-  width: 260rpx;
-  height: 260rpx;
-  top: -34rpx;
-  right: -18rpx;
-  background: $moss;
-  box-shadow: 0 20rpx 40rpx -10rpx rgba(20, 34, 24, 0.5);
-}
-.o2 {
-  width: 220rpx;
-  height: 220rpx;
-  top: 74rpx;
-  right: 88rpx;
-  background: $sage;
-}
-.o3 {
-  width: 160rpx;
-  height: 160rpx;
-  top: 34rpx;
-  right: 40rpx;
-  background: $forest;
-  box-shadow: -10rpx 16rpx 30rpx rgba(20, 34, 24, 0.35);
+  font-size: 20rpx;
+  font-weight: 700;
+  letter-spacing: 3rpx;
+  color: $ink-2;
 }
 .bell {
   position: relative;
-  width: 64rpx;
-  height: 64rpx;
-  margin-left: -8rpx;
+  width: 62rpx;
+  height: 62rpx;
+  border-radius: 50%;
+  background: $latte;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .bell-dot {
   position: absolute;
-  top: 0;
-  right: 0;
-  min-width: 30rpx;
-  height: 30rpx;
-  padding: 0 6rpx;
+  top: -3rpx;
+  right: -4rpx;
+  min-width: 29rpx;
+  height: 29rpx;
+  padding: 0 5rpx;
   border-radius: 15rpx;
-  background: #d9483b;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.bell-n {
-  font-size: 18rpx;
-  font-weight: 800;
+  background: $danger;
   color: #fff;
+  font-size: 18rpx;
+  font-weight: 700;
+  line-height: 29rpx;
+  text-align: center;
   @include num;
 }
-.hello-t {
-  position: relative;
-  margin-top: 18rpx;
-  font-size: 50rpx;
-  font-weight: 800;
-  color: $paper;
-  letter-spacing: -0.5rpx;
+.scroll {
+  flex: 1;
+  height: 0;
+  min-height: 0;
 }
-.hello-s {
+.content {
+  padding: 24rpx 32rpx calc(env(safe-area-inset-bottom) + 164rpx);
+}
+.intro {
   position: relative;
+  padding: 28rpx 32rpx 34rpx;
+  border-radius: 40rpx;
+  overflow: hidden;
+  background: $latte;
+}
+.intro-pattern {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 46%;
+  height: 100%;
+  opacity: 0.54;
+}
+.issue,
+.title,
+.greeting {
+  position: relative;
+}
+.issue {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  color: $espresso;
+}
+.issue-name {
+  font-family: $font-latin;
+  font-size: 20rpx;
+  font-weight: 800;
+  letter-spacing: 4rpx;
+}
+.issue-date {
+  padding: 4rpx 12rpx;
+  border-radius: 12rpx;
+  background: $paper;
+  font-size: 22rpx;
+  color: $ink-2;
+}
+.title {
+  display: block;
   margin-top: 10rpx;
-  font-size: 25rpx;
-  line-height: 1.6;
-  color: rgba(250, 251, 247, 0.82);
+  color: $roast;
+  font-family: $font-display;
+  font-size: 72rpx;
+  font-weight: 800;
+  line-height: 1.22;
+  letter-spacing: 3rpx;
+}
+.greeting {
+  display: flex;
+  flex-direction: column;
+  width: 76%;
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  color: $ink-2;
 }
 .today {
-  position: absolute;
-  left: 32rpx;
-  bottom: 32rpx;
-  height: 96rpx;
-  padding: 0 12rpx 0 8rpx;
-  border-radius: 32rpx;
-  background: rgba(250, 251, 247, 0.12);
   display: flex;
   align-items: center;
+  margin-top: 28rpx;
+  padding: 12rpx 22rpx 12rpx 12rpx;
+  border-radius: 26rpx;
+  background: $roast;
+  color: $paper;
 }
 .today-art {
-  width: 80rpx;
-  height: 80rpx;
-  border-radius: 26rpx;
-  background: $sage;
   display: flex;
+  flex: 0 0 76rpx;
+  height: 76rpx;
   align-items: flex-end;
   justify-content: center;
+  border-radius: 16rpx;
+  background: $caramel;
   overflow: hidden;
 }
 .today-info {
+  flex: 1;
+  min-width: 0;
   margin: 0 18rpx;
-  display: flex;
-  flex-direction: column;
 }
-.today-l {
+.today-label {
+  display: block;
   font-size: 20rpx;
-  color: $sage-soft;
+  color: $cream;
 }
-.today-n {
-  font-size: 26rpx;
+.today-name {
+  display: block;
+  font-size: 27rpx;
   font-weight: 700;
-  color: $paper;
+  @include ellipsis;
 }
-.today-go {
-  width: 60rpx;
-  height: 60rpx;
-  border-radius: 22rpx;
-  background: $sage;
+.today-cta {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
-  justify-content: center;
+  gap: 8rpx;
+  font-size: 23rpx;
 }
-.hello-date {
-  position: absolute;
-  right: 44rpx;
-  bottom: 40rpx;
-  font-size: 22rpx;
-  color: rgba(250, 251, 247, 0.7);
-}
-
-/* ---------- 筛选 ---------- */
-.sec-head {
+.feed-head {
   display: flex;
   align-items: baseline;
-  padding: 56rpx 32rpx 0;
+  justify-content: space-between;
+  gap: 12rpx;
+  margin: 38rpx 0 18rpx;
 }
-.sec-t {
-  font-size: 38rpx;
+.feed-title {
+  color: $ink;
+  font-size: 34rpx;
   font-weight: 800;
 }
-.sec-s {
-  margin-left: 16rpx;
-  font-size: 23rpx;
-  color: $ink-3;
-}
-.tags {
-  margin-top: 22rpx;
-  white-space: nowrap;
-}
-.tags-in {
-  display: flex;
-  padding: 0 28rpx;
-}
-.tag {
-  flex-shrink: 0;
-  margin-right: 14rpx;
-  height: 64rpx;
-  padding: 0 30rpx;
-  border-radius: 22rpx;
-  background: $mist;
-  display: flex;
-  align-items: center;
-  &.on {
-    background: $forest;
-  }
-}
-.tag-t {
-  font-size: 25rpx;
+.feed-sub {
   color: $ink-2;
-  font-weight: 600;
-}
-.tag.on .tag-t {
-  color: $paper;
-}
-
-/* ---------- 瀑布流 ---------- */
-.masonry {
-  display: flex;
-  justify-content: space-between;
-  padding: 26rpx 28rpx 0;
-}
-.col {
-  width: 338rpx;
+  font-size: 22rpx;
 }
 .post {
-  margin-bottom: 18rpx;
-  padding: 10rpx 10rpx 20rpx;
-  border-radius: 34rpx;
-  background: $paper;
-  box-shadow: $shadow-soft;
+  display: flex;
+  align-items: center;
+  gap: 22rpx;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid $line;
 }
 .post-cover {
   position: relative;
-  border-radius: 26rpx;
+  width: 136rpx;
+  flex-shrink: 0;
+  border-radius: 18rpx;
   overflow: hidden;
 }
-.post-tag {
-  font-size: 20rpx;
-  font-weight: 700;
-  color: $forest;
+.post-info {
+  flex: 1;
+  min-width: 0;
 }
 .post-title {
   display: block;
-  margin: 16rpx 10rpx 0;
-  font-size: 27rpx;
-  line-height: 1.42;
-  font-weight: 700;
   color: $ink;
+  font-size: 28rpx;
+  font-weight: 700;
+  line-height: 1.4;
   @include ellipsis(2);
 }
 .post-meta {
-  margin: 14rpx 10rpx 0;
   display: flex;
   align-items: center;
-}
-.avatar {
-  width: 36rpx;
-  height: 36rpx;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.avatar-t {
-  font-size: 18rpx;
-  font-weight: 700;
-  color: #fff;
-}
-.author {
-  flex: 1;
-  min-width: 0;
-  margin-left: 10rpx;
-  font-size: 21rpx;
+  justify-content: space-between;
+  gap: 10rpx;
+  margin-top: 6rpx;
   color: $ink-2;
-  @include ellipsis(1);
+}
+.byline {
+  min-width: 0;
+  font-size: 22rpx;
+  @include ellipsis;
 }
 .like {
   display: flex;
   align-items: center;
-  padding-left: 10rpx;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  gap: 8rpx;
+  min-height: 60rpx;
+  min-width: 76rpx;
 }
-.like-n {
-  margin-left: 4rpx;
-  font-size: 21rpx;
-  color: $ink-3;
+.like-count {
+  font-size: 22rpx;
   @include num;
 }
+.featured {
+  display: block;
+  margin-bottom: 10rpx;
+  padding: 0;
+  border: 0;
+  border-radius: 30rpx;
+  overflow: hidden;
+  background: $paper;
+  box-shadow: $shadow-soft;
+}
+.featured .post-cover {
+  width: 100%;
+  border-radius: 0;
+}
+.featured-label {
+  position: absolute;
+  top: 20rpx;
+  left: 20rpx;
+  padding: 8rpx 18rpx;
+  border-radius: 10rpx;
+  background: $roast;
+  color: $paper;
+  font-size: 22rpx;
+  font-weight: 700;
+}
+.featured .post-info {
+  padding: 22rpx 24rpx 10rpx;
+}
+.featured .post-title {
+  font-size: 35rpx;
+  font-weight: 800;
+}
+.post-excerpt {
+  display: block;
+  margin-top: 8rpx;
+  color: $ink-2;
+  font-size: 24rpx;
+  @include ellipsis;
+}
 .more {
-  padding: 24rpx 0 0;
+  display: block;
+  padding: 28rpx 0 0;
   text-align: center;
-}
-.more-t {
-  font-size: 23rpx;
-  color: $ink-3;
-}
-.tail {
-  height: calc(env(safe-area-inset-bottom) + 220rpx);
+  font-size: 22rpx;
+  color: $ink-2;
 }
 </style>

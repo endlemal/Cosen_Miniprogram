@@ -1,5 +1,5 @@
 {
-  "name": "mossy-matcha",
+  "name": "cosen-miniprogram",
   "version": "0.0.0",
   "scripts": {
     "dev:custom": "uni -p",
@@ -69,5 +69,5 @@
     "vite": "5.2.8",
     "vue-tsc": "^1.0.24"
   },
-  "description": "苔生 Mossy · 抹茶与咖啡点单小程序（uni-app + Vue3 + TS，Mock 数据）"
+  "description": "可森 COSEN · 日咖夜酒社区咖啡店微信小程序（uni-app + Vue 3 + TypeScript）"
 }

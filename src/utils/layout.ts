@@ -3,6 +3,8 @@ export interface Layout {
   navHeight: number
   /** 状态栏 + 导航栏，单位 px */
   header: number
+  /** 内容距状态栏下方的额外留白，单位 px，三个 tab 统一使用 */
+  topGap: number
   windowWidth: number
   windowHeight: number
   /** 小程序胶囊按钮占据的右侧宽度（px），H5 为 0 */
@@ -10,6 +12,9 @@ export interface Layout {
   /** 1rpx 对应多少 px */
   rpx: number
 }
+
+/** 顶部留白的唯一配置：想更空就调大，想更紧凑就调小 */
+const TOP_GAP = 24
 
 let cached: Layout | null = null
 
@@ -47,6 +52,7 @@ export function getLayout(): Layout {
     statusBar,
     navHeight,
     header: statusBar + navHeight,
+    topGap: TOP_GAP,
     windowWidth,
     windowHeight,
     capsule,

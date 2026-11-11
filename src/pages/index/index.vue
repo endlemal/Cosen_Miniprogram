@@ -1,6 +1,6 @@
 <!--
   首页外壳：三个 tab 视图 + 悬浮胶囊底栏。
-  不用原生 tabBar，是为了实现参考稿 1 的悬浮深绿胶囊底栏，且切换时不闪烁。
+  自定义底栏在三个首页视图之间切换。
   视图首次访问时才渲染，之后用 display 切换以保留滚动位置和状态。
 -->
 <template>
@@ -37,7 +37,7 @@ watch(
 )
 
 onShareAppMessage(() => ({
-  title: '苔生 Mossy｜今天想喝哪一杯？',
+  title: '可森 COSEN｜日咖夜酒的社区客厅',
   path: '/pages/index/index'
 }))
 </script>
@@ -47,7 +47,7 @@ onShareAppMessage(() => ({
   position: relative;
   height: 100vh;
   overflow: hidden;
-  background: $fog;
+  background: $canvas;
 }
 .pane {
   position: absolute;

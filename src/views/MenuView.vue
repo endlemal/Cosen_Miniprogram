@@ -1,92 +1,87 @@
-<!-- 点单：左侧弧形竖排分类（参考稿 1）+ 右侧商品卡，联动滚动 -->
+<!-- 点单：会员储值卡、弧形竖排分类与商品列表 -->
 <template>
-  <view class="view">
-    <view class="head" :style="{ paddingTop: L.statusBar + 'px' }">
-      <view class="nav" :style="{ height: L.navHeight + 'px' }">
-        <text class="title">点单</text>
+  <view class="view" :style="{ paddingTop: layout.statusBar + layout.topGap + 'px' }">
+    <scroll-view
+      scroll-y
+      class="menu-scroll"
+      :scroll-into-view="menuAnchor"
+      @scroll="onScroll"
+    >
+      <view @touchstart="startMenuGesture" @wheel="startMenuGesture">
+        <RechargeCarousel />
       </view>
-      <view class="store">
-        <view class="store-l" hover-class="tap-on" @tap="showStore">
-          <view class="pin">
-            <Icon name="pin" :size="30" color="#FAFBF7" :stroke="2.2" />
-          </view>
-          <view class="store-txt">
-            <view class="store-name-row">
-              <text class="store-name">{{ STORE.name }}</text>
-              <Icon name="down" :size="26" color="#566156" :stroke="2.4" />
-            </view>
-            <text class="store-sub">距你 {{ STORE.distance }}，营业到 21:30</text>
-          </view>
-        </view>
-        <view class="seg">
-          <view class="seg-i" :class="{ on: state.mode === 'pickup' }" @tap="state.mode = 'pickup'">
-            <text class="seg-t">自取</text>
-          </view>
-          <view class="seg-i" :class="{ on: state.mode === 'delivery' }" @tap="state.mode = 'delivery'">
-            <text class="seg-t">外送</text>
-          </view>
-        </view>
-      </view>
-    </view>
 
-    <view class="body" :style="{ height: bodyH + 'px' }">
-      <!-- 左侧分类 -->
-      <scroll-view scroll-y class="rail" :style="{ height: bodyH + 'px' }" :show-scrollbar="false">
+      <view class="body">
         <view
-          v-for="(c, i) in CATEGORIES"
-          :id="'rail-' + c.id"
-          :key="c.id"
-          class="rail-item"
-          :class="{ on: active === c.id, first: i === 0 }"
-          :style="{ zIndex: i + 1 }"
-          @tap="jump(c.id)"
+          class="rail-slot"
+          :class="{ 'rail-pinned': railPinned }"
+          @touchstart="pauseRailFollow"
+          @wheel="pauseRailFollow"
         >
-          <view class="rail-text">
-            <view class="rail-cn">
-              <text v-for="(ch, k) in c.name.split('')" :key="k" class="ch">{{ ch }}</text>
+          <scroll-view
+            id="menu-rail"
+            class="rail"
+            :style="{ height: railHeight }"
+            :scroll-y="railPinned || railPosition > 0"
+            :scroll-top="railTarget"
+            :show-scrollbar="false"
+            @scroll="onRailScroll"
+            enhanced
+          >
+            <view class="rail-track">
+              <view
+                v-for="category in CATEGORIES"
+                :key="category.id"
+                class="rail-card"
+                :class="{ on: active === category.id }"
+                @tap="jump(category.id)"
+              >
+                <view class="rail-text">
+                  <view class="rail-cn">
+                    <text v-for="(char, index) in category.name.split('')" :key="index">{{ char }}</text>
+                  </view>
+                  <text class="rail-en">{{ category.en }}</text>
+                </view>
+                <view class="rail-bar" :class="{ show: active === category.id }" />
+              </view>
             </view>
-            <text class="rail-en">{{ c.en }}</text>
-          </view>
-          <view v-if="active === c.id" class="rail-bar" />
+          </scroll-view>
         </view>
-        <view class="rail-tail" :class="{ on: active === lastCat }" :style="{ zIndex: CATEGORIES.length }" />
-      </scroll-view>
 
-      <!-- 右侧商品 -->
-      <scroll-view
-        scroll-y
-        class="list"
-        :style="{ height: bodyH + 'px' }"
-        :scroll-into-view="intoView"
-        :scroll-with-animation="true"
-        @scroll="onScroll"
-      >
-        <view v-for="c in CATEGORIES" :id="'sec-' + c.id" :key="c.id" class="sec">
-          <view class="sec-head">
-            <view class="sec-row">
-              <text class="sec-name">{{ c.name }}</text>
-              <text class="sec-en">{{ c.en }}</text>
+        <view class="list" @touchstart="startMenuGesture" @wheel="startMenuGesture">
+          <view
+            v-for="c in CATEGORIES"
+            :id="'sec-' + c.id"
+            :key="c.id"
+            class="sec"
+            :style="c.id === lastCat ? { minHeight: lastSectionHeight } : undefined"
+          >
+            <view class="sec-head">
+              <view class="sec-row">
+                <text class="sec-name">{{ c.name }}</text>
+                <text class="sec-en">{{ c.en }}</text>
+              </view>
+              <text class="sec-desc">{{ c.desc }}</text>
             </view>
-            <text class="sec-desc">{{ c.desc }}</text>
+            <ProductCard
+              v-for="p in byCat[c.id]"
+              :key="p.id"
+              :product="p"
+              :qty="qtyOfProduct(p.id)"
+              @open="open(p)"
+              @add="quickAdd(p)"
+            />
           </view>
-          <ProductCard
-            v-for="p in byCat[c.id]"
-            :key="p.id"
-            :product="p"
-            :qty="qtyOfProduct(p.id)"
-            @open="open(p)"
-            @add="quickAdd(p)"
-          />
+          <view class="list-tail" :class="{ 'with-cart': cartCount > 0 }" />
         </view>
-        <view class="list-tail" />
-      </scroll-view>
-    </view>
+      </view>
+    </scroll-view>
 
     <!-- 购物车条 -->
     <view class="cartbar" :class="{ show: cartCount > 0 }">
       <view class="cb-l" hover-class="tap-on" @tap="cartOpen = true">
         <view class="cb-icon">
-          <Icon name="bag" :size="40" color="#FAFBF7" :stroke="2.2" />
+          <Icon name="bag" :size="40" color="#FFF9F0" :stroke="2.2" />
           <view class="cb-badge">
             <text class="cb-badge-t">{{ cartCount }}</text>
           </view>
@@ -94,45 +89,59 @@
         <view class="cb-sum">
           <view class="cb-price">
             <text class="cb-c">¥</text>
-            <text class="cb-n">{{ money(cartTotal) }}</text>
+            <text class="cb-n">{{ money(cartTotal + rechargeCartTotal) }}</text>
           </view>
-          <text class="cb-tip">{{ state.mode === 'pickup' ? '到店自取，约 8 分钟' : '外送另付配送费 4 元' }}</text>
         </view>
       </view>
-      <view class="cb-go" hover-class="tap-on" @tap="checkout">
+      <view class="cb-go" hover-class="tap-on" @tap="checkoutCart">
         <text class="cb-go-t">去结算</text>
       </view>
     </view>
 
     <ProductSheet v-model:show="sheetOpen" :product="current" />
-    <CartSheet v-model:show="cartOpen" @checkout="checkout" />
+    <CartSheet v-model:show="cartOpen" @checkout="checkoutDrinks" @recharge="checkoutRecharge" />
   </view>
 </template>
 
 <script setup lang="ts">
-import { getCurrentInstance, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, getCurrentInstance, nextTick, onMounted, ref, watch } from 'vue'
 import type { Product } from '@/types'
 import Icon from '@/components/Icon.vue'
 import ProductCard from '@/components/ProductCard.vue'
 import ProductSheet from '@/components/ProductSheet.vue'
 import CartSheet from '@/components/CartSheet.vue'
-import { CATEGORIES, PRODUCTS, STORE, getProduct, specGroupsOf } from '@/mock/products'
-import { state, cartCount, cartTotal, addToCart, qtyOfProduct, type Selection } from '@/store'
+import RechargeCarousel from '@/components/RechargeCarousel.vue'
+import { CATEGORIES, PRODUCTS, getProduct, specGroupsOf } from '@/mock/products'
+import { state, cartCount, cartTotal, addToCart, qtyOfProduct, rechargeCart, rechargeCartTotal, type Selection } from '@/store'
 import { getLayout } from '@/utils/layout'
 import { money } from '@/utils/format'
 
-const L = getLayout()
-/** 门店行高度 128rpx，换算成 px */
-const bodyH = Math.floor(L.windowHeight - L.header - 128 * L.rpx)
+const layout = getLayout()
+const topInset = layout.statusBar + layout.topGap
+const usableHeight = `100vh - ${topInset}px - env(safe-area-inset-bottom)`
+const railHeight = `calc(100vh - ${topInset}px)`
+const dockReserve = 144
+const cartReserve = 300
+const lastSectionHeight = computed(() => `calc(${usableHeight} - ${cartCount.value ? cartReserve : dockReserve}rpx)`)
 const lastCat = CATEGORIES[CATEGORIES.length - 1].id
 
 const byCat: Record<string, Product[]> = {}
 CATEGORIES.forEach((c) => (byCat[c.id] = PRODUCTS.filter((p) => p.cat === c.id)))
 
 const active = ref(CATEGORIES[0].id)
-const intoView = ref('')
-let offsets: { id: string; top: number }[] = []
-let lockUntil = 0
+const menuAnchor = ref('')
+const railTarget = ref(0)
+const railPinned = ref(false)
+const railPosition = ref(0)
+let railHasGesture = false
+let offsets: { id: string; top: number; titleTop: number }[] = []
+let railBounds: Record<string, { top: number; bottom: number }> = {}
+let railViewportHeight = 0
+let railScrollLimit = 0
+let scrollTop = 0
+let railStart = Infinity
+let dockTop = 0
+let cartTop = 0
 
 const instance = getCurrentInstance()
 
@@ -140,34 +149,127 @@ function measure() {
   uni
     .createSelectorQuery()
     .in(instance?.proxy)
+    .select('.menu-scroll')
+    .fields({ rect: true, scrollOffset: true }, () => {})
+    .select('.body')
+    .boundingClientRect()
     .selectAll('.sec')
-    .boundingClientRect((rects: any) => {
-      const list = (rects || []) as { id: string; top: number }[]
-      if (!list.length) return
-      const base = list[0].top
-      offsets = list.map((r) => ({ id: r.id.replace('sec-', ''), top: r.top - base }))
+    .boundingClientRect()
+    .selectAll('.sec-row')
+    .boundingClientRect()
+    .select('.list-tail')
+    .boundingClientRect()
+    .select('.cartbar')
+    .boundingClientRect()
+    .select('.rail')
+    .boundingClientRect()
+    .select('.rail-track')
+    .boundingClientRect()
+    .selectAll('.rail-card')
+    .boundingClientRect()
+    .exec(([viewport, body, sections, titles, tail, cart, rail, track, cards]) => {
+      if (!viewport || !body || !sections?.length) return
+      const origin = (viewport.scrollTop ?? scrollTop) - viewport.top
+      railStart = body.top + origin
+      railPinned.value = scrollTop >= railStart - 1
+      const rpx = rail ? rail.width / 116 : layout.rpx
+      const tailHeight = tail?.height ?? (cartCount.value > 0 ? cartReserve : dockReserve) * rpx
+      const dockHeight = tailHeight - (cartCount.value > 0 ? (cartReserve - dockReserve) * rpx : 0)
+      dockTop = Math.max(0, viewport.bottom - viewport.top - dockHeight)
+      cartTop = cart ? Math.max(0, cart.top - viewport.top) : dockTop
+      offsets = sections.map((section: { id: string; top: number }, index: number) => ({
+        id: section.id.replace('sec-', ''),
+        top: section.top + origin,
+        titleTop: (titles?.[index]?.top ?? section.top) + origin
+      }))
+      if (rail && track && cards?.length === CATEGORIES.length) {
+        railViewportHeight = rail.height
+        railScrollLimit = Math.max(0, track.height - rail.height)
+        railBounds = Object.fromEntries(CATEGORIES.map((category, index) => {
+          const card = cards[index]
+          return [category.id, { top: card.top - track.top, bottom: card.bottom - track.top }]
+        }))
+      }
+      consumePending()
     })
-    .exec()
 }
 
-onMounted(() => {
-  setTimeout(measure, 350)
-  consumePending()
-})
+onMounted(() => nextTick(measure))
 
-function onScroll(e: any) {
-  if (Date.now() < lockUntil || !offsets.length) return
-  const y = e.detail.scrollTop + 60
-  let cur = offsets[0].id
-  for (const o of offsets) if (o.top <= y) cur = o.id
-  if (cur !== active.value) active.value = cur
+function categoryAt(y: number) {
+  let category = offsets[0].id
+  for (const section of offsets) {
+    if (section.titleTop > y) break
+    category = section.id
+  }
+  return category
+}
+
+function onScroll(e: { target?: { id?: string }; detail: { scrollTop: number } }) {
+  if (e.target?.id === 'menu-rail') return
+  const previousTop = scrollTop
+  scrollTop = e.detail.scrollTop
+  // 定位只由点击触发，滚动回调只读取位置并撤销已使用的锚点。
+  const fromCategoryTap = Boolean(menuAnchor.value)
+  if (fromCategoryTap) menuAnchor.value = ''
+  if (!offsets.length) return
+  railPinned.value = scrollTop >= railStart - 1
+  if (!fromCategoryTap) {
+    const visibleBottom = cartCount.value > 0 ? cartTop : dockTop
+    const previousCategory = categoryAt(previousTop + visibleBottom)
+    const visibleCategory = categoryAt(scrollTop + visibleBottom)
+    // 标题越过商品可视区下缘时才切换，点击定位后保留用户点中的分类。
+    if (visibleCategory !== previousCategory) active.value = visibleCategory
+  }
+  revealRailCard(active.value)
+}
+
+function onRailScroll(e: { detail: { scrollTop: number } }) {
+  railPosition.value = Math.max(0, e.detail.scrollTop)
+}
+
+function pauseRailFollow() {
+  // 分栏可滚动时，用户自己滑动的期间不自动跟随
+  if (railPinned.value || railPosition.value > 0) railHasGesture = true
+}
+
+function startMenuGesture() {
+  menuAnchor.value = ''
+  railHasGesture = false
+}
+
+async function revealRailCard(id: string) {
+  const card = railBounds[id]
+  if (!card || railHasGesture) return
+
+  const position = railPosition.value
+  let target = 0
+  if (railPinned.value) {
+    target = position
+    if (card.top < position) target = Math.floor(card.top)
+    else if (card.bottom > position + railViewportHeight) target = Math.ceil(card.bottom - railViewportHeight)
+  }
+  target = Math.max(0, Math.min(railScrollLimit, target))
+  if (Math.abs(target - position) < 1) return
+  // 手动滑开后，仍可再次发出相同的定位指令。
+  if (railTarget.value === target) {
+    railTarget.value = position
+    await nextTick()
+    if (active.value !== id || railHasGesture) return
+  }
+  railTarget.value = target
 }
 
 function jump(id: string) {
+  const target = offsets.find((section) => section.id === id)
+  if (!target) return
+  railHasGesture = false
   active.value = id
-  lockUntil = Date.now() + 600
-  intoView.value = ''
-  nextTick(() => (intoView.value = 'sec-' + id))
+  if (Math.abs(target.top - scrollTop) < 1) {
+    revealRailCard(id)
+    return
+  }
+  menuAnchor.value = 'sec-' + id
 }
 
 /* ---- 规格弹层 ---- */
@@ -189,26 +291,26 @@ function quickAdd(p: Product) {
   uni.showToast({ title: `已加入 ${p.name}`, icon: 'none', duration: 1000 })
 }
 
-function checkout() {
+function checkoutCart() {
+  if (state.cart.length && rechargeCart.value.length) cartOpen.value = true
+  else if (rechargeCart.value.length) checkoutRecharge()
+  else if (state.cart.length) checkoutDrinks()
+}
+
+function checkoutDrinks() {
   cartOpen.value = false
-  if (!cartCount.value) return
   uni.navigateTo({ url: '/pages/checkout/index' })
 }
 
-function showStore() {
-  uni.showModal({
-    title: STORE.name,
-    content: `${STORE.address}\n营业时间 ${STORE.hours}\n电话 ${STORE.phone}`,
-    showCancel: false,
-    confirmText: '知道了',
-    confirmColor: '#3B5A40'
-  })
+function checkoutRecharge() {
+  cartOpen.value = false
+  uni.navigateTo({ url: '/pages/recharge/index?cart=1' })
 }
 
 /* ---- 从其他页面跳来时打开指定商品 ---- */
 function consumePending() {
   const id = state.ui.pendingProductId
-  if (!id) return
+  if (!id || !offsets.length) return
   state.ui.pendingProductId = ''
   const p = getProduct(id)
   if (!p) return
@@ -219,171 +321,106 @@ watch(() => state.ui.pendingProductId, consumePending)
 </script>
 
 <style lang="scss" scoped>
+$rail-width: 116rpx;
+
 .view {
   position: relative;
   height: 100vh;
   overflow: hidden;
-}
-.head {
-  background: $fog;
-}
-.nav {
-  display: flex;
-  align-items: center;
-  padding: 0 32rpx;
-}
-.title {
-  font-size: 38rpx;
-  font-weight: 800;
-}
-.store {
-  height: 128rpx;
-  display: flex;
-  align-items: center;
-  padding: 0 28rpx 10rpx;
-}
-.store-l {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-}
-.pin {
-  width: 72rpx;
-  height: 72rpx;
-  border-radius: 26rpx;
-  background: $forest;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.store-txt {
-  margin-left: 18rpx;
-  min-width: 0;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
-.store-name-row {
-  display: flex;
-  align-items: center;
+.menu-scroll {
+  height: 100%;
 }
-.store-name {
-  font-size: 30rpx;
-  font-weight: 700;
-  margin-right: 6rpx;
-}
-.store-sub {
-  font-size: 22rpx;
-  color: $ink-3;
-}
-.seg {
-  display: flex;
-  padding: 6rpx;
-  border-radius: 26rpx;
-  background: $mist;
-}
-.seg-i {
-  height: 64rpx;
-  padding: 0 26rpx;
-  border-radius: 20rpx;
-  display: flex;
-  align-items: center;
-  transition: background 0.2s ease;
-  &.on {
-    background: $forest;
-  }
-}
-.seg-t {
-  font-size: 25rpx;
-  font-weight: 700;
-  color: $ink-2;
-}
-.seg-i.on .seg-t {
-  color: $paper;
-}
-
 .body {
   display: flex;
 }
 
-/* ---------- 弧形竖排分类 ---------- */
-.rail {
-  width: 116rpx;
+/* ---------- 左侧分类标签页 ---------- */
+.rail-slot {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  align-self: flex-start;
+  width: $rail-width;
   flex-shrink: 0;
 }
-.rail-item {
+.rail {
+  width: 100%;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.rail-pinned .rail,
+.rail-pinned :deep(.uni-scroll-view-scrollbar-hidden) {
+  overscroll-behavior-y: contain;
+}
+:deep(.rail .uni-scroll-view::-webkit-scrollbar) {
+  display: none;
+  width: 0;
+  height: 0;
+}
+.rail-track {
+  border-top-right-radius: $rail-width 178rpx;
+  background: $espresso;
+}
+.rail-card {
   position: relative;
-  height: 250rpx;
-  margin-top: -58rpx;
-  border-top-right-radius: 116rpx;
-  background: $forest;
-  box-shadow: 0 -14rpx 22rpx -8rpx rgba(20, 34, 24, 0.5);
+  height: 342rpx;
+  padding: 54rpx 8rpx 36rpx 0;
+  border-top-right-radius: $rail-width 178rpx;
+  background: $espresso;
+  box-shadow: 0 -3rpx 4rpx rgba($roast, 0.38);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding-top: 36rpx;
-  transition: background 0.25s ease;
-  &.first {
-    margin-top: 0;
-  }
-  &.on {
-    background: $sage;
-  }
+}
+.rail-card + .rail-card {
+  margin-top: -42rpx;
+}
+.rail-card.on {
+  background: #80543A;
 }
 .rail-text {
   display: flex;
-  flex-direction: row;
   align-items: center;
 }
 .rail-cn {
   display: flex;
   flex-direction: column;
   align-items: center;
-}
-.ch {
-  font-size: 28rpx;
-  line-height: 1.22;
+  font-size: 25rpx;
+  line-height: 1.16;
   font-weight: 700;
-  color: rgba(250, 251, 247, 0.92);
+  color: rgba($paper, 0.92);
 }
 .rail-en {
   writing-mode: vertical-rl;
-  margin-left: 6rpx;
-  font-size: 18rpx;
-  color: rgba(197, 210, 176, 0.75);
+  margin-left: 5rpx;
+  font-size: 16rpx;
+  line-height: 1.1;
+  color: $cream;
   font-family: $font-latin;
-  letter-spacing: 1rpx;
-}
-.rail-item.on .ch {
-  color: $pine;
-}
-.rail-item.on .rail-en {
-  color: rgba(44, 68, 49, 0.7);
 }
 .rail-bar {
   position: absolute;
-  right: 10rpx;
-  top: 50%;
-  margin-top: -18rpx;
-  width: 8rpx;
-  height: 72rpx;
-  border-radius: 8rpx;
+  right: 7rpx;
+  top: 40%;
+  bottom: 40%;
+  width: 5rpx;
+  border-radius: 5rpx;
   background: $paper;
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
-.rail-tail {
-  position: relative;
-  height: 900rpx;
-  margin-top: -2rpx;
-  background: $forest;
-  &.on {
-    background: $sage;
-  }
+.rail-bar.show {
+  opacity: 1;
 }
-
 /* ---------- 商品列表 ---------- */
 .list {
   flex: 1;
+  min-width: 0;
   padding: 0 24rpx 0 30rpx;
 }
 .sec {
@@ -411,19 +448,22 @@ watch(() => state.ui.pendingProductId, consumePending)
   color: $ink-3;
 }
 .list-tail {
-  height: calc(env(safe-area-inset-bottom) + 360rpx);
+  height: calc(env(safe-area-inset-bottom) + 144rpx);
+}
+.list-tail.with-cart {
+  height: calc(env(safe-area-inset-bottom) + 300rpx);
 }
 
 /* ---------- 购物车条 ---------- */
 .cartbar {
   position: fixed;
-  left: 40rpx;
+  left: $rail-width + 14rpx;
   right: 40rpx;
   bottom: calc(env(safe-area-inset-bottom) + 166rpx);
   height: 108rpx;
   border-radius: 38rpx;
   background: $paper;
-  box-shadow: 0 24rpx 48rpx -20rpx rgba(30, 42, 33, 0.45);
+  box-shadow: 0 24rpx 48rpx -20rpx rgba($ink, 0.45);
   display: flex;
   align-items: center;
   padding: 0 10rpx 0 14rpx;
@@ -449,7 +489,7 @@ watch(() => state.ui.pendingProductId, consumePending)
   width: 80rpx;
   height: 80rpx;
   border-radius: 28rpx;
-  background: $forest;
+  background: $espresso;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -462,7 +502,7 @@ watch(() => state.ui.pendingProductId, consumePending)
   height: 34rpx;
   padding: 0 8rpx;
   border-radius: 17rpx;
-  background: $sage;
+  background: $caramel;
   border: 3rpx solid $paper;
   display: flex;
   align-items: center;
@@ -471,7 +511,7 @@ watch(() => state.ui.pendingProductId, consumePending)
 .cb-badge-t {
   font-size: 19rpx;
   font-weight: 800;
-  color: $pine;
+  color: $roast;
   @include num;
 }
 .cb-sum {
@@ -493,15 +533,11 @@ watch(() => state.ui.pendingProductId, consumePending)
   line-height: 1.1;
   @include num;
 }
-.cb-tip {
-  font-size: 20rpx;
-  color: $ink-3;
-}
 .cb-go {
   height: 86rpx;
   padding: 0 44rpx;
   border-radius: 30rpx;
-  background: $forest;
+  background: $espresso;
   display: flex;
   align-items: center;
 }

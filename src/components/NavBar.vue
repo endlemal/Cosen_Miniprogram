@@ -11,7 +11,7 @@
     >
       <view class="row" :style="{ height: L.navHeight + 'px', paddingRight: Math.max(L.capsule, 16) + 'px' }">
         <view class="back" :class="{ glass: !solid }" hover-class="tap-on" @tap="goBack">
-          <Icon name="back" :size="38" :color="solid ? '#1E2A21' : '#FAFBF7'" :stroke="2.4" />
+          <Icon name="back" :size="38" :color="solid ? '#38251A' : '#FFF9F0'" :stroke="2.4" />
         </view>
         <text class="title" :style="{ opacity: solid ? 1 : 0 }">{{ title }}</text>
       </view>
@@ -27,7 +27,7 @@ import { getLayout } from '@/utils/layout'
 
 const props = withDefaults(
   defineProps<{ title?: string; bg?: string; placeholder?: boolean; overlay?: boolean; scrollTop?: number }>(),
-  { title: '', bg: '#EEF0EA', placeholder: true, overlay: false, scrollTop: 0 }
+  { title: '', bg: '#F8F0E3', placeholder: true, overlay: false, scrollTop: 0 }
 )
 const L = getLayout()
 /** overlay 模式：滚动前透明（白色返回键），滚过 120px 后变实色 */
@@ -62,7 +62,7 @@ function goBack() {
   align-items: center;
   justify-content: center;
   &.glass {
-    background: rgba(30, 42, 33, 0.28);
+    background: rgba($ink, 0.28);
   }
 }
 .title {

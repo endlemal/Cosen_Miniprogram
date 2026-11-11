@@ -1,31 +1,32 @@
-/* ===== 苔生 Mossy · Design tokens =====
+/* ===== 可森 COSEN · Design tokens =====
  * 自动注入到每个 <style lang="scss"> 中，可直接使用
  */
 
-/* Color — 取自参考稿：深林绿 / 鼠尾草绿 / 抹茶绿 */
-$forest: #3B5A40;      // 主色：卡片、侧栏、底栏
-$pine: #2C4431;        // 主色加深：按压态、深色文字
-$moss: #567A55;        // 侧栏选中、装饰圆
-$sage: #A3B48B;        // 商品底图、加号按钮
-$sage-soft: #C5D2B0;   // 大图底色
-$matcha: #6E8B3D;      // 强调条带（参考稿 2 的 Free Delivery 条）
-$mist: #E3E9D8;        // 标签、弱填充
-$fog: #EEF0EA;         // 页面底色（偏冷的灰绿，不用暖奶油色）
-$paper: #FAFBF7;       // 卡片
-$ink: #1E2A21;
-$ink-2: #566156;
-$ink-3: #97A094;
+/* 浓缩咖啡、焦糖、奶油 */
+$espresso: #663A24;      // 主色：卡片、侧栏、底栏
+$roast: #462719;        // 主色加深：按压态、深色文字
+$mocha: #905D3B;        // 渐变、装饰
+$caramel: #D0A578;      // 选中态、加号按钮
+$cream: #EDD3AE;        // 深色卡片上的次要文字
+$toffee: #87512E;       // 强调条带
+$latte: #EFE0CB;        // 标签、弱填充
+$canvas: #F8F0E3;      // 页面底色
+$paper: #FFF9F0;       // 卡片
+$ink: #38251A;
+$ink-2: #6D513D;
+$ink-3: #856951;
 $amber: #E7A43A;       // 只用于评分星星
 $danger: #B9543F;
-$line: rgba(30, 42, 33, 0.08);
+$line: rgba($ink, 0.08);
 
 /* Type */
 $font-latin: "Avenir Next", "Helvetica Neue", "SF Pro Display", -apple-system, "PingFang SC", sans-serif;
 $font-cn: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+$font-display: "Songti SC", "Noto Serif CJK SC", SimSun, serif;
 
-/* Elevation：带绿调的阴影，避免通用灰阴影 */
-$shadow-forest: 0 28rpx 48rpx -24rpx rgba(44, 68, 49, 0.55);
-$shadow-soft: 0 16rpx 36rpx -20rpx rgba(30, 42, 33, 0.28);
+/* 咖啡色阴影 */
+$shadow-coffee: 0 28rpx 48rpx -24rpx rgba($roast, 0.55);
+$shadow-soft: 0 16rpx 36rpx -20rpx rgba($ink, 0.28);
 
 @mixin num {
   font-family: $font-latin;

@@ -7,7 +7,7 @@
         <view class="orb o1" />
         <view class="orb o2" />
         <view class="intro-ic">
-          <Icon name="gift" :size="40" color="#2C4431" :stroke="2.1" />
+          <Icon name="gift" :size="40" color="#462719" :stroke="2.1" />
         </view>
         <text class="intro-t">{{ newCount ? '有 ' + newCount + ' 张新券到账' : '门店送你的券都在这里' }}</text>
         <text class="intro-s">礼品券由店长和店员发放：下雨天、生日月、新品上市时多留意。</text>
@@ -107,7 +107,7 @@ onUnload(() => markCouponsSeen())
 <style lang="scss" scoped>
 .page {
   min-height: 100vh;
-  background: $fog;
+  background: $canvas;
 }
 .wrap {
   padding: 12rpx 28rpx 0;
@@ -116,7 +116,7 @@ onUnload(() => markCouponsSeen())
   position: relative;
   padding: 36rpx 36rpx 34rpx;
   border-radius: 48rpx;
-  background: $sage;
+  background: $caramel;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -143,7 +143,7 @@ onUnload(() => markCouponsSeen())
   width: 76rpx;
   height: 76rpx;
   border-radius: 26rpx;
-  background: rgba(250, 251, 247, 0.6);
+  background: rgba($paper, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -153,14 +153,14 @@ onUnload(() => markCouponsSeen())
   margin-top: 22rpx;
   font-size: 36rpx;
   font-weight: 800;
-  color: $pine;
+  color: $roast;
 }
 .intro-s {
   position: relative;
   margin-top: 6rpx;
   font-size: 24rpx;
   line-height: 1.6;
-  color: rgba(44, 68, 49, 0.8);
+  color: rgba($roast, 0.8);
 }
 .redeem {
   margin-top: 22rpx;
@@ -185,7 +185,7 @@ onUnload(() => markCouponsSeen())
   height: 78rpx;
   padding: 0 40rpx;
   border-radius: 26rpx;
-  background: $forest;
+  background: $espresso;
   display: flex;
   align-items: center;
 }
@@ -206,7 +206,7 @@ onUnload(() => markCouponsSeen())
   height: 88rpx;
   padding: 8rpx;
   border-radius: 30rpx;
-  background: $mist;
+  background: $latte;
   display: flex;
 }
 .tab {
@@ -233,7 +233,7 @@ onUnload(() => markCouponsSeen())
   color: $paper;
 }
 .tab.on .tab-n {
-  color: $sage-soft;
+  color: $cream;
 }
 .tab-ind {
   position: absolute;
@@ -241,7 +241,7 @@ onUnload(() => markCouponsSeen())
   bottom: 8rpx;
   width: calc(33.333% - 5.33rpx);
   border-radius: 24rpx;
-  background: $forest;
+  background: $espresso;
   transition: left 0.25s cubic-bezier(0.22, 0.8, 0.26, 1);
 }
 .list {

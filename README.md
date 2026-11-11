@@ -1,61 +1,42 @@
-# 苔生 Mossy · 点单小程序
+# 可森 COSEN · 微信小程序
 
-基于 `dcloudio/uni-preset-vue#vite-ts`（uni-app + Vue 3 + TypeScript）。设计参考两张稿：深林绿 / 鼠尾草绿的大圆角卡片与弧形竖排分类栏（稿 1），缺口价签、抹茶色条带与配料标签（稿 2）。所有数据均为 Mock，商品图用 CSS 绘制的饮品插画代替。
+可森是一家日咖夜酒的社区咖啡店。白天喝咖啡，入夜后小酌，邻里随时可以坐下来聊聊。这个微信小程序用于浏览可森的店内动态、点单和查看会员权益。
 
-## 运行
+## 界面设计
+
+点单页顶部是可左右切换的会员储值卡，下方是 100rpx 弧形分类栏、错位叠放的饮品卡和悬浮底栏。奶油色、焦糖色与咖啡棕构成全局配色，咖啡豆和流动液滴图案延伸到广场与会员区。饮品插画用 CSS 绘制，咖啡泼洒图案用本地 SVG 绘制。
+
+## 目前功能
+
+- **广场**提供可森手记、今日推荐和店内动态，支持刷新、加载往期、点赞和点同款。
+- **点单**支持按分类浏览、快速加购和选择规格。确认订单时可选自取或外送，并使用礼品券或会员余额。
+- **会员储值**有充 500 送 100、充 1000 送 300 两档。可从点单页加入购物车，储值与饮品分别结算。
+- **我的**集中展示近期订单、礼品券、会员储值与充值记录。演示兑换码为 `MOSS2026` 和 `MATCHA88`。
+
+当前版本使用本地演示数据。菜单包含咖啡、抹茶、精酿、经典鸡尾酒和可森特调。门店资料、订单、储值与微信支付均用于演示。
+
+## 本地运行
+
+项目基于 uni-app、Vue 3 和 TypeScript。
 
 ```bash
-npm install
-npm run dev:mp-weixin     # 微信小程序，开发者工具导入 dist/dev/mp-weixin
-npm run dev:h5            # 浏览器预览，建议打开手机模拟
-npm run build:mp-weixin   # 生产构建 → dist/build/mp-weixin
+npm ci
+npm run dev:mp-weixin
 ```
 
-在 `src/manifest.json` 的 `mp-weixin.appid` 填入自己的 AppID；没有的话在开发者工具里选「测试号」即可。
+将 `dist/dev/mp-weixin` 导入微信开发者工具。使用自己的小程序时，在 `src/manifest.json` 的 `mp-weixin.appid` 配置 AppID。
 
-## 功能
-
-- **广场**：问候卡 + 商家日常分享的两列瀑布流（筛选、下拉刷新、上滑加载往期、点赞），动态详情可直接点同款饮品。
-- **点单**：左侧弧形竖排分类与商品列表联动滚动；「+」按默认规格快速加购，点卡片打开规格弹层；购物车条与购物车弹层；结算页自取 / 外送、自动选择最优礼品券、余额或微信支付（模拟）；下单后进入取餐号页，制作进度按时间推进。
-- **会员储值**：充 500 送 100、充 1000 送 300，余额、累计赠送、会员等级实时更新，附储值记录。
-- **礼品券**：由店长 / 门店 / 会员中心发放，券面写明发放人与原因；可使用、已使用、已过期三栏；支持输入商家兑换码领取（演示码 `MOSS2026`、`MATCHA88`）。
-- 「我的」底部有「重置演示数据」，清空本地缓存恢复初始状态。
-
-## 目录
-
-```
-src/
-├─ pages/
-│  ├─ index/index.vue      首页外壳：三个 tab 视图 + 悬浮胶囊底栏
-│  ├─ post/                动态详情
-│  ├─ checkout/            确认订单
-│  ├─ order/               订单详情 / 取餐号
-│  ├─ recharge/            会员储值
-│  └─ coupons/             礼品券
-├─ views/                  SquareView / MenuView / MineView（三个 tab 的内容）
-├─ components/
-│  ├─ DrinkArt.vue         CSS 饮品插画（tall 带盖杯 / rocks 切面杯 / mug 马克杯）
-│  ├─ CoverArt.vue         动态封面（渐变 + 叠圆 / 插画 / 大字）
-│  ├─ Notch.vue            缺口价签（稿 2 的内凹圆角标签）
-│  ├─ ProductCard.vue      商品卡（稿 1）
-│  ├─ ProductSheet.vue     规格选择弹层（稿 2）
-│  ├─ CouponCard.vue       礼品券
-│  └─ TabBar / NavBar / Sheet / Stepper / Icon / CartSheet
-├─ mock/                   商品、动态、礼品券、订单、兑换码
-├─ store/index.ts          reactive 全局状态 + 本地缓存（未引入 Pinia）
-├─ utils/                  导航栏尺寸、格式化、SVG 图标
-└─ uni.scss                设计变量（颜色、字体、阴影），自动注入每个 scss 样式块
+```bash
+npm run dev:h5           # 浏览器预览
+npm run type-check       # TypeScript 类型检查
+npm run build:mp-weixin  # 输出到 dist/build/mp-weixin
+npm run build:h5         # 输出到 dist/build/h5
 ```
 
-## 实现说明
+## 项目结构
 
-- **底栏**：没有用原生 tabBar，三个 tab 在 `pages/index` 内切换。这样才能做出参考稿的悬浮深绿胶囊，切换时也不闪烁。视图首次访问才渲染，之后保留滚动位置。
-- **导航栏**：全部使用 `navigationStyle: custom`，按胶囊按钮位置计算高度（`utils/layout.ts`），标题左对齐避开胶囊。
-- **图标**：线性 SVG 在运行时转成 base64 data URI，交给 `<image>` 显示，无需图标字体或图片资源。
-- **替换真实数据**：改 `src/mock/*` 和 `src/store/index.ts` 中的 `placeOrder` / `recharge` / `redeemCode`，接入接口与 `uni.requestPayment` 即可；把 `DrinkArt` 换成 `<image>` 就能用真实商品图。
-
-## 需要在微信开发者工具中确认
-
-本项目已通过 `build:mp-weixin` 与 `build:h5` 编译，H5 版做过逐屏截图检查，但尚未在开发者工具 / 真机上运行。建议重点看：SVG base64 图标显示、分类栏英文竖排（`writing-mode`）、杯身 `clip-path`、iOS 底部安全区。
-# Cosen_Miniprogram
-# Cosen_Miniprogram
+- `src/pages` 包含首页、动态详情、结算、订单、储值和礼品券页面。
+- `src/views` 包含广场、点单与我的三个首页视图。
+- `src/components` 包含商品卡、饮品插画、弹层和自定义底栏。
+- `src/uni.scss` 定义全局配色、字体和阴影。`src/static/coffee-splash.svg` 存放咖啡泼洒图案。
+- `src/mock` 提供演示内容。`src/store/index.ts` 管理状态和本地缓存。

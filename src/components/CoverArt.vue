@@ -32,7 +32,7 @@ const props = withDefaults(defineProps<{ cover: CoverSpec; width: number; radius
 
 const h = computed(() => props.fixedHeight || Math.round(props.width / props.cover.ratio))
 const bg = computed(() => `linear-gradient(160deg, ${props.cover.bg[0]} 0%, ${props.cover.bg[1]} 100%)`)
-const ink = computed(() => (props.cover.light ? '#FAFBF7' : '#2C4431'))
+const ink = computed(() => (props.cover.light ? '#FFF9F0' : '#462719'))
 const artSize = computed(() => Math.min(props.width * 0.56, (h.value * 0.82) / 1.3))
 const halo = computed(() => {
   const s = props.width * 0.78

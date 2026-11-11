@@ -1,20 +1,20 @@
-<!-- 规格选择（参考稿 2 的商品卡：缺口价签 + 抹茶色条带 + 配料标签） -->
+<!-- 规格选择：缺口价签、余额提示和配料标签 -->
 <template>
-  <Sheet :show="show" bg="#FAFBF7" max-height="92vh" @update:show="(v) => emit('update:show', v)">
+  <Sheet :show="show" bg="#FFF9F0" max-height="92vh" @update:show="(v) => emit('update:show', v)">
     <template v-if="product">
       <scroll-view scroll-y class="body" :style="{ height: bodyHeight }">
         <view class="hero" :style="{ background: heroBg }">
           <view class="art">
             <DrinkArt :spec="product.art" :size="280" animated />
           </view>
-          <Notch bg="#FAFBF7" :r="36" pad="12rpx 30rpx 20rpx 34rpx">
+          <Notch bg="#FFF9F0" :r="36" pad="12rpx 30rpx 20rpx 34rpx">
             <view class="tag">
               <text class="tag-c">¥</text>
               <text class="tag-n">{{ money(unitPrice) }}</text>
             </view>
           </Notch>
           <view class="band">
-            <text class="band-t">储值余额可直接支付，下单后约 8 分钟可取</text>
+            <text class="band-t">储值余额可直接支付</text>
           </view>
         </view>
 
@@ -57,7 +57,7 @@
 
       <view class="foot">
         <view class="sum">
-          <text class="sum-spec">{{ summary.text }}</text>
+          <text v-if="summary.text" class="sum-spec">{{ summary.text }}</text>
           <view class="sum-price">
             <text class="sum-c">¥</text>
             <text class="sum-n">{{ money(unitPrice * qty) }}</text>
@@ -176,7 +176,7 @@ function add() {
   right: 0;
   bottom: 0;
   height: 64rpx;
-  background: $matcha;
+  background: $toffee;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -235,7 +235,7 @@ function add() {
   margin: 0 6rpx 12rpx;
   padding: 8rpx 24rpx;
   border-radius: 999rpx;
-  background: $mist;
+  background: $latte;
   font-size: 22rpx;
   color: $ink-2;
 }
@@ -266,13 +266,13 @@ function add() {
   min-width: 140rpx;
   padding: 16rpx 26rpx;
   border-radius: 24rpx;
-  background: $mist;
+  background: $latte;
   display: flex;
   flex-direction: column;
   align-items: center;
   transition: background 0.18s ease;
   &.on {
-    background: $forest;
+    background: $espresso;
   }
 }
 .o-label {
@@ -290,7 +290,7 @@ function add() {
   color: $paper;
 }
 .opt.on .o-sub {
-  color: $sage-soft;
+  color: $cream;
 }
 .spacer {
   height: 40rpx;
@@ -333,10 +333,10 @@ function add() {
   height: 92rpx;
   padding: 0 40rpx;
   border-radius: 30rpx;
-  background: $forest;
+  background: $espresso;
   display: flex;
   align-items: center;
-  box-shadow: $shadow-forest;
+  box-shadow: $shadow-coffee;
 }
 .cta-t {
   color: $paper;
