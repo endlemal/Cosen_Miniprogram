@@ -1,0 +1,1348 @@
+openapi: 3.1.0
+info:
+  title: cosen 业务接口
+  version: 0.1.0
+  description: 可森小程序后端第一切片 API 契约（ETL 后的 DDL/model 对齐版），供 Apifox 审阅。后台管理接口见「RuoYi
+    基础接口」模块。
+servers:
+- url: http://127.0.0.1:8080
+  description: macbook 本机
+tags:
+- name: app/认证
+  description: 微信登录 / 联调登录 / 手机号绑定
+- name: app/会员
+  description: 会员资料 / 储值余额 / 流水
+- name: app/商品
+  description: 分类 / 商品（点单）
+- name: app/优惠券
+  description: 券背包 / 券详情
+- name: app/订单
+  description: 下单 / 支付 / 查询 / 取消
+paths:
+  /app/auth/login/wechat:
+    post:
+      summary: 微信静默登录
+      tags:
+      - app/认证
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                description: 登录结果
+                allOf:
+                - $ref: '#/components/schemas/AppResult'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/LoginResp'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginWechatReq'
+  /app/auth/login/mock:
+    post:
+      summary: 联调一键登录（dev/test）
+      tags:
+      - app/认证
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                description: 登录结果
+                allOf:
+                - $ref: '#/components/schemas/AppResult'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/LoginResp'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginMockReq'
+  /app/auth/phone/bind:
+    post:
+      summary: 绑定手机号
+      tags:
+      - app/认证
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                description: 会员信息
+                allOf:
+                - $ref: '#/components/schemas/AppResult'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/Member'
+        '401':
+          description: 未登录/ token 失效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppResult'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BindPhoneReq'
+      security: &id001
+      - bearerAuth: []
+  /app/auth/logout:
+    post:
+      summary: 注销 token
+      tags:
+      - app/认证
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppResult'
+        '401':
+          description: 未登录/ token 失效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppResult'
+      security: *id001
+  /app/member/profile:
+    get:
+      summary: 会员资料 + 可用余额
+      tags:
+      - app/会员
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                description: 会员信息
+                allOf:
+                - $ref: '#/components/schemas/AppResult'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/Member'
+        '401':
+          description: 未登录/ token 失效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppResult'
+      security: *id001
+  /app/member/balance/flows:
+    get:
+      summary: 储值流水
+      tags:
+      - app/会员
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                allOf:
+                - $ref: '#/components/schemas/PageResult'
+                - type: object
+                  properties:
+                    rows:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/MemberBalanceFlow'
+        '401':
+          description: 未登录/ token 失效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppResult'
+      parameters:
+      - &id002
+        name: pageNum
+        in: query
+        schema:
+          type: integer
+          default: 1
+      - &id003
+        name: pageSize
+        in: query
+        schema:
+          type: integer
+          default: 10
+      security: *id001
+  /app/catalog/categories:
+    get:
+      summary: 分类列表
+      tags:
+      - app/商品
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                description: 分类数组
+                allOf:
+                - $ref: '#/components/schemas/AppResult'
+                - type: object
+                  properties:
+                    data:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Category'
+  /app/catalog/products:
+    get:
+      summary: 商品列表
+      tags:
+      - app/商品
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                allOf:
+                - $ref: '#/components/schemas/PageResult'
+                - type: object
+                  properties:
+                    rows:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Product'
+      parameters:
+      - *id002
+      - *id003
+      - name: category
+        in: query
+        schema:
+          type: string
+        description: 分类 code，如 matcha
+  /app/catalog/products/{code}:
+    get:
+      summary: 商品详情
+      tags:
+      - app/商品
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                description: 商品
+                allOf:
+                - $ref: '#/components/schemas/AppResult'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/Product'
+      parameters:
+      - name: code
+        in: path
+        required: true
+        schema:
+          type: string
+  /app/coupons:
+    get:
+      summary: 我的券背包
+      tags:
+      - app/优惠券
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                description: 券数组
+                allOf:
+                - $ref: '#/components/schemas/AppResult'
+                - type: object
+                  properties:
+                    data:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/CouponUser'
+        '401':
+          description: 未登录/ token 失效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppResult'
+      parameters:
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum:
+          - unused
+          - used
+          - expired
+          - transferred
+          - frozen
+      security: *id001
+  /app/coupons/{couponNo}:
+    get:
+      summary: 券详情
+      tags:
+      - app/优惠券
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                description: 券
+                allOf:
+                - $ref: '#/components/schemas/AppResult'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/CouponUser'
+        '401':
+          description: 未登录/ token 失效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppResult'
+      parameters:
+      - name: couponNo
+        in: path
+        required: true
+        schema:
+          type: string
+      security: *id001
+  /app/orders:
+    post:
+      summary: 创建订单（自取）
+      tags:
+      - app/订单
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                description: 订单详情
+                allOf:
+                - $ref: '#/components/schemas/AppResult'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/OrderDetail'
+        '401':
+          description: 未登录/ token 失效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppResult'
+      description: 幂等：Header Idempotency-Key 或 body.idempotencyKey；金额后端按商品价重算
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderReq'
+      security: *id001
+    get:
+      summary: 我的订单列表
+      tags:
+      - app/订单
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                allOf:
+                - $ref: '#/components/schemas/PageResult'
+                - type: object
+                  properties:
+                    rows:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Order'
+        '401':
+          description: 未登录/ token 失效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppResult'
+      parameters:
+      - *id002
+      - *id003
+      - name: orderStatus
+        in: query
+        schema:
+          type: string
+      security: *id001
+  /app/orders/{orderNo}:
+    get:
+      summary: 订单详情
+      tags:
+      - app/订单
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                description: 订单详情
+                allOf:
+                - $ref: '#/components/schemas/AppResult'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/OrderDetail'
+        '401':
+          description: 未登录/ token 失效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppResult'
+      parameters:
+      - name: orderNo
+        in: path
+        required: true
+        schema:
+          type: string
+      security: *id001
+  /app/orders/{orderNo}/pay:
+    post:
+      summary: 支付（储值/微信/组合）
+      tags:
+      - app/订单
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                description: 订单详情
+                allOf:
+                - $ref: '#/components/schemas/AppResult'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/OrderDetail'
+        '401':
+          description: 未登录/ token 失效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppResult'
+      parameters:
+      - name: orderNo
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayOrderReq'
+      security: *id001
+  /app/orders/{orderNo}/cancel:
+    post:
+      summary: 取消订单
+      tags:
+      - app/订单
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                description: 订单详情
+                allOf:
+                - $ref: '#/components/schemas/AppResult'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/OrderDetail'
+        '401':
+          description: 未登录/ token 失效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppResult'
+      parameters:
+      - name: orderNo
+        in: path
+        required: true
+        schema:
+          type: string
+      security: *id001
+components:
+  schemas:
+    Member:
+      type: object
+      title: Member
+      description: 对应表 cosen_member（会员）
+      properties:
+        id:
+          type: string
+          format: int64
+          description: 会员ID（bigint ID，JSON 用字符串避免精度丢失）
+          readOnly: true
+        memberNo:
+          type: string
+          maxLength: 32
+          description: 会员号（展示用，如 6201 0817 3325）
+        openid:
+          type: string
+          maxLength: 64
+          description: 微信 openid（正式轨 code2session 获得）
+        unionid:
+          type: string
+          maxLength: 64
+          description: 微信 unionid（多端打通预留）
+        phone:
+          type: string
+          maxLength: 20
+          description: 手机号（微信手机号快速验证后绑定）
+        nickname:
+          type: string
+          maxLength: 64
+          description: 昵称
+        avatarUrl:
+          type: string
+          maxLength: 512
+          description: 头像
+        gender:
+          type: integer
+          format: int32
+          enum:
+          - 0
+          - 1
+          - 2
+          description: 0未知 1男 2女
+        birthday:
+          type: string
+          format: date
+          description: 生日（生日券）
+        balanceCent:
+          type: integer
+          format: int64
+          description: 可用储值余额（分，含赠送）（bigint，单位：分/计数）
+        giftBalanceCent:
+          type: integer
+          format: int64
+          description: 其中赠送部分（分，仅展示/对账）（bigint，单位：分/计数）
+        points:
+          type: integer
+          format: int32
+          description: 积分
+        level:
+          type: integer
+          format: int32
+          enum:
+          - 1
+          - 2
+          - 3
+          description: 1可森 2醇香 3深焙
+        rechargeTotalCent:
+          type: integer
+          format: int64
+          description: 累计实充（分，等级依据）（bigint，单位：分/计数）
+        storeId:
+          type: string
+          format: int64
+          description: 门店ID（单店模型，预留）（bigint ID，JSON 用字符串避免精度丢失）
+        status:
+          type: integer
+          format: int32
+          enum:
+          - 1
+          - 0
+          description: 1正常 0停用
+        loginType:
+          type: string
+          maxLength: 16
+          description: 最近登录通道：wechat/mock（联调轨）
+        lastLoginAt:
+          type: string
+          format: date-time
+          description: 最近登录时间
+        version:
+          type: integer
+          format: int32
+          description: 乐观锁
+        createTime:
+          type: string
+          format: date-time
+          description: 创建时间
+          readOnly: true
+        updateTime:
+          type: string
+          format: date-time
+          description: 更新时间
+          readOnly: true
+        deleted:
+          type: integer
+          format: int32
+          description: 0正常 1删除
+      x-table: cosen_member
+      required:
+      - memberNo
+    MemberBalanceFlow:
+      type: object
+      title: MemberBalanceFlow
+      description: 对应表 cosen_member_balance_flow（储值账本流水）
+      properties:
+        id:
+          type: string
+          format: int64
+          description: 流水ID（bigint ID，JSON 用字符串避免精度丢失）
+          readOnly: true
+        flowNo:
+          type: string
+          maxLength: 40
+          description: 流水号（幂等展示）
+        memberId:
+          type: string
+          format: int64
+          description: 会员ID（bigint ID，JSON 用字符串避免精度丢失）
+        bizType:
+          type: string
+          enum:
+          - RECHARGE
+          - REWARD
+          - CONSUME
+          - REFUND
+          - ADJUST
+          - TRANSFER_IN
+          - TRANSFER_OUT
+          maxLength: 24
+          description: RECHARGE/REWARD/CONSUME/REFUND/ADJUST/TRANSFER_IN/TRANSFER_OUT
+        direction:
+          type: integer
+          format: int32
+          description: 1入账 -1出账
+        amountCent:
+          type: integer
+          format: int64
+          description: 变动金额（分，带符号）（bigint，单位：分/计数）
+        balanceBeforeCent:
+          type: integer
+          format: int64
+          description: 变动前可用余额（分）（bigint，单位：分/计数）
+        balanceAfterCent:
+          type: integer
+          format: int64
+          description: 变动后可用余额（分）（bigint，单位：分/计数）
+        relatedType:
+          type: string
+          enum:
+          - ORDER
+          - RECHARGE
+          - COUPON
+          - ADJUST
+          maxLength: 24
+          description: 关联单据类型：ORDER/RECHARGE/COUPON/ADJUST
+        relatedId:
+          type: string
+          maxLength: 64
+          description: 关联单号（order_no / coupon_no / 外部单号）
+        idempotencyKey:
+          type: string
+          maxLength: 64
+          description: 幂等键（同一业务只记一次账）
+        remark:
+          type: string
+          maxLength: 255
+          description: 备注
+        createTime:
+          type: string
+          format: date-time
+          description: 创建时间
+          readOnly: true
+      x-table: cosen_member_balance_flow
+      required:
+      - flowNo
+      - memberId
+      - bizType
+      - direction
+      - amountCent
+      - balanceBeforeCent
+      - balanceAfterCent
+    Category:
+      type: object
+      title: Category
+      description: 对应表 cosen_category（商品分类）
+      properties:
+        id:
+          type: string
+          format: int64
+          description: 分类ID（bigint ID，JSON 用字符串避免精度丢失）
+          readOnly: true
+        code:
+          type: string
+          maxLength: 32
+          description: 分类编码（前端 mock cat，如 matcha/craft）
+        name:
+          type: string
+          maxLength: 32
+          description: 中文名
+        nameEn:
+          type: string
+          maxLength: 64
+          description: 英文名
+        description:
+          type: string
+          maxLength: 255
+          description: 分类描述（菜单副标题）
+        domain:
+          type: string
+          enum:
+          - coffee
+          - bar
+          - other
+          maxLength: 16
+          description: 业务域：coffee/bar/other（日咖夜酒）
+        sortNo:
+          type: integer
+          format: int32
+          description: 排序，越小越前
+        status:
+          type: integer
+          format: int32
+          enum:
+          - 1
+          - 0
+          description: 1上架 0下架
+        createTime:
+          type: string
+          format: date-time
+          description: 创建时间
+          readOnly: true
+        updateTime:
+          type: string
+          format: date-time
+          description: 更新时间
+          readOnly: true
+      x-table: cosen_category
+      required:
+      - code
+      - name
+    Product:
+      type: object
+      title: Product
+      description: 对应表 cosen_product（商品）
+      properties:
+        id:
+          type: string
+          format: int64
+          description: 商品ID（bigint ID，JSON 用字符串避免精度丢失）
+          readOnly: true
+        code:
+          type: string
+          maxLength: 32
+          description: 商品编码（前端 mock id，如 m1/craft-pale）
+        categoryId:
+          type: string
+          format: int64
+          description: 分类ID（bigint ID，JSON 用字符串避免精度丢失）
+        name:
+          type: string
+          maxLength: 64
+          description: 商品名
+        nameEn:
+          type: string
+          maxLength: 64
+          description: 英文名
+        description:
+          type: string
+          maxLength: 512
+          description: 商品描述
+        priceCent:
+          type: integer
+          format: int64
+          description: 基础价（分）（bigint，单位：分/计数）
+        rating:
+          type: number
+          format: double
+          description: 评分 0.0-9.9
+        soldCount:
+          type: integer
+          format: int32
+          description: 累计销量（展示）
+        badge:
+          type: string
+          maxLength: 16
+          description: 角标：招牌/人气/限定/新品
+        ingredientsJson:
+          type: object
+          additionalProperties: true
+          description: 原料数组 JSON（JSON 对象/数组，按原结构透传）
+        specGroupsJson:
+          type: object
+          additionalProperties: true
+          description: 规格组数组 JSON（size/ice/sugar/milk/extra）（JSON 对象/数组，按原结构透传）
+        artJson:
+          type: object
+          additionalProperties: true
+          description: 插画参数 DrinkArtSpec JSON（JSON 对象/数组，按原结构透传）
+        tileColorStart:
+          type: string
+          maxLength: 7
+          description: '卡片渐变起始色 #RRGGBB'
+        tileColorEnd:
+          type: string
+          maxLength: 7
+          description: '卡片渐变结束色 #RRGGBB'
+        stock:
+          type: integer
+          format: int32
+          description: -1 不限库存，>=0 为剩余量（乐观锁扣减）
+        status:
+          type: integer
+          format: int32
+          enum:
+          - 1
+          - 0
+          description: 1上架 0下架
+        sortNo:
+          type: integer
+          format: int32
+          description: 排序
+        storeId:
+          type: string
+          format: int64
+          description: 门店ID（bigint ID，JSON 用字符串避免精度丢失）
+        version:
+          type: integer
+          format: int32
+          description: 乐观锁（库存）
+        createTime:
+          type: string
+          format: date-time
+          description: 创建时间
+          readOnly: true
+        updateTime:
+          type: string
+          format: date-time
+          description: 更新时间
+          readOnly: true
+      x-table: cosen_product
+      required:
+      - code
+      - categoryId
+      - name
+    CouponUser:
+      type: object
+      title: CouponUser
+      description: 对应表 cosen_coupon_user（用户礼品券背包）
+      properties:
+        id:
+          type: string
+          format: int64
+          description: 用户券ID（bigint ID，JSON 用字符串避免精度丢失）
+          readOnly: true
+        couponNo:
+          type: string
+          maxLength: 40
+          description: 券实例号
+        memberId:
+          type: string
+          format: int64
+          description: 持有人ID（bigint ID，JSON 用字符串避免精度丢失）
+        templateCode:
+          type: string
+          maxLength: 32
+          description: 发放模板编码（后台发券/活动）
+        title:
+          type: string
+          maxLength: 64
+          description: 券标题（雨天暖心券…）
+        type:
+          type: string
+          enum:
+          - cash
+          - discount
+          - gift
+          maxLength: 16
+          description: cash 满减 / discount 折扣 / gift 兑换
+        valueCent:
+          type: integer
+          format: int64
+          description: cash/gift 面额（分）；discount 时为 NULL（bigint，单位：分/计数）
+        discountRate:
+          type: number
+          format: double
+          description: 折扣率，如 0.8500（仅 discount）
+        thresholdCent:
+          type: integer
+          format: int64
+          description: 门槛（分），0 无门槛（bigint，单位：分/计数）
+        maxOffCent:
+          type: integer
+          format: int64
+          description: 折扣券最高减（分）（bigint，单位：分/计数）
+        issuer:
+          type: string
+          maxLength: 64
+          description: 发放人/店
+        reason:
+          type: string
+          maxLength: 255
+          description: 发放理由
+        startAt:
+          type: string
+          format: date-time
+          description: 生效时间
+        endAt:
+          type: string
+          format: date-time
+          description: 失效时间
+        status:
+          type: string
+          enum:
+          - unused
+          - used
+          - expired
+          - transferred
+          - frozen
+          maxLength: 16
+          description: unused/used/expired/transferred/frozen
+        usedAt:
+          type: string
+          format: date-time
+          description: 核销时间
+        orderId:
+          type: string
+          format: int64
+          description: 核销订单ID（bigint ID，JSON 用字符串避免精度丢失）
+        source:
+          type: string
+          enum:
+          - grant
+          - redeem
+          - transfer
+          maxLength: 16
+          description: grant 后台发放 / redeem 兑换 / transfer 好友转赠
+        fromMemberId:
+          type: string
+          format: int64
+          description: 转赠来源会员ID（bigint ID，JSON 用字符串避免精度丢失）
+        transferNo:
+          type: string
+          maxLength: 40
+          description: 转赠单号
+        transferAt:
+          type: string
+          format: date-time
+          description: 转出时间
+        acceptAt:
+          type: string
+          format: date-time
+          description: 接收时间
+        version:
+          type: integer
+          format: int32
+          description: 乐观锁（防重复核销/重复转赠）
+        createTime:
+          type: string
+          format: date-time
+          description: 创建时间
+          readOnly: true
+        updateTime:
+          type: string
+          format: date-time
+          description: 更新时间
+          readOnly: true
+      x-table: cosen_coupon_user
+      required:
+      - couponNo
+      - memberId
+      - title
+      - type
+      - startAt
+      - endAt
+    Order:
+      type: object
+      title: Order
+      description: 对应表 cosen_order（自取订单）
+      properties:
+        id:
+          type: string
+          format: int64
+          description: 订单ID（bigint ID，JSON 用字符串避免精度丢失）
+          readOnly: true
+        orderNo:
+          type: string
+          maxLength: 32
+          description: 订单号（16位，展示时再分组）
+        pickupCode:
+          type: string
+          maxLength: 8
+          description: 取餐号 A018
+        memberId:
+          type: string
+          format: int64
+          description: 会员ID（bigint ID，JSON 用字符串避免精度丢失）
+        storeId:
+          type: string
+          format: int64
+          description: 门店ID（bigint ID，JSON 用字符串避免精度丢失）
+        fulfillType:
+          type: string
+          enum:
+          - pickup
+          maxLength: 16
+          description: 履约方式：仅 pickup（外送域已剔除）
+        itemCount:
+          type: integer
+          format: int32
+          description: 商品件数
+        subtotalCent:
+          type: integer
+          format: int64
+          description: 商品小计（分）（bigint，单位：分/计数）
+        couponOffCent:
+          type: integer
+          format: int64
+          description: 券抵扣（分）（bigint，单位：分/计数）
+        payableCent:
+          type: integer
+          format: int64
+          description: 应付 = 小计 - 券抵扣（分）（bigint，单位：分/计数）
+        balancePayCent:
+          type: integer
+          format: int64
+          description: 储值支付（分）（bigint，单位：分/计数）
+        wechatPayCent:
+          type: integer
+          format: int64
+          description: 微信支付（分）（bigint，单位：分/计数）
+        couponId:
+          type: string
+          format: int64
+          description: 使用的用户券ID（bigint ID，JSON 用字符串避免精度丢失）
+        payMode:
+          type: string
+          enum:
+          - balance
+          - wechat
+          - mixed
+          maxLength: 16
+          description: balance/wechat/mixed
+        payStatus:
+          type: string
+          enum:
+          - unpaid
+          - paid
+          - refunded
+          - closed
+          maxLength: 16
+          description: unpaid/paid/refunded/closed
+        orderStatus:
+          type: string
+          enum:
+          - created
+          - paid
+          - making
+          - ready
+          - completed
+          - cancelled
+          maxLength: 16
+          description: created/paid/making/ready/completed/cancelled
+        remark:
+          type: string
+          maxLength: 255
+          description: 备注
+        idempotencyKey:
+          type: string
+          maxLength: 64
+          description: 下单幂等键（客户端 UUID）
+        paidAt:
+          type: string
+          format: date-time
+          description: 支付完成时间
+        finishedAt:
+          type: string
+          format: date-time
+          description: 完成/取餐时间
+        cancelledAt:
+          type: string
+          format: date-time
+          description: 取消时间
+        version:
+          type: integer
+          format: int32
+          description: 乐观锁（状态机）
+        createTime:
+          type: string
+          format: date-time
+          description: 创建时间
+          readOnly: true
+        updateTime:
+          type: string
+          format: date-time
+          description: 更新时间
+          readOnly: true
+      x-table: cosen_order
+      required:
+      - orderNo
+      - memberId
+    OrderItem:
+      type: object
+      title: OrderItem
+      description: 对应表 cosen_order_item（订单明细）
+      properties:
+        id:
+          type: string
+          format: int64
+          description: 明细ID（bigint ID，JSON 用字符串避免精度丢失）
+          readOnly: true
+        orderId:
+          type: string
+          format: int64
+          description: 订单ID（bigint ID，JSON 用字符串避免精度丢失）
+        productId:
+          type: string
+          format: int64
+          description: 商品ID（bigint ID，JSON 用字符串避免精度丢失）
+        productCode:
+          type: string
+          maxLength: 32
+          description: 商品编码快照（m1…）
+        productName:
+          type: string
+          maxLength: 64
+          description: 商品名快照
+        productNameEn:
+          type: string
+          maxLength: 64
+          description: 英文名快照
+        specText:
+          type: string
+          maxLength: 255
+          description: 规格文案快照（大杯 / 少冰 / 少甜）
+        specJson:
+          type: object
+          additionalProperties: true
+          description: 规格选择快照（key -> option）（JSON 对象/数组，按原结构透传）
+        unitPriceCent:
+          type: integer
+          format: int64
+          description: 成交单价（分，含加料）（bigint，单位：分/计数）
+        qty:
+          type: integer
+          format: int32
+          description: 数量
+        amountCent:
+          type: integer
+          format: int64
+          description: 小计 = 单价 * 数量（分）（bigint，单位：分/计数）
+        artJson:
+          type: object
+          additionalProperties: true
+          description: 插画快照（列表免二次查询）（JSON 对象/数组，按原结构透传）
+        createTime:
+          type: string
+          format: date-time
+          description: 创建时间
+          readOnly: true
+      x-table: cosen_order_item
+      required:
+      - orderId
+      - productId
+      - productName
+    AppResult:
+      type: object
+      title: AppResult
+      description: 小程序端统一响应信封：code=200 成功
+      properties:
+        code:
+          type: integer
+          format: int32
+          example: 200
+        msg:
+          type: string
+          example: ok
+        data:
+          type: object
+          additionalProperties: true
+      required:
+      - code
+      - msg
+    PageResult:
+      type: object
+      title: PageResult
+      description: 分页信封：total + rows
+      properties:
+        code:
+          type: integer
+          format: int32
+        msg:
+          type: string
+        total:
+          type: integer
+          format: int64
+          description: 总条数（JSON 用字符串时按 string 处理）
+        rows:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+      required:
+      - code
+      - rows
+    LoginWechatReq:
+      type: object
+      title: LoginWechatReq
+      properties:
+        code:
+          type: string
+          description: wx.login 返回的 code
+        phoneCode:
+          type: string
+          description: 可选：getPhoneNumber 的 code
+      required:
+      - code
+    LoginMockReq:
+      type: object
+      title: LoginMockReq
+      description: 仅 dev/test 可用
+      properties:
+        phone:
+          type: string
+          example: '13800000817'
+        nickname:
+          type: string
+          example: Vivian
+    BindPhoneReq:
+      type: object
+      title: BindPhoneReq
+      properties:
+        phoneCode:
+          type: string
+      required:
+      - phoneCode
+    LoginResp:
+      type: object
+      title: LoginResp
+      properties:
+        token:
+          type: string
+          description: 不透明 UUID，7 天有效，Redis 存 cosen:token:{token}
+        expiresIn:
+          type: integer
+          format: int32
+          example: 604800
+        member:
+          $ref: '#/components/schemas/Member'
+      required:
+      - token
+      - expiresIn
+      - member
+    CreateOrderItemReq:
+      type: object
+      title: CreateOrderItemReq
+      properties:
+        productCode:
+          type: string
+          example: m1
+        qty:
+          type: integer
+          minimum: 1
+          example: 1
+        spec:
+          type: object
+          additionalProperties:
+            type: string
+          description: 规格选择，如 {"size":"大杯","ice":"少冰"}
+      required:
+      - productCode
+      - qty
+    CreateOrderReq:
+      type: object
+      title: CreateOrderReq
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateOrderItemReq'
+        couponId:
+          type: string
+          description: 可选：使用的用户券 coupon_no/id
+        payMode:
+          type: string
+          enum:
+          - balance
+          - wechat
+          - mixed
+          default: wechat
+        remark:
+          type: string
+          maxLength: 255
+        idempotencyKey:
+          type: string
+          description: 客户端 UUID，服务端 uk_idem_key 兜底
+      required:
+      - items
+    PayOrderReq:
+      type: object
+      title: PayOrderReq
+      properties:
+        payMode:
+          type: string
+          enum:
+          - balance
+          - wechat
+          - mixed
+        balancePayCent:
+          type: integer
+          format: int64
+          description: 储值支付（分）
+        wechatPayCent:
+          type: integer
+          format: int64
+          description: 微信支付（分）
+      required:
+      - payMode
+    OrderDetail:
+      type: object
+      title: OrderDetail
+      description: 订单 + 明细（列表/详情共用）
+      allOf:
+      - $ref: '#/components/schemas/Order'
+      - type: object
+        properties:
+          items:
+            type: array
+            items:
+              $ref: '#/components/schemas/OrderItem'
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: UUID
