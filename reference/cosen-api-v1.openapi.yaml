@@ -2,28 +2,27 @@ openapi: 3.1.0
 info:
   title: cosen 业务接口
   version: 0.1.0
-  description: 可森小程序后端第一切片 API 契约（ETL 后的 DDL/model 对齐版），供 Apifox 审阅。后台管理接口见「RuoYi
-    基础接口」模块。
+  description: 可森小程序后端第一切片 API 契约（ETL 后的 DDL/model 对齐版），供 Apifox 审阅。后台管理接口见「RuoYi 基础接口」模块。
 servers:
-- url: http://127.0.0.1:8080
-  description: macbook 本机
+  - url: http://127.0.0.1:8080
+    description: macbook 本机
 tags:
-- name: app/认证
-  description: 微信登录 / 联调登录 / 手机号绑定
-- name: app/会员
-  description: 会员资料 / 储值余额 / 流水
-- name: app/商品
-  description: 分类 / 商品（点单）
-- name: app/优惠券
-  description: 券背包 / 券详情
-- name: app/订单
-  description: 下单 / 支付 / 查询 / 取消
+  - name: app/认证
+    description: 微信登录 / 联调登录 / 手机号绑定
+  - name: app/会员
+    description: 会员资料 / 储值余额 / 流水
+  - name: app/商品
+    description: 分类 / 商品（点单）
+  - name: app/优惠券
+    description: 券背包 / 券详情
+  - name: app/订单
+    description: 下单 / 支付 / 查询 / 取消
 paths:
   /app/auth/login/wechat:
     post:
       summary: 微信静默登录
       tags:
-      - app/认证
+        - app/认证
       responses:
         '200':
           description: OK
@@ -33,11 +32,11 @@ paths:
                 type: object
                 description: 登录结果
                 allOf:
-                - $ref: '#/components/schemas/AppResult'
-                - type: object
-                  properties:
-                    data:
-                      $ref: '#/components/schemas/LoginResp'
+                  - $ref: '#/components/schemas/AppResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/LoginResp'
       requestBody:
         required: true
         content:
@@ -48,7 +47,7 @@ paths:
     post:
       summary: 联调一键登录（dev/test）
       tags:
-      - app/认证
+        - app/认证
       responses:
         '200':
           description: OK
@@ -58,11 +57,11 @@ paths:
                 type: object
                 description: 登录结果
                 allOf:
-                - $ref: '#/components/schemas/AppResult'
-                - type: object
-                  properties:
-                    data:
-                      $ref: '#/components/schemas/LoginResp'
+                  - $ref: '#/components/schemas/AppResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/LoginResp'
       requestBody:
         required: true
         content:
@@ -73,7 +72,7 @@ paths:
     post:
       summary: 绑定手机号
       tags:
-      - app/认证
+        - app/认证
       responses:
         '200':
           description: OK
@@ -83,11 +82,11 @@ paths:
                 type: object
                 description: 会员信息
                 allOf:
-                - $ref: '#/components/schemas/AppResult'
-                - type: object
-                  properties:
-                    data:
-                      $ref: '#/components/schemas/Member'
+                  - $ref: '#/components/schemas/AppResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Member'
         '401':
           description: 未登录/ token 失效
           content:
@@ -100,13 +99,13 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BindPhoneReq'
-      security: &id001
-      - bearerAuth: []
+      security: &ref_0
+        - bearerAuth: []
   /app/auth/logout:
     post:
       summary: 注销 token
       tags:
-      - app/认证
+        - app/认证
       responses:
         '200':
           description: OK
@@ -120,12 +119,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AppResult'
-      security: *id001
+      security: *ref_0
   /app/member/profile:
     get:
       summary: 会员资料 + 可用余额
       tags:
-      - app/会员
+        - app/会员
       responses:
         '200':
           description: OK
@@ -135,23 +134,26 @@ paths:
                 type: object
                 description: 会员信息
                 allOf:
-                - $ref: '#/components/schemas/AppResult'
-                - type: object
-                  properties:
-                    data:
-                      $ref: '#/components/schemas/Member'
+                  - $ref: '#/components/schemas/AppResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Member'
+                properties: {}
         '401':
           description: 未登录/ token 失效
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AppResult'
-      security: *id001
+              examples: {}
+      security:
+        - bearerAuth: []
   /app/member/balance/flows:
     get:
       summary: 储值流水
       tags:
-      - app/会员
+        - app/会员
       responses:
         '200':
           description: OK
@@ -160,13 +162,13 @@ paths:
               schema:
                 type: object
                 allOf:
-                - $ref: '#/components/schemas/PageResult'
-                - type: object
-                  properties:
-                    rows:
-                      type: array
-                      items:
-                        $ref: '#/components/schemas/MemberBalanceFlow'
+                  - $ref: '#/components/schemas/PageResult'
+                  - type: object
+                    properties:
+                      rows:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/MemberBalanceFlow'
         '401':
           description: 未登录/ token 失效
           content:
@@ -174,24 +176,24 @@ paths:
               schema:
                 $ref: '#/components/schemas/AppResult'
       parameters:
-      - &id002
-        name: pageNum
-        in: query
-        schema:
-          type: integer
-          default: 1
-      - &id003
-        name: pageSize
-        in: query
-        schema:
-          type: integer
-          default: 10
-      security: *id001
+        - &ref_1
+          name: pageNum
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - &ref_2
+          name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 10
+      security: *ref_0
   /app/catalog/categories:
     get:
       summary: 分类列表
       tags:
-      - app/商品
+        - app/商品
       responses:
         '200':
           description: OK
@@ -201,18 +203,18 @@ paths:
                 type: object
                 description: 分类数组
                 allOf:
-                - $ref: '#/components/schemas/AppResult'
-                - type: object
-                  properties:
-                    data:
-                      type: array
-                      items:
-                        $ref: '#/components/schemas/Category'
+                  - $ref: '#/components/schemas/AppResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Category'
   /app/catalog/products:
     get:
       summary: 商品列表
       tags:
-      - app/商品
+        - app/商品
       responses:
         '200':
           description: OK
@@ -221,26 +223,26 @@ paths:
               schema:
                 type: object
                 allOf:
-                - $ref: '#/components/schemas/PageResult'
-                - type: object
-                  properties:
-                    rows:
-                      type: array
-                      items:
-                        $ref: '#/components/schemas/Product'
+                  - $ref: '#/components/schemas/PageResult'
+                  - type: object
+                    properties:
+                      rows:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Product'
       parameters:
-      - *id002
-      - *id003
-      - name: category
-        in: query
-        schema:
-          type: string
-        description: 分类 code，如 matcha
+        - *ref_1
+        - *ref_2
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: 分类 code，如 matcha
   /app/catalog/products/{code}:
     get:
       summary: 商品详情
       tags:
-      - app/商品
+        - app/商品
       responses:
         '200':
           description: OK
@@ -250,22 +252,22 @@ paths:
                 type: object
                 description: 商品
                 allOf:
-                - $ref: '#/components/schemas/AppResult'
-                - type: object
-                  properties:
-                    data:
-                      $ref: '#/components/schemas/Product'
+                  - $ref: '#/components/schemas/AppResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Product'
       parameters:
-      - name: code
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
   /app/coupons:
     get:
       summary: 我的券背包
       tags:
-      - app/优惠券
+        - app/优惠券
       responses:
         '200':
           description: OK
@@ -275,13 +277,13 @@ paths:
                 type: object
                 description: 券数组
                 allOf:
-                - $ref: '#/components/schemas/AppResult'
-                - type: object
-                  properties:
-                    data:
-                      type: array
-                      items:
-                        $ref: '#/components/schemas/CouponUser'
+                  - $ref: '#/components/schemas/AppResult'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/CouponUser'
         '401':
           description: 未登录/ token 失效
           content:
@@ -289,22 +291,22 @@ paths:
               schema:
                 $ref: '#/components/schemas/AppResult'
       parameters:
-      - name: status
-        in: query
-        schema:
-          type: string
-          enum:
-          - unused
-          - used
-          - expired
-          - transferred
-          - frozen
-      security: *id001
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - unused
+              - used
+              - expired
+              - transferred
+              - frozen
+      security: *ref_0
   /app/coupons/{couponNo}:
     get:
       summary: 券详情
       tags:
-      - app/优惠券
+        - app/优惠券
       responses:
         '200':
           description: OK
@@ -314,11 +316,11 @@ paths:
                 type: object
                 description: 券
                 allOf:
-                - $ref: '#/components/schemas/AppResult'
-                - type: object
-                  properties:
-                    data:
-                      $ref: '#/components/schemas/CouponUser'
+                  - $ref: '#/components/schemas/AppResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/CouponUser'
         '401':
           description: 未登录/ token 失效
           content:
@@ -326,17 +328,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/AppResult'
       parameters:
-      - name: couponNo
-        in: path
-        required: true
-        schema:
-          type: string
-      security: *id001
+        - name: couponNo
+          in: path
+          required: true
+          schema:
+            type: string
+      security: *ref_0
   /app/orders:
     post:
       summary: 创建订单（自取）
       tags:
-      - app/订单
+        - app/订单
       responses:
         '200':
           description: OK
@@ -346,11 +348,11 @@ paths:
                 type: object
                 description: 订单详情
                 allOf:
-                - $ref: '#/components/schemas/AppResult'
-                - type: object
-                  properties:
-                    data:
-                      $ref: '#/components/schemas/OrderDetail'
+                  - $ref: '#/components/schemas/AppResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/OrderDetail'
         '401':
           description: 未登录/ token 失效
           content:
@@ -364,11 +366,11 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateOrderReq'
-      security: *id001
+      security: *ref_0
     get:
       summary: 我的订单列表
       tags:
-      - app/订单
+        - app/订单
       responses:
         '200':
           description: OK
@@ -377,13 +379,13 @@ paths:
               schema:
                 type: object
                 allOf:
-                - $ref: '#/components/schemas/PageResult'
-                - type: object
-                  properties:
-                    rows:
-                      type: array
-                      items:
-                        $ref: '#/components/schemas/Order'
+                  - $ref: '#/components/schemas/PageResult'
+                  - type: object
+                    properties:
+                      rows:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Order'
         '401':
           description: 未登录/ token 失效
           content:
@@ -391,18 +393,18 @@ paths:
               schema:
                 $ref: '#/components/schemas/AppResult'
       parameters:
-      - *id002
-      - *id003
-      - name: orderStatus
-        in: query
-        schema:
-          type: string
-      security: *id001
+        - *ref_1
+        - *ref_2
+        - name: orderStatus
+          in: query
+          schema:
+            type: string
+      security: *ref_0
   /app/orders/{orderNo}:
     get:
       summary: 订单详情
       tags:
-      - app/订单
+        - app/订单
       responses:
         '200':
           description: OK
@@ -412,11 +414,11 @@ paths:
                 type: object
                 description: 订单详情
                 allOf:
-                - $ref: '#/components/schemas/AppResult'
-                - type: object
-                  properties:
-                    data:
-                      $ref: '#/components/schemas/OrderDetail'
+                  - $ref: '#/components/schemas/AppResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/OrderDetail'
         '401':
           description: 未登录/ token 失效
           content:
@@ -424,17 +426,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/AppResult'
       parameters:
-      - name: orderNo
-        in: path
-        required: true
-        schema:
-          type: string
-      security: *id001
+        - name: orderNo
+          in: path
+          required: true
+          schema:
+            type: string
+      security: *ref_0
   /app/orders/{orderNo}/pay:
     post:
       summary: 支付（储值/微信/组合）
       tags:
-      - app/订单
+        - app/订单
       responses:
         '200':
           description: OK
@@ -444,11 +446,11 @@ paths:
                 type: object
                 description: 订单详情
                 allOf:
-                - $ref: '#/components/schemas/AppResult'
-                - type: object
-                  properties:
-                    data:
-                      $ref: '#/components/schemas/OrderDetail'
+                  - $ref: '#/components/schemas/AppResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/OrderDetail'
         '401':
           description: 未登录/ token 失效
           content:
@@ -456,23 +458,23 @@ paths:
               schema:
                 $ref: '#/components/schemas/AppResult'
       parameters:
-      - name: orderNo
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: orderNo
+          in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/PayOrderReq'
-      security: *id001
+      security: *ref_0
   /app/orders/{orderNo}/cancel:
     post:
       summary: 取消订单
       tags:
-      - app/订单
+        - app/订单
       responses:
         '200':
           description: OK
@@ -482,11 +484,11 @@ paths:
                 type: object
                 description: 订单详情
                 allOf:
-                - $ref: '#/components/schemas/AppResult'
-                - type: object
-                  properties:
-                    data:
-                      $ref: '#/components/schemas/OrderDetail'
+                  - $ref: '#/components/schemas/AppResult'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/OrderDetail'
         '401':
           description: 未登录/ token 失效
           content:
@@ -494,12 +496,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/AppResult'
       parameters:
-      - name: orderNo
-        in: path
-        required: true
-        schema:
-          type: string
-      security: *id001
+        - name: orderNo
+          in: path
+          required: true
+          schema:
+            type: string
+      security: *ref_0
 components:
   schemas:
     Member:
@@ -540,9 +542,9 @@ components:
           type: integer
           format: int32
           enum:
-          - 0
-          - 1
-          - 2
+            - 0
+            - 1
+            - 2
           description: 0未知 1男 2女
         birthday:
           type: string
@@ -564,9 +566,9 @@ components:
           type: integer
           format: int32
           enum:
-          - 1
-          - 2
-          - 3
+            - 1
+            - 2
+            - 3
           description: 1可森 2醇香 3深焙
         rechargeTotalCent:
           type: integer
@@ -580,8 +582,8 @@ components:
           type: integer
           format: int32
           enum:
-          - 1
-          - 0
+            - 1
+            - 0
           description: 1正常 0停用
         loginType:
           type: string
@@ -611,7 +613,7 @@ components:
           description: 0正常 1删除
       x-table: cosen_member
       required:
-      - memberNo
+        - memberNo
     MemberBalanceFlow:
       type: object
       title: MemberBalanceFlow
@@ -633,13 +635,13 @@ components:
         bizType:
           type: string
           enum:
-          - RECHARGE
-          - REWARD
-          - CONSUME
-          - REFUND
-          - ADJUST
-          - TRANSFER_IN
-          - TRANSFER_OUT
+            - RECHARGE
+            - REWARD
+            - CONSUME
+            - REFUND
+            - ADJUST
+            - TRANSFER_IN
+            - TRANSFER_OUT
           maxLength: 24
           description: RECHARGE/REWARD/CONSUME/REFUND/ADJUST/TRANSFER_IN/TRANSFER_OUT
         direction:
@@ -661,10 +663,10 @@ components:
         relatedType:
           type: string
           enum:
-          - ORDER
-          - RECHARGE
-          - COUPON
-          - ADJUST
+            - ORDER
+            - RECHARGE
+            - COUPON
+            - ADJUST
           maxLength: 24
           description: 关联单据类型：ORDER/RECHARGE/COUPON/ADJUST
         relatedId:
@@ -686,13 +688,13 @@ components:
           readOnly: true
       x-table: cosen_member_balance_flow
       required:
-      - flowNo
-      - memberId
-      - bizType
-      - direction
-      - amountCent
-      - balanceBeforeCent
-      - balanceAfterCent
+        - flowNo
+        - memberId
+        - bizType
+        - direction
+        - amountCent
+        - balanceBeforeCent
+        - balanceAfterCent
     Category:
       type: object
       title: Category
@@ -722,9 +724,9 @@ components:
         domain:
           type: string
           enum:
-          - coffee
-          - bar
-          - other
+            - coffee
+            - bar
+            - other
           maxLength: 16
           description: 业务域：coffee/bar/other（日咖夜酒）
         sortNo:
@@ -735,8 +737,8 @@ components:
           type: integer
           format: int32
           enum:
-          - 1
-          - 0
+            - 1
+            - 0
           description: 1上架 0下架
         createTime:
           type: string
@@ -750,8 +752,8 @@ components:
           readOnly: true
       x-table: cosen_category
       required:
-      - code
-      - name
+        - code
+        - name
     Product:
       type: object
       title: Product
@@ -821,13 +823,13 @@ components:
         stock:
           type: integer
           format: int32
-          description: -1 不限库存，>=0 为剩余量（乐观锁扣减）
+          description: '-1 不限库存，>=0 为剩余量（乐观锁扣减）'
         status:
           type: integer
           format: int32
           enum:
-          - 1
-          - 0
+            - 1
+            - 0
           description: 1上架 0下架
         sortNo:
           type: integer
@@ -853,9 +855,9 @@ components:
           readOnly: true
       x-table: cosen_product
       required:
-      - code
-      - categoryId
-      - name
+        - code
+        - categoryId
+        - name
     CouponUser:
       type: object
       title: CouponUser
@@ -885,9 +887,9 @@ components:
         type:
           type: string
           enum:
-          - cash
-          - discount
-          - gift
+            - cash
+            - discount
+            - gift
           maxLength: 16
           description: cash 满减 / discount 折扣 / gift 兑换
         valueCent:
@@ -925,11 +927,11 @@ components:
         status:
           type: string
           enum:
-          - unused
-          - used
-          - expired
-          - transferred
-          - frozen
+            - unused
+            - used
+            - expired
+            - transferred
+            - frozen
           maxLength: 16
           description: unused/used/expired/transferred/frozen
         usedAt:
@@ -943,9 +945,9 @@ components:
         source:
           type: string
           enum:
-          - grant
-          - redeem
-          - transfer
+            - grant
+            - redeem
+            - transfer
           maxLength: 16
           description: grant 后台发放 / redeem 兑换 / transfer 好友转赠
         fromMemberId:
@@ -980,12 +982,12 @@ components:
           readOnly: true
       x-table: cosen_coupon_user
       required:
-      - couponNo
-      - memberId
-      - title
-      - type
-      - startAt
-      - endAt
+        - couponNo
+        - memberId
+        - title
+        - type
+        - startAt
+        - endAt
     Order:
       type: object
       title: Order
@@ -1015,7 +1017,7 @@ components:
         fulfillType:
           type: string
           enum:
-          - pickup
+            - pickup
           maxLength: 16
           description: 履约方式：仅 pickup（外送域已剔除）
         itemCount:
@@ -1049,29 +1051,29 @@ components:
         payMode:
           type: string
           enum:
-          - balance
-          - wechat
-          - mixed
+            - balance
+            - wechat
+            - mixed
           maxLength: 16
           description: balance/wechat/mixed
         payStatus:
           type: string
           enum:
-          - unpaid
-          - paid
-          - refunded
-          - closed
+            - unpaid
+            - paid
+            - refunded
+            - closed
           maxLength: 16
           description: unpaid/paid/refunded/closed
         orderStatus:
           type: string
           enum:
-          - created
-          - paid
-          - making
-          - ready
-          - completed
-          - cancelled
+            - created
+            - paid
+            - making
+            - ready
+            - completed
+            - cancelled
           maxLength: 16
           description: created/paid/making/ready/completed/cancelled
         remark:
@@ -1110,8 +1112,8 @@ components:
           readOnly: true
       x-table: cosen_order
       required:
-      - orderNo
-      - memberId
+        - orderNo
+        - memberId
     OrderItem:
       type: object
       title: OrderItem
@@ -1173,9 +1175,9 @@ components:
           readOnly: true
       x-table: cosen_order_item
       required:
-      - orderId
-      - productId
-      - productName
+        - orderId
+        - productId
+        - productName
     AppResult:
       type: object
       title: AppResult
@@ -1192,8 +1194,8 @@ components:
           type: object
           additionalProperties: true
       required:
-      - code
-      - msg
+        - code
+        - msg
     PageResult:
       type: object
       title: PageResult
@@ -1214,8 +1216,8 @@ components:
             type: object
             additionalProperties: true
       required:
-      - code
-      - rows
+        - code
+        - rows
     LoginWechatReq:
       type: object
       title: LoginWechatReq
@@ -1227,7 +1229,7 @@ components:
           type: string
           description: 可选：getPhoneNumber 的 code
       required:
-      - code
+        - code
     LoginMockReq:
       type: object
       title: LoginMockReq
@@ -1246,7 +1248,7 @@ components:
         phoneCode:
           type: string
       required:
-      - phoneCode
+        - phoneCode
     LoginResp:
       type: object
       title: LoginResp
@@ -1261,9 +1263,9 @@ components:
         member:
           $ref: '#/components/schemas/Member'
       required:
-      - token
-      - expiresIn
-      - member
+        - token
+        - expiresIn
+        - member
     CreateOrderItemReq:
       type: object
       title: CreateOrderItemReq
@@ -1281,8 +1283,8 @@ components:
             type: string
           description: 规格选择，如 {"size":"大杯","ice":"少冰"}
       required:
-      - productCode
-      - qty
+        - productCode
+        - qty
     CreateOrderReq:
       type: object
       title: CreateOrderReq
@@ -1297,9 +1299,9 @@ components:
         payMode:
           type: string
           enum:
-          - balance
-          - wechat
-          - mixed
+            - balance
+            - wechat
+            - mixed
           default: wechat
         remark:
           type: string
@@ -1308,7 +1310,7 @@ components:
           type: string
           description: 客户端 UUID，服务端 uk_idem_key 兜底
       required:
-      - items
+        - items
     PayOrderReq:
       type: object
       title: PayOrderReq
@@ -1316,9 +1318,9 @@ components:
         payMode:
           type: string
           enum:
-          - balance
-          - wechat
-          - mixed
+            - balance
+            - wechat
+            - mixed
         balancePayCent:
           type: integer
           format: int64
@@ -1328,19 +1330,19 @@ components:
           format: int64
           description: 微信支付（分）
       required:
-      - payMode
+        - payMode
     OrderDetail:
       type: object
       title: OrderDetail
       description: 订单 + 明细（列表/详情共用）
       allOf:
-      - $ref: '#/components/schemas/Order'
-      - type: object
-        properties:
-          items:
-            type: array
+        - $ref: '#/components/schemas/Order'
+        - type: object
+          properties:
             items:
-              $ref: '#/components/schemas/OrderItem'
+              type: array
+              items:
+                $ref: '#/components/schemas/OrderItem'
   securitySchemes:
     bearerAuth:
       type: http
