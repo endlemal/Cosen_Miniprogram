@@ -48,8 +48,6 @@ paths:
           $ref: '#/components/responses/ServerError'
         '503':
           $ref: '#/components/responses/Unavailable'
-        default:
-          $ref: '#/components/responses/ServerError'
       requestBody:
         required: true
         content:
@@ -85,8 +83,6 @@ paths:
           $ref: '#/components/responses/ServerError'
         '503':
           $ref: '#/components/responses/Unavailable'
-        default:
-          $ref: '#/components/responses/ServerError'
       requestBody:
         required: true
         content:
@@ -122,8 +118,6 @@ paths:
           $ref: '#/components/responses/ServerError'
         '503':
           $ref: '#/components/responses/Unavailable'
-        default:
-          $ref: '#/components/responses/ServerError'
       requestBody:
         required: true
         content:
@@ -150,8 +144,6 @@ paths:
           $ref: '#/components/responses/ServerError'
         '503':
           $ref: '#/components/responses/Unavailable'
-        default:
-          $ref: '#/components/responses/ServerError'
       security: *id001
   /app/member/profile:
     get:
@@ -182,8 +174,6 @@ paths:
           $ref: '#/components/responses/ServerError'
         '503':
           $ref: '#/components/responses/Unavailable'
-        default:
-          $ref: '#/components/responses/ServerError'
       security: *id001
   /app/member/balance/flows:
     get:
@@ -213,8 +203,6 @@ paths:
           $ref: '#/components/responses/ServerError'
         '503':
           $ref: '#/components/responses/Unavailable'
-        default:
-          $ref: '#/components/responses/ServerError'
       parameters:
       - &id002
         name: pageNum
@@ -254,8 +242,6 @@ paths:
           $ref: '#/components/responses/ServerError'
         '503':
           $ref: '#/components/responses/Unavailable'
-        default:
-          $ref: '#/components/responses/ServerError'
   /app/catalog/products:
     get:
       summary: 商品列表
@@ -282,8 +268,6 @@ paths:
           $ref: '#/components/responses/ServerError'
         '503':
           $ref: '#/components/responses/Unavailable'
-        default:
-          $ref: '#/components/responses/ServerError'
       parameters:
       - *id002
       - *id003
@@ -317,8 +301,6 @@ paths:
           $ref: '#/components/responses/ServerError'
         '503':
           $ref: '#/components/responses/Unavailable'
-        default:
-          $ref: '#/components/responses/ServerError'
       parameters:
       - name: code
         in: path
@@ -354,8 +336,6 @@ paths:
           $ref: '#/components/responses/ServerError'
         '503':
           $ref: '#/components/responses/Unavailable'
-        default:
-          $ref: '#/components/responses/ServerError'
       parameters:
       - name: status
         in: query
@@ -395,8 +375,6 @@ paths:
           $ref: '#/components/responses/ServerError'
         '503':
           $ref: '#/components/responses/Unavailable'
-        default:
-          $ref: '#/components/responses/ServerError'
       parameters:
       - name: couponNo
         in: path
@@ -437,8 +415,6 @@ paths:
           $ref: '#/components/responses/ServerError'
         '503':
           $ref: '#/components/responses/Unavailable'
-        default:
-          $ref: '#/components/responses/ServerError'
       description: 幂等：Header Idempotency-Key 或 body.idempotencyKey；金额后端按商品价重算
       requestBody:
         required: true
@@ -474,8 +450,6 @@ paths:
           $ref: '#/components/responses/ServerError'
         '503':
           $ref: '#/components/responses/Unavailable'
-        default:
-          $ref: '#/components/responses/ServerError'
       parameters:
       - *id002
       - *id003
@@ -511,8 +485,6 @@ paths:
           $ref: '#/components/responses/ServerError'
         '503':
           $ref: '#/components/responses/Unavailable'
-        default:
-          $ref: '#/components/responses/ServerError'
       parameters:
       - name: orderNo
         in: path
@@ -551,8 +523,6 @@ paths:
           $ref: '#/components/responses/ServerError'
         '503':
           $ref: '#/components/responses/Unavailable'
-        default:
-          $ref: '#/components/responses/ServerError'
       parameters:
       - name: orderNo
         in: path
@@ -595,8 +565,6 @@ paths:
           $ref: '#/components/responses/ServerError'
         '503':
           $ref: '#/components/responses/Unavailable'
-        default:
-          $ref: '#/components/responses/ServerError'
       parameters:
       - name: orderNo
         in: path
