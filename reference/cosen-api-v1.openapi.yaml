@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: cosen 业务接口
-  version: 0.1.0
+  version: 1.0.0
   description: 可森小程序后端第一切片 API 契约（ETL 后的 DDL/model 对齐版），供 Apifox 审阅。后台管理接口见「RuoYi
     基础接口」模块。
 servers:
@@ -1124,12 +1124,26 @@ paths:
       security: *id001
   /app/orders:
     post:
+      operationId: createOrder
       summary: 创建订单（自取）
+      description: |
+        幂等：Header `Idempotency-Key` 或 body.idempotencyKey 二选一必填（UUID 或 8..64 位），
+        同 key 同 payload 重放返回 HTTP 200 + code 40925（返回原订单）；同 key 不同 payload 返回 40007。
+        金额一律由服务端按商品价重算，不信任前端传入的金额。
       tags:
       - app/订单
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: false
+        description: 下单幂等键，与 body.idempotencyKey 二选一必填；UUID 或 8..64 位字符串
+        schema:
+          type: string
+          minLength: 8
+          maxLength: 64
       responses:
         '200':
-          description: OK
+          description: OK（成功或幂等重放）
           content:
             application/json:
               schema:
@@ -1143,84 +1157,89 @@ paths:
                       $ref: '#/components/schemas/OrderDetail'
               examples:
                 success:
-                  summary: 下单成功（待支付）
+                  summary: 下单成功（seed order 3，待支付）
                   value:
                     code: 200
                     msg: ok
-                    data: &id004
-                      id: '10'
-                      orderNo: '2026111712120001'
-                      pickupCode: A021
-                      memberId: '1'
+                    data:
+                      id: '3'
+                      orderNo: '2026110810104455'
+                      pickupCode: A020
                       storeId: '1'
                       fulfillType: pickup
-                      itemCount: 2
-                      subtotalCent: 6600
-                      couponOffCent: 800
-                      payableCent: 5800
+                      itemCount: 1
+                      subtotalCent: 2700
+                      couponOffCent: 0
+                      payableCent: 2700
                       balancePayCent: 0
                       wechatPayCent: 0
-                      couponId: '1'
-                      payMode: balance
+                      couponId: null
+                      payMode: wechat
                       payStatus: unpaid
                       orderStatus: created
                       remark: ''
-                      idempotencyKey: 3f1c9a2e-8b7d-4c6a-9f0e-2d5b8a1c7e64
-                      version: 0
-                      createTime: '2026-11-17T12:12:00+08:00'
-                      updateTime: '2026-11-17T12:12:00+08:00'
-                      items: &id005
-                      - id: '1'
-                        orderId: '10'
-                        productId: '1'
-                        productCode: m1
-                        productName: 云朵奶盖抹茶
-                        productNameEn: Matcha Cloud Delight
-                        specText: 大杯 / 少冰 / 少甜 / 鲜牛奶
-                        specJson:
-                          size: 大杯
-                          temp: 少冰
-                          sugar: 少甜
-                          milk: 鲜牛奶
-                        unitPriceCent: 3500
-                        qty: 1
-                        amountCent: 3500
-                        createTime: '2026-11-17T12:12:00+08:00'
-                      - id: '2'
-                        orderId: '10'
-                        productId: '8'
-                        productCode: h1
-                        productName: 燕麦拿铁
-                        productNameEn: Oat Latte
-                        specText: 中杯 / 热 / 标准甜 / 燕麦奶
+                      createTime: '2026-11-08T10:10:44+08:00'
+                      items:
+                      - id: '4'
+                        productCode: c1
+                        productName: 橙C冷萃
+                        productNameEn: Orange Cold Brew
+                        specText: 中杯 / 正常冰 / 标准糖
                         specJson:
                           size: 中杯
-                          temp: 热
-                          sugar: 标准甜
-                          milk: 燕麦奶
-                        unitPriceCent: 3100
+                          temp: 正常冰
+                          sugar: 标准糖
+                        unitPriceCent: 2700
                         qty: 1
-                        amountCent: 3100
-                        createTime: '2026-11-17T12:12:00+08:00'
+                        amountCent: 2700
+                        artJson:
+                          cup: rocks
+                          liquid:
+                          - '#5A3521'
+                          - '#E99A43'
+                          ice: true
                 idempotent:
-                  summary: 幂等重复下单（返回已有订单）
+                  summary: 幂等重复下单（HTTP 200，返回已有订单，code 40925）
                   value:
-                    code: 200
-                    msg: ok
-                    data: *id004
-        '401':
-          description: 认证失败（401xx：token 无效/过期/类型错误、微信登录失败、手机号解密失败）
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResult'
-              examples:
-                tokenMissing:
-                  $ref: '#/components/examples/tokenMissing'
-                tokenExpired:
-                  $ref: '#/components/examples/tokenExpired'
-                adminToken:
-                  $ref: '#/components/examples/adminToken'
+                    code: 40925
+                    msg: 订单已存在，返回原订单
+                    data:
+                      id: '3'
+                      orderNo: '2026110810104455'
+                      pickupCode: A020
+                      storeId: '1'
+                      fulfillType: pickup
+                      itemCount: 1
+                      subtotalCent: 2700
+                      couponOffCent: 0
+                      payableCent: 2700
+                      balancePayCent: 0
+                      wechatPayCent: 0
+                      couponId: null
+                      payMode: wechat
+                      payStatus: unpaid
+                      orderStatus: created
+                      remark: ''
+                      createTime: '2026-11-08T10:10:44+08:00'
+                      items:
+                      - id: '4'
+                        productCode: c1
+                        productName: 橙C冷萃
+                        productNameEn: Orange Cold Brew
+                        specText: 中杯 / 正常冰 / 标准糖
+                        specJson:
+                          size: 中杯
+                          temp: 正常冰
+                          sugar: 标准糖
+                        unitPriceCent: 2700
+                        qty: 1
+                        amountCent: 2700
+                        artJson:
+                          cup: rocks
+                          liquid:
+                          - '#5A3521'
+                          - '#E99A43'
+                          ice: true
         '400':
           description: 参数缺失/格式错误/取值非法/幂等键非法（400xx）
           content:
@@ -1232,8 +1251,23 @@ paths:
                   $ref: '#/components/examples/paramMissing'
                 paramInvalid:
                   $ref: '#/components/examples/paramInvalid'
+                idempotencyKeyMissing:
+                  $ref: '#/components/examples/idempotencyKeyMissing'
+        '401':
+          description: 认证失败（401xx：token 无效/过期/类型错误）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                tokenMissing:
+                  $ref: '#/components/examples/tokenMissing'
+                tokenExpired:
+                  $ref: '#/components/examples/tokenExpired'
+                adminToken:
+                  $ref: '#/components/examples/adminToken'
         '404':
-          description: 资源不存在（404xx）
+          description: 商品不存在或已下架（40401）
           content:
             application/json:
               schema:
@@ -1241,23 +1275,187 @@ paths:
               examples:
                 productNotFound:
                   $ref: '#/components/examples/productNotFound'
-                orderNotFound:
-                  $ref: '#/components/examples/orderNotFound'
-                memberNotFound:
-                  $ref: '#/components/examples/memberNotFound'
         '409':
-          description: 业务冲突/状态不允许（409xx）
+          description: 业务冲突（余额/券/库存/金额/支付拆分/状态）
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
+                memberDisabled:
+                  $ref: '#/components/examples/memberDisabled'
                 balanceNotEnough:
                   $ref: '#/components/examples/balanceNotEnough'
                 couponUnavailable:
                   $ref: '#/components/examples/couponUnavailable'
-                orderStatusInvalid:
-                  $ref: '#/components/examples/orderStatusInvalid'
+                productOffShelf:
+                  $ref: '#/components/examples/productOffShelf'
+                productSoldOut:
+                  $ref: '#/components/examples/productSoldOut'
+                stockConflict:
+                  $ref: '#/components/examples/stockConflict'
+                amountMismatch:
+                  $ref: '#/components/examples/amountMismatch'
+                splitMismatch:
+                  $ref: '#/components/examples/splitMismatch'
+                payModeMismatch:
+                  $ref: '#/components/examples/payModeMismatch'
+        '429':
+          description: 限流/防刷（429xx）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                tooManyRequests:
+                  $ref: '#/components/examples/tooManyRequests'
+        '500':
+          description: 服务端错误（500xx）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                internalError:
+                  $ref: '#/components/examples/internalError'
+        '503':
+          description: 依赖不可用/维护中（503xx）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                serviceUnavailable:
+                  $ref: '#/components/examples/serviceUnavailable'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderReq'
+      security: *id001
+    get:
+      operationId: listMyOrders
+      summary: 我的订单列表
+      tags:
+      - app/订单
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                allOf:
+                - $ref: '#/components/schemas/PageResult'
+                - type: object
+                  properties:
+                    rows:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Order'
+              examples:
+                success:
+                  summary: 我的订单（seed order 3/2/1，按 create_time desc）
+                  value:
+                    code: 200
+                    msg: ok
+                    total: 3
+                    rows:
+                    - id: '3'
+                      orderNo: '2026110810104455'
+                      pickupCode: A020
+                      storeId: '1'
+                      fulfillType: pickup
+                      itemCount: 1
+                      subtotalCent: 2700
+                      couponOffCent: 0
+                      payableCent: 2700
+                      balancePayCent: 0
+                      wechatPayCent: 0
+                      couponId: null
+                      payMode: wechat
+                      payStatus: unpaid
+                      orderStatus: created
+                      remark: ''
+                      createTime: '2026-11-08T10:10:44+08:00'
+                    - id: '2'
+                      orderNo: '2026110715302208'
+                      pickupCode: A019
+                      storeId: '1'
+                      fulfillType: pickup
+                      itemCount: 2
+                      subtotalCent: 6600
+                      couponOffCent: 0
+                      payableCent: 6600
+                      balancePayCent: 3000
+                      wechatPayCent: 3600
+                      couponId: null
+                      payMode: mixed
+                      payStatus: paid
+                      orderStatus: making
+                      remark: 少冰
+                      createTime: '2026-11-13T22:53:50+08:00'
+                      paidAt: '2026-11-13T22:53:50+08:00'
+                    - id: '1'
+                      orderNo: '2026110509123371'
+                      pickupCode: A018
+                      storeId: '1'
+                      fulfillType: pickup
+                      itemCount: 2
+                      subtotalCent: 6600
+                      couponOffCent: 800
+                      payableCent: 5800
+                      balancePayCent: 5800
+                      wechatPayCent: 0
+                      couponId: '1'
+                      payMode: balance
+                      payStatus: paid
+                      orderStatus: completed
+                      remark: ''
+                      createTime: '2026-11-12T22:53:50+08:00'
+                      paidAt: '2026-11-12T22:53:50+08:00'
+                      finishedAt: '2026-11-12T22:53:50+08:00'
+        '400':
+          description: 分页/枚举参数非法（400xx）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                paramInvalid:
+                  $ref: '#/components/examples/paramInvalid'
+                pageSizeExceeded:
+                  $ref: '#/components/examples/pageSizeExceeded'
+        '401':
+          description: 认证失败（401xx：token 无效/过期/类型错误）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                tokenMissing:
+                  $ref: '#/components/examples/tokenMissing'
+                tokenExpired:
+                  $ref: '#/components/examples/tokenExpired'
+                adminToken:
+                  $ref: '#/components/examples/adminToken'
+        '404':
+          description: 会员记录不存在（40405）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                memberNotFound:
+                  $ref: '#/components/examples/memberNotFound'
+        '409':
+          description: 会员被停用（40901）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
                 memberDisabled:
                   $ref: '#/components/examples/memberDisabled'
         '429':
@@ -1287,85 +1485,25 @@ paths:
               examples:
                 serviceUnavailable:
                   $ref: '#/components/examples/serviceUnavailable'
-      description: 幂等：Header Idempotency-Key 或 body.idempotencyKey；金额后端按商品价重算
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateOrderReq'
-      security: *id001
-    get:
-      summary: 我的订单列表
-      tags:
-      - app/订单
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                allOf:
-                - $ref: '#/components/schemas/PageResult'
-                - type: object
-                  properties:
-                    rows:
-                      type: array
-                      items:
-                        $ref: '#/components/schemas/Order'
-        '401':
-          description: 认证失败（401xx：token 无效/过期/类型错误、微信登录失败、手机号解密失败）
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResult'
-              examples:
-                tokenMissing:
-                  $ref: '#/components/examples/tokenMissing'
-                tokenExpired:
-                  $ref: '#/components/examples/tokenExpired'
-                adminToken:
-                  $ref: '#/components/examples/adminToken'
-        '400':
-          description: 参数缺失/格式错误/取值非法/幂等键非法（400xx）
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResult'
-              examples:
-                paramMissing:
-                  $ref: '#/components/examples/paramMissing'
-                paramInvalid:
-                  $ref: '#/components/examples/paramInvalid'
-        '500':
-          description: 服务端错误（500xx）
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResult'
-              examples:
-                internalError:
-                  $ref: '#/components/examples/internalError'
-        '503':
-          description: 依赖不可用/维护中（503xx）
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResult'
-              examples:
-                serviceUnavailable:
-                  $ref: '#/components/examples/serviceUnavailable'
       parameters:
       - *id002
       - *id003
       - name: orderStatus
         in: query
+        description: 订单状态筛选
         schema:
           type: string
+          enum:
+          - created
+          - paid
+          - making
+          - ready
+          - completed
+          - cancelled
       security: *id001
   /app/orders/{orderNo}:
     get:
+      operationId: getOrderByNo
       summary: 订单详情
       tags:
       - app/订单
@@ -1385,7 +1523,7 @@ paths:
                       $ref: '#/components/schemas/OrderDetail'
               examples:
                 success:
-                  summary: 订单详情（混合支付、制作中）
+                  summary: 订单详情（seed order 2，混合支付、制作中）
                   value:
                     code: 200
                     msg: ok
@@ -1393,7 +1531,6 @@ paths:
                       id: '2'
                       orderNo: '2026110715302208'
                       pickupCode: A019
-                      memberId: '1'
                       storeId: '1'
                       fulfillType: pickup
                       itemCount: 2
@@ -1402,19 +1539,15 @@ paths:
                       payableCent: 6600
                       balancePayCent: 3000
                       wechatPayCent: 3600
+                      couponId: null
                       payMode: mixed
                       payStatus: paid
                       orderStatus: making
                       remark: 少冰
-                      idempotencyKey: seed-order-2
-                      paidAt: '2026-11-13T22:53:50+08:00'
-                      version: 1
                       createTime: '2026-11-13T22:53:50+08:00'
-                      updateTime: '2026-11-13T22:53:50+08:00'
+                      paidAt: '2026-11-13T22:53:50+08:00'
                       items:
                       - id: '3'
-                        orderId: '2'
-                        productId: '5'
                         productCode: f1
                         productName: 焦糖漩涡星冰乐
                         productNameEn: Caramel Swirl Frappuccino
@@ -1427,9 +1560,19 @@ paths:
                         unitPriceCent: 3300
                         qty: 2
                         amountCent: 6600
-                        createTime: '2026-11-17T12:12:00+08:00'
+                        artJson:
+                          cup: tall
+                          liquid:
+                          - '#C99B6C'
+                          - '#86562F'
+                          milk: '#F3E8D8'
+                          milkRatio: 18
+                          topping: cream
+                          toppingColor: '#F7EFE4'
+                          drizzle: '#A8682F'
+                          marble: true
         '401':
-          description: 认证失败（401xx：token 无效/过期/类型错误、微信登录失败、手机号解密失败）
+          description: 认证失败（401xx：token 无效/过期/类型错误）
           content:
             application/json:
               schema:
@@ -1442,18 +1585,23 @@ paths:
                 adminToken:
                   $ref: '#/components/examples/adminToken'
         '404':
-          description: 资源不存在（404xx）
+          description: 订单不存在或不在本人名下（40404，防订单号枚举）
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
-                productNotFound:
-                  $ref: '#/components/examples/productNotFound'
                 orderNotFound:
                   $ref: '#/components/examples/orderNotFound'
-                memberNotFound:
-                  $ref: '#/components/examples/memberNotFound'
+        '409':
+          description: 会员被停用（40901）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                memberDisabled:
+                  $ref: '#/components/examples/memberDisabled'
         '500':
           description: 服务端错误（500xx）
           content:
@@ -1476,17 +1624,24 @@ paths:
       - name: orderNo
         in: path
         required: true
+        description: 16 位订单号
         schema:
           type: string
+          pattern: '^\d{16}$'
       security: *id001
   /app/orders/{orderNo}/pay:
     post:
+      operationId: payOrder
       summary: 支付（储值/微信/组合）
+      description: |
+        `mixed` 组合支付强校验：`balancePayCent` 与 `wechatPayCent` 必须均 > 0，
+        且 `balancePayCent + wechatPayCent = payableCent`，否则 40921 / 40920。
+        重复支付回调按 orderNo + 微信单号幂等，HTTP 200 + code 40926。
       tags:
       - app/订单
       responses:
         '200':
-          description: OK
+          description: OK（支付成功或幂等回调）
           content:
             application/json:
               schema:
@@ -1500,15 +1655,14 @@ paths:
                       $ref: '#/components/schemas/OrderDetail'
               examples:
                 success:
-                  summary: 支付成功（储值全付）
+                  summary: 支付成功（seed order 1，储值全付）
                   value:
                     code: 200
                     msg: ok
                     data:
-                      id: '10'
-                      orderNo: '2026111712120001'
-                      pickupCode: A021
-                      memberId: '1'
+                      id: '1'
+                      orderNo: '2026110509123371'
+                      pickupCode: A018
                       storeId: '1'
                       fulfillType: pickup
                       itemCount: 2
@@ -1522,14 +1676,137 @@ paths:
                       payStatus: paid
                       orderStatus: paid
                       remark: ''
-                      idempotencyKey: 3f1c9a2e-8b7d-4c6a-9f0e-2d5b8a1c7e64
-                      version: 1
-                      createTime: '2026-11-17T12:12:00+08:00'
-                      updateTime: '2026-11-17T12:13:10+08:00'
-                      items: *id005
-                      paidAt: '2026-11-17T12:13:10+08:00'
+                      createTime: '2026-11-12T22:53:50+08:00'
+                      paidAt: '2026-11-12T22:53:50+08:00'
+                      items:
+                      - id: '1'
+                        productCode: m1
+                        productName: 云朵奶盖抹茶
+                        productNameEn: Matcha Cloud Delight
+                        specText: 大杯 / 少冰 / 少甜 / 鲜牛奶
+                        specJson:
+                          size: 大杯
+                          temp: 少冰
+                          sugar: 少甜
+                          milk: 鲜牛奶
+                        unitPriceCent: 3500
+                        qty: 1
+                        amountCent: 3500
+                      - id: '2'
+                        productCode: h1
+                        productName: 燕麦拿铁
+                        productNameEn: Oat Latte
+                        specText: 中杯 / 热 / 标准甜 / 燕麦奶
+                        specJson:
+                          size: 中杯
+                          temp: 热
+                          sugar: 标准甜
+                          milk: 燕麦奶
+                        unitPriceCent: 3100
+                        qty: 1
+                        amountCent: 3100
+                mixedSuccess:
+                  summary: 组合支付成功（seed order 2，储值 3000 + 微信 3600）
+                  value:
+                    code: 200
+                    msg: ok
+                    data:
+                      id: '2'
+                      orderNo: '2026110715302208'
+                      pickupCode: A019
+                      storeId: '1'
+                      fulfillType: pickup
+                      itemCount: 2
+                      subtotalCent: 6600
+                      couponOffCent: 0
+                      payableCent: 6600
+                      balancePayCent: 3000
+                      wechatPayCent: 3600
+                      couponId: null
+                      payMode: mixed
+                      payStatus: paid
+                      orderStatus: paid
+                      remark: 少冰
+                      createTime: '2026-11-13T22:53:50+08:00'
+                      paidAt: '2026-11-13T22:53:50+08:00'
+                      items:
+                      - id: '3'
+                        productCode: f1
+                        productName: 焦糖漩涡星冰乐
+                        productNameEn: Caramel Swirl Frappuccino
+                        specText: 中杯 / 正常冰 / 标准甜 / 鲜牛奶
+                        specJson:
+                          size: 中杯
+                          temp: 正常冰
+                          sugar: 标准甜
+                          milk: 鲜牛奶
+                        unitPriceCent: 3300
+                        qty: 2
+                        amountCent: 6600
+                        artJson:
+                          cup: tall
+                          liquid:
+                          - '#C99B6C'
+                          - '#86562F'
+                          milk: '#F3E8D8'
+                          milkRatio: 18
+                          topping: cream
+                          toppingColor: '#F7EFE4'
+                          drizzle: '#A8682F'
+                          marble: true
+                duplicateCallback:
+                  summary: 重复支付回调（幂等成功，HTTP 200 + code 40926）
+                  value:
+                    code: 40926
+                    msg: 支付回调已处理
+                    data:
+                      id: '2'
+                      orderNo: '2026110715302208'
+                      pickupCode: A019
+                      storeId: '1'
+                      fulfillType: pickup
+                      itemCount: 2
+                      subtotalCent: 6600
+                      couponOffCent: 0
+                      payableCent: 6600
+                      balancePayCent: 3000
+                      wechatPayCent: 3600
+                      couponId: null
+                      payMode: mixed
+                      payStatus: paid
+                      orderStatus: making
+                      remark: 少冰
+                      createTime: '2026-11-13T22:53:50+08:00'
+                      paidAt: '2026-11-13T22:53:50+08:00'
+                      items:
+                      - id: '3'
+                        productCode: f1
+                        productName: 焦糖漩涡星冰乐
+                        productNameEn: Caramel Swirl Frappuccino
+                        specText: 中杯 / 正常冰 / 标准甜 / 鲜牛奶
+                        specJson:
+                          size: 中杯
+                          temp: 正常冰
+                          sugar: 标准甜
+                          milk: 鲜牛奶
+                        unitPriceCent: 3300
+                        qty: 2
+                        amountCent: 6600
+        '400':
+          description: 参数缺失/格式错误/支付方式与拆分列不匹配（400xx）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                paramMissing:
+                  $ref: '#/components/examples/paramMissing'
+                paramInvalid:
+                  $ref: '#/components/examples/paramInvalid'
+                payModeMismatch:
+                  $ref: '#/components/examples/payModeMismatch'
         '401':
-          description: 认证失败（401xx：token 无效/过期/类型错误、微信登录失败、手机号解密失败）
+          description: 认证失败（401xx：token 无效/过期/类型错误）
           content:
             application/json:
               schema:
@@ -1541,45 +1818,43 @@ paths:
                   $ref: '#/components/examples/tokenExpired'
                 adminToken:
                   $ref: '#/components/examples/adminToken'
-        '400':
-          description: 参数缺失/格式错误/取值非法/幂等键非法（400xx）
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResult'
-              examples:
-                paramMissing:
-                  $ref: '#/components/examples/paramMissing'
-                paramInvalid:
-                  $ref: '#/components/examples/paramInvalid'
         '404':
-          description: 资源不存在（404xx）
+          description: 订单不存在或不在本人名下（40404）
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
-                productNotFound:
-                  $ref: '#/components/examples/productNotFound'
                 orderNotFound:
                   $ref: '#/components/examples/orderNotFound'
-                memberNotFound:
-                  $ref: '#/components/examples/memberNotFound'
         '409':
-          description: 业务冲突/状态不允许（409xx）
+          description: 业务冲突（余额/状态机/金额/拆分）
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
-                balanceNotEnough:
-                  $ref: '#/components/examples/balanceNotEnough'
-                couponUnavailable:
-                  $ref: '#/components/examples/couponUnavailable'
-                orderStatusInvalid:
-                  $ref: '#/components/examples/orderStatusInvalid'
                 memberDisabled:
                   $ref: '#/components/examples/memberDisabled'
+                balanceNotEnough:
+                  $ref: '#/components/examples/balanceNotEnough'
+                orderStatusInvalid:
+                  $ref: '#/components/examples/orderStatusInvalid'
+                orderAlreadyPaid:
+                  $ref: '#/components/examples/orderAlreadyPaid'
+                amountMismatch:
+                  $ref: '#/components/examples/amountMismatch'
+                splitMismatch:
+                  $ref: '#/components/examples/splitMismatch'
+        '502':
+          description: 微信支付下单或回调验签失败（40922）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                wechatPayFailed:
+                  $ref: '#/components/examples/wechatPayFailed'
         '500':
           description: 服务端错误（500xx）
           content:
@@ -1602,8 +1877,10 @@ paths:
       - name: orderNo
         in: path
         required: true
+        description: 16 位订单号
         schema:
           type: string
+          pattern: '^\d{16}$'
       requestBody:
         required: true
         content:
@@ -1613,12 +1890,16 @@ paths:
       security: *id001
   /app/orders/{orderNo}/cancel:
     post:
+      operationId: cancelOrder
       summary: 取消订单
+      description: |
+        仅 created/unpaid 可取消；已取消重复取消幂等返回 HTTP 200（原订单），
+        已支付/制作中/待取返回 40916，已完成返回 40918。
       tags:
       - app/订单
       responses:
         '200':
-          description: OK
+          description: OK（取消成功或重复取消幂等）
           content:
             application/json:
               schema:
@@ -1630,8 +1911,52 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/OrderDetail'
+              examples:
+                success:
+                  summary: 取消成功（seed order 3）
+                  value:
+                    code: 200
+                    msg: ok
+                    data:
+                      id: '3'
+                      orderNo: '2026110810104455'
+                      pickupCode: A020
+                      storeId: '1'
+                      fulfillType: pickup
+                      itemCount: 1
+                      subtotalCent: 2700
+                      couponOffCent: 0
+                      payableCent: 2700
+                      balancePayCent: 0
+                      wechatPayCent: 0
+                      couponId: null
+                      payMode: wechat
+                      payStatus: closed
+                      orderStatus: cancelled
+                      remark: ''
+                      createTime: '2026-11-08T10:10:44+08:00'
+                      cancelledAt: '2026-11-08T10:15:00+08:00'
+                      items:
+                      - id: '4'
+                        productCode: c1
+                        productName: 橙C冷萃
+                        productNameEn: Orange Cold Brew
+                        specText: 中杯 / 正常冰 / 标准糖
+                        specJson:
+                          size: 中杯
+                          temp: 正常冰
+                          sugar: 标准糖
+                        unitPriceCent: 2700
+                        qty: 1
+                        amountCent: 2700
+                        artJson:
+                          cup: rocks
+                          liquid:
+                          - '#5A3521'
+                          - '#E99A43'
+                          ice: true
         '401':
-          description: 认证失败（401xx：token 无效/过期/类型错误、微信登录失败、手机号解密失败）
+          description: 认证失败（401xx：token 无效/过期/类型错误）
           content:
             application/json:
               schema:
@@ -1644,33 +1969,27 @@ paths:
                 adminToken:
                   $ref: '#/components/examples/adminToken'
         '404':
-          description: 资源不存在（404xx）
+          description: 订单不存在或不在本人名下（40404）
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
-                productNotFound:
-                  $ref: '#/components/examples/productNotFound'
                 orderNotFound:
                   $ref: '#/components/examples/orderNotFound'
-                memberNotFound:
-                  $ref: '#/components/examples/memberNotFound'
         '409':
-          description: 业务冲突/状态不允许（409xx）
+          description: 订单状态不允许取消（40916）或已完成（40918）
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
-                balanceNotEnough:
-                  $ref: '#/components/examples/balanceNotEnough'
-                couponUnavailable:
-                  $ref: '#/components/examples/couponUnavailable'
-                orderStatusInvalid:
-                  $ref: '#/components/examples/orderStatusInvalid'
                 memberDisabled:
                   $ref: '#/components/examples/memberDisabled'
+                orderStatusInvalid:
+                  $ref: '#/components/examples/orderStatusInvalid'
+                orderFinishedOrCancelled:
+                  $ref: '#/components/examples/orderFinishedOrCancelled'
         '500':
           description: 服务端错误（500xx）
           content:
@@ -1693,9 +2012,12 @@ paths:
       - name: orderNo
         in: path
         required: true
+        description: 16 位订单号
         schema:
           type: string
+          pattern: '^\d{16}$'
       security: *id001
+
 components:
   schemas:
     MemberProfile:
@@ -2191,63 +2513,68 @@ components:
     Order:
       type: object
       title: Order
-      description: 对应表 cosen_order（自取订单）
+      description: 订单列表模型（脱敏，不含 memberId/version/idempotencyKey/updateTime）
       properties:
         id:
           type: string
           format: int64
-          description: 订单ID（bigint ID，JSON 用字符串避免精度丢失）
           readOnly: true
+          description: 订单ID（bigint ID，JSON 用字符串避免精度丢失）
         orderNo:
           type: string
+          pattern: '^\d{16}$'
           maxLength: 32
-          description: 订单号（16位，展示时再分组）
+          description: 订单号（16 位数字）
         pickupCode:
           type: string
+          pattern: '^[A-Z]\d{3}$'
           maxLength: 8
-          description: 取餐号 A018
-        memberId:
-          type: string
-          format: int64
-          description: 会员ID（bigint ID，JSON 用字符串避免精度丢失）
+          description: 取餐号，如 A018
         storeId:
           type: string
           format: int64
-          description: 门店ID（bigint ID，JSON 用字符串避免精度丢失）
+          description: 门店ID（单店阶段固定 1）
         fulfillType:
           type: string
           enum:
           - pickup
           maxLength: 16
-          description: 履约方式：仅 pickup（外送域已剔除）
+          description: 履约方式：仅 pickup（到店自取，外送域已剔除）
         itemCount:
           type: integer
           format: int32
-          description: 商品件数
+          minimum: 1
+          description: 商品件数 = Σ items.qty
         subtotalCent:
           type: integer
           format: int64
-          description: 商品小计（分）（bigint，单位：分/计数）
+          minimum: 0
+          description: 商品小计（分）
         couponOffCent:
           type: integer
           format: int64
-          description: 券抵扣（分）（bigint，单位：分/计数）
+          minimum: 0
+          description: 券抵扣（分）
         payableCent:
           type: integer
           format: int64
-          description: 应付 = 小计 - 券抵扣（分）（bigint，单位：分/计数）
+          minimum: 0
+          description: 应付 = subtotalCent - couponOffCent（分）
         balancePayCent:
           type: integer
           format: int64
-          description: 储值支付（分）（bigint，单位：分/计数）
+          minimum: 0
+          description: 储值支付（分）
         wechatPayCent:
           type: integer
           format: int64
-          description: 微信支付（分）（bigint，单位：分/计数）
+          minimum: 0
+          description: 微信支付（分）
         couponId:
           type: string
           format: int64
-          description: 使用的用户券ID（bigint ID，JSON 用字符串避免精度丢失）
+          nullable: true
+          description: 使用的用户券ID，未用券为 null
         payMode:
           type: string
           enum:
@@ -2255,7 +2582,7 @@ components:
           - wechat
           - mixed
           maxLength: 16
-          description: balance/wechat/mixed
+          description: balance 储值 / wechat 微信 / mixed 组合
         payStatus:
           type: string
           enum:
@@ -2264,7 +2591,7 @@ components:
           - refunded
           - closed
           maxLength: 16
-          description: unpaid/paid/refunded/closed
+          description: 支付状态
         orderStatus:
           type: string
           enum:
@@ -2275,65 +2602,52 @@ components:
           - completed
           - cancelled
           maxLength: 16
-          description: created/paid/making/ready/completed/cancelled
+          description: 订单状态机
         remark:
           type: string
           maxLength: 255
           description: 备注
-        idempotencyKey:
+        createTime:
           type: string
-          maxLength: 64
-          description: 下单幂等键（客户端 UUID）
+          format: date-time
+          readOnly: true
+          description: 创建时间（ISO-8601 +08:00）
         paidAt:
           type: string
           format: date-time
+          nullable: true
           description: 支付完成时间
         finishedAt:
           type: string
           format: date-time
+          nullable: true
           description: 完成/取餐时间
         cancelledAt:
           type: string
           format: date-time
+          nullable: true
           description: 取消时间
-        version:
-          type: integer
-          format: int32
-          description: 乐观锁（状态机）
-        createTime:
-          type: string
-          format: date-time
-          description: 创建时间
-          readOnly: true
-        updateTime:
-          type: string
-          format: date-time
-          description: 更新时间
-          readOnly: true
-      x-table: cosen_order
       required:
+      - id
       - orderNo
-      - memberId
+      - fulfillType
+      - payMode
+      - payStatus
+      - orderStatus
+      - createTime
     OrderItem:
       type: object
       title: OrderItem
-      description: 对应表 cosen_order_item（订单明细）
+      description: 订单明细快照（不含 orderId/productId/createTime 等内部字段）
       properties:
         id:
           type: string
           format: int64
-          description: 明细ID（bigint ID，JSON 用字符串避免精度丢失）
           readOnly: true
-        orderId:
-          type: string
-          format: int64
-          description: 订单ID（bigint ID，JSON 用字符串避免精度丢失）
-        productId:
-          type: string
-          format: int64
-          description: 商品ID（bigint ID，JSON 用字符串避免精度丢失）
+          description: 明细ID（bigint ID，JSON 用字符串避免精度丢失）
         productCode:
           type: string
+          pattern: '^[a-z0-9-]{1,32}$'
           maxLength: 32
           description: 商品编码快照（m1…）
         productName:
@@ -2350,34 +2664,36 @@ components:
           description: 规格文案快照（大杯 / 少冰 / 少甜）
         specJson:
           type: object
-          additionalProperties: true
-          description: 规格选择快照（key -> option）（JSON 对象/数组，按原结构透传）
+          additionalProperties:
+            type: string
+          description: 规格选择快照（key -> option）
         unitPriceCent:
           type: integer
           format: int64
-          description: 成交单价（分，含加料）（bigint，单位：分/计数）
+          minimum: 0
+          description: 成交单价（分，含加料）
         qty:
           type: integer
           format: int32
-          description: 数量
+          minimum: 1
+          maximum: 99
+          description: 数量（1..99）
         amountCent:
           type: integer
           format: int64
-          description: 小计 = 单价 * 数量（分）（bigint，单位：分/计数）
+          minimum: 0
+          description: 小计 = unitPriceCent * qty（分）
         artJson:
           type: object
           additionalProperties: true
-          description: 插画快照（列表免二次查询）（JSON 对象/数组，按原结构透传）
-        createTime:
-          type: string
-          format: date-time
-          description: 创建时间
-          readOnly: true
-      x-table: cosen_order_item
+          description: 插画快照（列表免二次查询）
       required:
-      - orderId
-      - productId
+      - id
+      - productCode
       - productName
+      - qty
+      - unitPriceCent
+      - amountCent
     AppResult:
       type: object
       title: AppResult
@@ -2483,16 +2799,22 @@ components:
       properties:
         productCode:
           type: string
+          pattern: '^[a-z0-9-]{1,32}$'
+          maxLength: 32
           example: m1
+          description: 商品编码（m1/h1/f1/c1…）
         qty:
           type: integer
           minimum: 1
+          maximum: 99
           example: 1
+          description: 数量，1..99
         spec:
           type: object
+          maxProperties: 8
           additionalProperties:
             type: string
-          description: 规格选择，如 {"size":"大杯","ice":"少冰"}
+          description: 规格选择，如 {"size":"大杯","temp":"少冰","sugar":"少甜","milk":"鲜牛奶"}
       required:
       - productCode
       - qty
@@ -2502,11 +2824,15 @@ components:
       properties:
         items:
           type: array
+          minItems: 1
+          maxItems: 50
+          description: 商品明细，1..50 项
           items:
             $ref: '#/components/schemas/CreateOrderItemReq'
         couponId:
           type: string
-          description: 可选：使用的用户券 coupon_no/id
+          maxLength: 40
+          description: 可选：使用的用户券 couponNo，需属于本人且 unused
         payMode:
           type: string
           enum:
@@ -2514,12 +2840,16 @@ components:
           - wechat
           - mixed
           default: wechat
+          description: 支付方式，默认 wechat
         remark:
           type: string
           maxLength: 255
+          description: 备注
         idempotencyKey:
           type: string
-          description: 客户端 UUID，服务端 uk_idem_key 兜底
+          minLength: 8
+          maxLength: 64
+          description: 下单幂等键，与 Header Idempotency-Key 二选一必填；缺失/非法返回 40007
       required:
       - items
     PayOrderReq:
@@ -2532,28 +2862,152 @@ components:
           - balance
           - wechat
           - mixed
+          description: 支付方式；mixed 时两个金额列均须 > 0
         balancePayCent:
           type: integer
           format: int64
-          description: 储值支付（分）
+          minimum: 0
+          description: 储值支付（分）；mixed 时必须 > 0
         wechatPayCent:
           type: integer
           format: int64
-          description: 微信支付（分）
+          minimum: 0
+          description: 微信支付（分）；mixed 时必须 > 0
       required:
       - payMode
     OrderDetail:
       type: object
       title: OrderDetail
-      description: 订单 + 明细（列表/详情共用）
-      allOf:
-      - $ref: '#/components/schemas/Order'
-      - type: object
-        properties:
+      description: 订单 + 明细（显式展开字段，便于 Apifox/代码生成；不含 memberId/version/idempotencyKey）
+      properties:
+        id:
+          type: string
+          format: int64
+          readOnly: true
+          description: 订单ID（bigint ID，JSON 用字符串避免精度丢失）
+        orderNo:
+          type: string
+          pattern: '^\d{16}$'
+          maxLength: 32
+          description: 订单号（16 位数字）
+        pickupCode:
+          type: string
+          pattern: '^[A-Z]\d{3}$'
+          maxLength: 8
+          description: 取餐号，如 A018
+        storeId:
+          type: string
+          format: int64
+          description: 门店ID（单店阶段固定 1）
+        fulfillType:
+          type: string
+          enum:
+          - pickup
+          maxLength: 16
+          description: 履约方式：仅 pickup（到店自取）
+        itemCount:
+          type: integer
+          format: int32
+          minimum: 1
+          description: 商品件数 = Σ items.qty
+        subtotalCent:
+          type: integer
+          format: int64
+          minimum: 0
+          description: 商品小计（分）
+        couponOffCent:
+          type: integer
+          format: int64
+          minimum: 0
+          description: 券抵扣（分）
+        payableCent:
+          type: integer
+          format: int64
+          minimum: 0
+          description: 应付 = subtotalCent - couponOffCent（分）
+        balancePayCent:
+          type: integer
+          format: int64
+          minimum: 0
+          description: 储值支付（分）；已支付时与 wechatPayCent 之和须等于 payableCent
+        wechatPayCent:
+          type: integer
+          format: int64
+          minimum: 0
+          description: 微信支付（分）；已支付时与 balancePayCent 之和须等于 payableCent
+        couponId:
+          type: string
+          format: int64
+          nullable: true
+          description: 使用的用户券ID，未用券为 null
+        payMode:
+          type: string
+          enum:
+          - balance
+          - wechat
+          - mixed
+          maxLength: 16
+          description: balance 储值 / wechat 微信 / mixed 组合
+        payStatus:
+          type: string
+          enum:
+          - unpaid
+          - paid
+          - refunded
+          - closed
+          maxLength: 16
+          description: 支付状态
+        orderStatus:
+          type: string
+          enum:
+          - created
+          - paid
+          - making
+          - ready
+          - completed
+          - cancelled
+          maxLength: 16
+          description: 订单状态机
+        remark:
+          type: string
+          maxLength: 255
+          description: 备注
+        createTime:
+          type: string
+          format: date-time
+          readOnly: true
+          description: 创建时间（ISO-8601 +08:00）
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 支付完成时间
+        finishedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 完成/取餐时间
+        cancelledAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 取消时间
+        items:
+          type: array
+          minItems: 1
+          maxItems: 50
+          description: 订单明细，1..50 条
           items:
-            type: array
-            items:
-              $ref: '#/components/schemas/OrderItem'
+            $ref: '#/components/schemas/OrderItem'
+      required:
+      - id
+      - orderNo
+      - fulfillType
+      - payMode
+      - payStatus
+      - orderStatus
+      - createTime
+      - items
     ErrorResult:
       type: object
       title: ErrorResult
@@ -2736,3 +3190,73 @@ components:
         msg: 券不存在或已不在你的背包
         data: null
         traceId: c8f1d2f8
+    idempotencyKeyMissing:
+      summary: 幂等键缺失或非法
+      value:
+        code: 40007
+        msg: 缺少幂等键，请重新生成后重试
+        data: null
+        traceId: c8f1d2f9
+    productOffShelf:
+      summary: 商品已下架
+      value:
+        code: 40913
+        msg: 商品已下架
+        data: null
+        traceId: c8f1d2fa
+    productSoldOut:
+      summary: 商品售罄或库存不足
+      value:
+        code: 40914
+        msg: 商品已售罄
+        data: null
+        traceId: c8f1d2fb
+    stockConflict:
+      summary: 库存扣减冲突
+      value:
+        code: 40915
+        msg: 库存扣减冲突，请重试
+        data: null
+        traceId: c8f1d2fc
+    orderAlreadyPaid:
+      summary: 订单已支付
+      value:
+        code: 40917
+        msg: 订单已支付，请勿重复支付
+        data: null
+        traceId: c8f1d2fd
+    orderFinishedOrCancelled:
+      summary: 订单已完成不可取消
+      value:
+        code: 40918
+        msg: 订单已完成，无法取消
+        data: null
+        traceId: c8f1d2fe
+    amountMismatch:
+      summary: 金额重算不一致
+      value:
+        code: 40919
+        msg: 订单金额校验失败，请刷新后重试
+        data: null
+        traceId: c8f1d2ff
+    splitMismatch:
+      summary: 支付拆分与应付不一致
+      value:
+        code: 40920
+        msg: 支付金额拆分与应付金额不一致
+        data: null
+        traceId: c8f1d300
+    payModeMismatch:
+      summary: 支付方式与拆分列不匹配
+      value:
+        code: 40921
+        msg: 支付方式与拆分金额不匹配
+        data: null
+        traceId: c8f1d301
+    wechatPayFailed:
+      summary: 微信支付下单或验签失败
+      value:
+        code: 40922
+        msg: 微信支付失败，请重试
+        data: null
+        traceId: c8f1d302
