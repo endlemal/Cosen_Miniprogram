@@ -421,12 +421,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
-                balanceNotEnough:
-                  $ref: '#/components/examples/balanceNotEnough'
-                couponUnavailable:
-                  $ref: '#/components/examples/couponUnavailable'
-                orderStatusInvalid:
-                  $ref: '#/components/examples/orderStatusInvalid'
                 memberDisabled:
                   $ref: '#/components/examples/memberDisabled'
         '500':
@@ -533,8 +527,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
-                paramMissing:
-                  $ref: '#/components/examples/paramMissing'
                 paramInvalid:
                   $ref: '#/components/examples/paramInvalid'
                 pageSizeExceeded:
