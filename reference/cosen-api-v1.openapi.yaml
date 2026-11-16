@@ -316,6 +316,23 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/Member'
+              examples:
+                success:
+                  summary: 会员资料示例
+                  value:
+                    code: 200
+                    msg: ok
+                    data:
+                      id: '10001'
+                      memberNo: '620108173325'
+                      nickname: Vivian
+                      avatarUrl: ''
+                      level: 1
+                      points: 0
+                      balanceCent: 5000
+                      giftBalanceCent: 0
+                      phoneBound: true
+                      phoneMasked: 138****0817
         '401':
           description: 认证失败（401xx：token 无效/过期/类型错误、微信登录失败、手机号解密失败）
           content:
