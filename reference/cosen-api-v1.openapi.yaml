@@ -21,6 +21,7 @@ tags:
 paths:
   /app/auth/login/wechat:
     post:
+      operationId: loginByWechat
       summary: 微信静默登录
       tags:
       - app/认证
@@ -38,6 +39,26 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/LoginResp'
+              examples:
+                success:
+                  summary: 微信静默登录成功（已绑定会员）
+                  value:
+                    code: 200
+                    msg: ok
+                    data:
+                      token: 3f1c9a2e-8b7d-4c6a-9f0e-2d5b8a1c7e64
+                      expiresIn: 604800
+                      member:
+                        id: '1'
+                        memberNo: '620108173325'
+                        nickname: Vivian
+                        avatarUrl: ''
+                        level: 2
+                        points: 1280
+                        balanceCent: 51200
+                        giftBalanceCent: 1200
+                        phoneBound: true
+                        phoneMasked: '138****0817'
         '400':
           description: 参数缺失/格式错误/取值非法/幂等键非法（400xx）
           content:
@@ -56,12 +77,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
-                tokenMissing:
-                  $ref: '#/components/examples/tokenMissing'
-                tokenExpired:
-                  $ref: '#/components/examples/tokenExpired'
-                adminToken:
-                  $ref: '#/components/examples/adminToken'
+                wechatLoginFailed:
+                  $ref: '#/components/examples/wechatLoginFailed'
         '429':
           description: 限流/防刷（429xx）
           content:
@@ -97,6 +114,7 @@ paths:
               $ref: '#/components/schemas/LoginWechatReq'
   /app/auth/login/mock:
     post:
+      operationId: loginByMock
       summary: 联调一键登录（dev/test）
       tags:
       - app/认证
@@ -126,24 +144,14 @@ paths:
                       member:
                         id: '1'
                         memberNo: '620108173325'
-                        openid: mock_openid_vivian
-                        phone: '13800000817'
                         nickname: Vivian
                         avatarUrl: ''
-                        gender: 2
+                        level: 2
+                        points: 1280
                         balanceCent: 51200
                         giftBalanceCent: 1200
-                        points: 1280
-                        level: 2
-                        rechargeTotalCent: 50000
-                        storeId: '1'
-                        status: 1
-                        loginType: mock
-                        lastLoginAt: '2026-11-14T22:53:50+08:00'
-                        version: 0
-                        createTime: '2026-11-01T10:00:00+08:00'
-                        updateTime: '2026-11-14T22:53:50+08:00'
-                        deleted: 0
+                        phoneBound: true
+                        phoneMasked: '138****0817'
         '400':
           description: 参数缺失/格式错误/取值非法/幂等键非法（400xx）
           content:
@@ -162,8 +170,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
-                noPermission:
-                  $ref: '#/components/examples/noPermission'
                 mockDisabled:
                   $ref: '#/components/examples/mockDisabled'
         '429':
@@ -201,6 +207,7 @@ paths:
               $ref: '#/components/schemas/LoginMockReq'
   /app/auth/phone/bind:
     post:
+      operationId: bindPhone
       summary: 绑定手机号
       tags:
       - app/认证
@@ -217,7 +224,24 @@ paths:
                 - type: object
                   properties:
                     data:
-                      $ref: '#/components/schemas/Member'
+                      $ref: '#/components/schemas/MemberProfile'
+              examples:
+                success:
+                  summary: 绑定成功，返回最新会员资料
+                  value:
+                    code: 200
+                    msg: ok
+                    data:
+                      id: '1'
+                      memberNo: '620108173325'
+                      nickname: Vivian
+                      avatarUrl: ''
+                      level: 2
+                      points: 1280
+                      balanceCent: 51200
+                      giftBalanceCent: 1200
+                      phoneBound: true
+                      phoneMasked: '138****0817'
         '401':
           description: 认证失败（401xx：token 无效/过期/类型错误、微信登录失败、手机号解密失败）
           content:
@@ -231,6 +255,8 @@ paths:
                   $ref: '#/components/examples/tokenExpired'
                 adminToken:
                   $ref: '#/components/examples/adminToken'
+                phoneDecryptFailed:
+                  $ref: '#/components/examples/phoneDecryptFailed'
         '400':
           description: 参数缺失/格式错误/取值非法/幂等键非法（400xx）
           content:
@@ -249,14 +275,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
-                balanceNotEnough:
-                  $ref: '#/components/examples/balanceNotEnough'
-                couponUnavailable:
-                  $ref: '#/components/examples/couponUnavailable'
-                orderStatusInvalid:
-                  $ref: '#/components/examples/orderStatusInvalid'
                 memberDisabled:
                   $ref: '#/components/examples/memberDisabled'
+                phoneAlreadyBound:
+                  $ref: '#/components/examples/phoneAlreadyBound'
         '500':
           description: 服务端错误（500xx）
           content:
@@ -285,6 +307,7 @@ paths:
       - bearerAuth: []
   /app/auth/logout:
     post:
+      operationId: logout
       summary: 注销 token
       tags:
       - app/认证
@@ -295,6 +318,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AppResult'
+              examples:
+                success:
+                  summary: 注销成功（幂等）
+                  value:
+                    code: 200
+                    msg: ok
+                    data: null
         '401':
           description: 认证失败（401xx：token 无效/过期/类型错误、微信登录失败、手机号解密失败）
           content:
@@ -304,8 +334,6 @@ paths:
               examples:
                 tokenMissing:
                   $ref: '#/components/examples/tokenMissing'
-                tokenExpired:
-                  $ref: '#/components/examples/tokenExpired'
                 adminToken:
                   $ref: '#/components/examples/adminToken'
         '500':
@@ -329,6 +357,7 @@ paths:
       security: *id001
   /app/member/profile:
     get:
+      operationId: getMemberProfile
       summary: 会员资料 + 可用余额
       tags:
       - app/会员
@@ -345,7 +374,7 @@ paths:
                 - type: object
                   properties:
                     data:
-                      $ref: '#/components/schemas/Member'
+                      $ref: '#/components/schemas/MemberProfile'
               examples:
                 success:
                   summary: 会员资料示例
@@ -353,16 +382,16 @@ paths:
                     code: 200
                     msg: ok
                     data:
-                      id: '10001'
+                      id: '1'
                       memberNo: '620108173325'
                       nickname: Vivian
                       avatarUrl: ''
-                      level: 1
-                      points: 0
-                      balanceCent: 5000
-                      giftBalanceCent: 0
+                      level: 2
+                      points: 1280
+                      balanceCent: 51200
+                      giftBalanceCent: 1200
                       phoneBound: true
-                      phoneMasked: 138****0817
+                      phoneMasked: '138****0817'
         '401':
           description: 认证失败（401xx：token 无效/过期/类型错误、微信登录失败、手机号解密失败）
           content:
@@ -383,10 +412,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
-                productNotFound:
-                  $ref: '#/components/examples/productNotFound'
-                orderNotFound:
-                  $ref: '#/components/examples/orderNotFound'
                 memberNotFound:
                   $ref: '#/components/examples/memberNotFound'
         '409':
@@ -425,6 +450,7 @@ paths:
       security: *id001
   /app/member/balance/flows:
     get:
+      operationId: listBalanceFlows
       summary: 储值流水
       tags:
       - app/会员
@@ -443,6 +469,50 @@ paths:
                       type: array
                       items:
                         $ref: '#/components/schemas/MemberBalanceFlow'
+              examples:
+                success:
+                  summary: 储值流水（种子 3 条，倒序）
+                  value:
+                    code: 200
+                    msg: ok
+                    total: 3
+                    rows:
+                    - id: '3'
+                      flowNo: FL20261107153022
+                      memberId: '1'
+                      bizType: CONSUME
+                      direction: -1
+                      amountCent: -3000
+                      balanceBeforeCent: 54200
+                      balanceAfterCent: 51200
+                      relatedType: ORDER
+                      relatedId: '2026110715302208'
+                      remark: 组合支付-储值部分
+                      createTime: '2026-11-07T15:30:22+08:00'
+                    - id: '2'
+                      flowNo: FL20261105091234
+                      memberId: '1'
+                      bizType: CONSUME
+                      direction: -1
+                      amountCent: -5800
+                      balanceBeforeCent: 60000
+                      balanceAfterCent: 54200
+                      relatedType: ORDER
+                      relatedId: '2026110509123371'
+                      remark: 余额支付
+                      createTime: '2026-11-05T09:12:34+08:00'
+                    - id: '1'
+                      flowNo: FL20261101000001
+                      memberId: '1'
+                      bizType: RECHARGE
+                      direction: 1
+                      amountCent: 60000
+                      balanceBeforeCent: 0
+                      balanceAfterCent: 60000
+                      relatedType: RECHARGE
+                      relatedId: r-seed
+                      remark: 充 500 送 100
+                      createTime: '2026-11-01T00:00:01+08:00'
         '401':
           description: 认证失败（401xx：token 无效/过期/类型错误、微信登录失败、手机号解密失败）
           content:
@@ -467,6 +537,8 @@ paths:
                   $ref: '#/components/examples/paramMissing'
                 paramInvalid:
                   $ref: '#/components/examples/paramInvalid'
+                pageSizeExceeded:
+                  $ref: '#/components/examples/pageSizeExceeded'
         '500':
           description: 服务端错误（500xx）
           content:
@@ -489,14 +561,19 @@ paths:
       - &id002
         name: pageNum
         in: query
+        description: 页码，从 1 开始
         schema:
           type: integer
+          minimum: 1
           default: 1
       - &id003
         name: pageSize
         in: query
+        description: 每页条数，最大 100
         schema:
           type: integer
+          minimum: 1
+          maximum: 100
           default: 10
       security: *id001
   /app/catalog/categories:
@@ -1412,10 +1489,64 @@ paths:
       security: *id001
 components:
   schemas:
+    MemberProfile:
+      type: object
+      title: MemberProfile
+      description: 会员侧对外脱敏模型（10 字段），不含 openid/unionid/明文手机号/version/deleted
+      properties:
+        id:
+          type: string
+          format: int64
+          readOnly: true
+          description: 会员ID（bigint ID，JSON 用字符串避免精度丢失）
+        memberNo:
+          type: string
+          maxLength: 32
+          description: 会员号（展示用）
+        nickname:
+          type: string
+          maxLength: 64
+          description: 昵称，可为空串
+        avatarUrl:
+          type: string
+          maxLength: 512
+          description: 头像，未设置为空串
+        level:
+          type: integer
+          format: int32
+          enum: [1, 2, 3]
+          description: 1可森 2醇香 3深焙
+        points:
+          type: integer
+          format: int32
+          minimum: 0
+          description: 积分
+        balanceCent:
+          type: integer
+          format: int64
+          minimum: 0
+          description: 可用储值余额（分，含赠送）
+        giftBalanceCent:
+          type: integer
+          format: int64
+          minimum: 0
+          description: 其中赠送部分（分，仅展示/对账）
+        phoneBound:
+          type: boolean
+          description: 是否已绑定手机号
+        phoneMasked:
+          type: string
+          pattern: '^\d{3}\*{4}\d{4}$'
+          description: 脱敏手机号，如 138****0817；未绑定时为空串
+      required:
+      - id
+      - memberNo
+      - phoneBound
     Member:
       type: object
       title: Member
-      description: 对应表 cosen_member（会员）
+      description: 对应表 cosen_member（会员）。内部/后台模型，禁止直接用于 /app/** 响应
+      x-internal: true
       properties:
         id:
           type: string
@@ -1581,10 +1712,6 @@ components:
           type: string
           maxLength: 64
           description: 关联单号（order_no / coupon_no / 外部单号）
-        idempotencyKey:
-          type: string
-          maxLength: 64
-          description: 幂等键（同一业务只记一次账）
         remark:
           type: string
           maxLength: 255
@@ -2100,6 +2227,7 @@ components:
           example: ok
         data:
           type: object
+          nullable: true
           additionalProperties: true
       required:
       - code
@@ -2132,29 +2260,39 @@ components:
       properties:
         code:
           type: string
+          maxLength: 128
           description: wx.login 返回的 code
         phoneCode:
           type: string
+          maxLength: 128
           description: 可选：getPhoneNumber 的 code
       required:
       - code
     LoginMockReq:
       type: object
       title: LoginMockReq
-      description: 仅 dev/test 可用
+      description: 仅 dev/test 可用；phone 必填，用于定位或自动建档
+      required:
+      - phone
       properties:
         phone:
           type: string
+          pattern: '^1[3-9]\d{9}$'
           example: '13800000817'
+          description: 大陆手机号（11 位）
         nickname:
           type: string
+          maxLength: 64
           example: Vivian
+          description: 可选昵称，缺省用「微信用户」
     BindPhoneReq:
       type: object
       title: BindPhoneReq
       properties:
         phoneCode:
           type: string
+          maxLength: 128
+          description: getPhoneNumber 返回的一次性 code
       required:
       - phoneCode
     LoginResp:
@@ -2169,7 +2307,7 @@ components:
           format: int32
           example: 604800
         member:
-          $ref: '#/components/schemas/Member'
+          $ref: '#/components/schemas/MemberProfile'
       required:
       - token
       - expiresIn
@@ -2398,3 +2536,31 @@ components:
         msg: 会员不存在，请重新登录
         data: null
         traceId: c8f1d2ec
+    wechatLoginFailed:
+      summary: 微信 code2session 失败
+      value:
+        code: 40102
+        msg: 微信登录失败，请重试
+        data: null
+        traceId: c8f1d2f4
+    phoneDecryptFailed:
+      summary: 手机号解密失败
+      value:
+        code: 40103
+        msg: 手机号解析失败，请重新授权
+        data: null
+        traceId: c8f1d2f5
+    phoneAlreadyBound:
+      summary: 手机号已被其他会员绑定
+      value:
+        code: 40902
+        msg: 该手机号已绑定其他会员
+        data: null
+        traceId: c8f1d2f6
+    pageSizeExceeded:
+      summary: 分页参数超限
+      value:
+        code: 40004
+        msg: 分页参数超出范围（pageSize 最大 100）
+        data: null
+        traceId: c8f1d2f7
