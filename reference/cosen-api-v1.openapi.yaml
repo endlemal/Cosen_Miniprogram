@@ -46,19 +46,9 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 paramMissing:
-                  summary: 缺少必填参数
-                  value:
-                    code: 40001
-                    msg: 缺少必填参数
-                    data: null
-                    traceId: c8f1d2e3
+                  $ref: '#/components/examples/paramMissing'
                 paramInvalid:
-                  summary: 参数格式/枚举非法
-                  value:
-                    code: 40003
-                    msg: 参数取值不合法
-                    data: null
-                    traceId: c8f1d2e4
+                  $ref: '#/components/examples/paramInvalid'
         '401':
           description: 认证失败（401xx：token 无效/过期/类型错误、微信登录失败、手机号解密失败）
           content:
@@ -67,26 +57,11 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 tokenMissing:
-                  summary: 未登录
-                  value:
-                    code: 40101
-                    msg: 请先登录
-                    data: null
-                    traceId: c8f1d2e5
+                  $ref: '#/components/examples/tokenMissing'
                 tokenExpired:
-                  summary: token 过期
-                  value:
-                    code: 40104
-                    msg: 登录已过期，请重新登录
-                    data: null
-                    traceId: c8f1d2e6
+                  $ref: '#/components/examples/tokenExpired'
                 adminToken:
-                  summary: token 类型错误
-                  value:
-                    code: 40105
-                    msg: 登录状态无效，请重新登录
-                    data: null
-                    traceId: c8f1d2e7
+                  $ref: '#/components/examples/adminToken'
         '429':
           description: 限流/防刷（429xx）
           content:
@@ -95,12 +70,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 tooManyRequests:
-                  summary: 请求过于频繁
-                  value:
-                    code: 42901
-                    msg: 操作过于频繁，请稍后重试
-                    data: null
-                    traceId: c8f1d2f1
+                  $ref: '#/components/examples/tooManyRequests'
         '500':
           description: 服务端错误（500xx）
           content:
@@ -109,12 +79,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 internalError:
-                  summary: 服务器内部错误
-                  value:
-                    code: 50001
-                    msg: 服务开小差了，请稍后重试
-                    data: null
-                    traceId: c8f1d2f2
+                  $ref: '#/components/examples/internalError'
         '503':
           description: 依赖不可用/维护中（503xx）
           content:
@@ -123,12 +88,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 serviceUnavailable:
-                  summary: 依赖不可用
-                  value:
-                    code: 50302
-                    msg: 系统繁忙，请稍后重试
-                    data: null
-                    traceId: c8f1d2f3
+                  $ref: '#/components/examples/serviceUnavailable'
       requestBody:
         required: true
         content:
@@ -162,19 +122,9 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 paramMissing:
-                  summary: 缺少必填参数
-                  value:
-                    code: 40001
-                    msg: 缺少必填参数
-                    data: null
-                    traceId: c8f1d2e3
+                  $ref: '#/components/examples/paramMissing'
                 paramInvalid:
-                  summary: 参数格式/枚举非法
-                  value:
-                    code: 40003
-                    msg: 参数取值不合法
-                    data: null
-                    traceId: c8f1d2e4
+                  $ref: '#/components/examples/paramInvalid'
         '403':
           description: 越权/功能未启用/账号受限（403xx）
           content:
@@ -183,19 +133,9 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 noPermission:
-                  summary: 越权访问
-                  value:
-                    code: 40301
-                    msg: 无权访问该资源
-                    data: null
-                    traceId: c8f1d2e8
+                  $ref: '#/components/examples/noPermission'
                 mockDisabled:
-                  summary: mock 登录未启用
-                  value:
-                    code: 40302
-                    msg: 当前环境未开启联调登录
-                    data: null
-                    traceId: c8f1d2e9
+                  $ref: '#/components/examples/mockDisabled'
         '429':
           description: 限流/防刷（429xx）
           content:
@@ -204,12 +144,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 tooManyRequests:
-                  summary: 请求过于频繁
-                  value:
-                    code: 42901
-                    msg: 操作过于频繁，请稍后重试
-                    data: null
-                    traceId: c8f1d2f1
+                  $ref: '#/components/examples/tooManyRequests'
         '500':
           description: 服务端错误（500xx）
           content:
@@ -218,12 +153,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 internalError:
-                  summary: 服务器内部错误
-                  value:
-                    code: 50001
-                    msg: 服务开小差了，请稍后重试
-                    data: null
-                    traceId: c8f1d2f2
+                  $ref: '#/components/examples/internalError'
         '503':
           description: 依赖不可用/维护中（503xx）
           content:
@@ -232,12 +162,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 serviceUnavailable:
-                  summary: 依赖不可用
-                  value:
-                    code: 50302
-                    msg: 系统繁忙，请稍后重试
-                    data: null
-                    traceId: c8f1d2f3
+                  $ref: '#/components/examples/serviceUnavailable'
       requestBody:
         required: true
         content:
@@ -271,26 +196,11 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 tokenMissing:
-                  summary: 未登录
-                  value:
-                    code: 40101
-                    msg: 请先登录
-                    data: null
-                    traceId: c8f1d2e5
+                  $ref: '#/components/examples/tokenMissing'
                 tokenExpired:
-                  summary: token 过期
-                  value:
-                    code: 40104
-                    msg: 登录已过期，请重新登录
-                    data: null
-                    traceId: c8f1d2e6
+                  $ref: '#/components/examples/tokenExpired'
                 adminToken:
-                  summary: token 类型错误
-                  value:
-                    code: 40105
-                    msg: 登录状态无效，请重新登录
-                    data: null
-                    traceId: c8f1d2e7
+                  $ref: '#/components/examples/adminToken'
         '400':
           description: 参数缺失/格式错误/取值非法/幂等键非法（400xx）
           content:
@@ -299,19 +209,9 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 paramMissing:
-                  summary: 缺少必填参数
-                  value:
-                    code: 40001
-                    msg: 缺少必填参数
-                    data: null
-                    traceId: c8f1d2e3
+                  $ref: '#/components/examples/paramMissing'
                 paramInvalid:
-                  summary: 参数格式/枚举非法
-                  value:
-                    code: 40003
-                    msg: 参数取值不合法
-                    data: null
-                    traceId: c8f1d2e4
+                  $ref: '#/components/examples/paramInvalid'
         '409':
           description: 业务冲突/状态不允许（409xx）
           content:
@@ -320,33 +220,13 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 balanceNotEnough:
-                  summary: 余额不足
-                  value:
-                    code: 40903
-                    msg: 余额不足
-                    data: null
-                    traceId: c8f1d2ed
+                  $ref: '#/components/examples/balanceNotEnough'
                 couponUnavailable:
-                  summary: 券不可用
-                  value:
-                    code: 40907
-                    msg: 该券当前不可用
-                    data: null
-                    traceId: c8f1d2ee
+                  $ref: '#/components/examples/couponUnavailable'
                 orderStatusInvalid:
-                  summary: 订单状态不允许
-                  value:
-                    code: 40916
-                    msg: 当前订单状态不允许该操作
-                    data: null
-                    traceId: c8f1d2ef
+                  $ref: '#/components/examples/orderStatusInvalid'
                 memberDisabled:
-                  summary: 会员被停用
-                  value:
-                    code: 40901
-                    msg: 会员已被停用，请联系门店
-                    data: null
-                    traceId: c8f1d2f0
+                  $ref: '#/components/examples/memberDisabled'
         '500':
           description: 服务端错误（500xx）
           content:
@@ -355,12 +235,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 internalError:
-                  summary: 服务器内部错误
-                  value:
-                    code: 50001
-                    msg: 服务开小差了，请稍后重试
-                    data: null
-                    traceId: c8f1d2f2
+                  $ref: '#/components/examples/internalError'
         '503':
           description: 依赖不可用/维护中（503xx）
           content:
@@ -369,12 +244,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 serviceUnavailable:
-                  summary: 依赖不可用
-                  value:
-                    code: 50302
-                    msg: 系统繁忙，请稍后重试
-                    data: null
-                    traceId: c8f1d2f3
+                  $ref: '#/components/examples/serviceUnavailable'
       requestBody:
         required: true
         content:
@@ -403,26 +273,11 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 tokenMissing:
-                  summary: 未登录
-                  value:
-                    code: 40101
-                    msg: 请先登录
-                    data: null
-                    traceId: c8f1d2e5
+                  $ref: '#/components/examples/tokenMissing'
                 tokenExpired:
-                  summary: token 过期
-                  value:
-                    code: 40104
-                    msg: 登录已过期，请重新登录
-                    data: null
-                    traceId: c8f1d2e6
+                  $ref: '#/components/examples/tokenExpired'
                 adminToken:
-                  summary: token 类型错误
-                  value:
-                    code: 40105
-                    msg: 登录状态无效，请重新登录
-                    data: null
-                    traceId: c8f1d2e7
+                  $ref: '#/components/examples/adminToken'
         '500':
           description: 服务端错误（500xx）
           content:
@@ -431,12 +286,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 internalError:
-                  summary: 服务器内部错误
-                  value:
-                    code: 50001
-                    msg: 服务开小差了，请稍后重试
-                    data: null
-                    traceId: c8f1d2f2
+                  $ref: '#/components/examples/internalError'
         '503':
           description: 依赖不可用/维护中（503xx）
           content:
@@ -445,12 +295,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 serviceUnavailable:
-                  summary: 依赖不可用
-                  value:
-                    code: 50302
-                    msg: 系统繁忙，请稍后重试
-                    data: null
-                    traceId: c8f1d2f3
+                  $ref: '#/components/examples/serviceUnavailable'
       security: *id001
   /app/member/profile:
     get:
@@ -479,26 +324,11 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 tokenMissing:
-                  summary: 未登录
-                  value:
-                    code: 40101
-                    msg: 请先登录
-                    data: null
-                    traceId: c8f1d2e5
+                  $ref: '#/components/examples/tokenMissing'
                 tokenExpired:
-                  summary: token 过期
-                  value:
-                    code: 40104
-                    msg: 登录已过期，请重新登录
-                    data: null
-                    traceId: c8f1d2e6
+                  $ref: '#/components/examples/tokenExpired'
                 adminToken:
-                  summary: token 类型错误
-                  value:
-                    code: 40105
-                    msg: 登录状态无效，请重新登录
-                    data: null
-                    traceId: c8f1d2e7
+                  $ref: '#/components/examples/adminToken'
         '404':
           description: 资源不存在（404xx）
           content:
@@ -507,26 +337,11 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 productNotFound:
-                  summary: 商品不存在
-                  value:
-                    code: 40401
-                    msg: 商品不存在或已下架
-                    data: null
-                    traceId: c8f1d2ea
+                  $ref: '#/components/examples/productNotFound'
                 orderNotFound:
-                  summary: 订单不存在
-                  value:
-                    code: 40404
-                    msg: 订单不存在
-                    data: null
-                    traceId: c8f1d2eb
+                  $ref: '#/components/examples/orderNotFound'
                 memberNotFound:
-                  summary: 会员不存在
-                  value:
-                    code: 40405
-                    msg: 会员不存在，请重新登录
-                    data: null
-                    traceId: c8f1d2ec
+                  $ref: '#/components/examples/memberNotFound'
         '409':
           description: 业务冲突/状态不允许（409xx）
           content:
@@ -535,33 +350,13 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 balanceNotEnough:
-                  summary: 余额不足
-                  value:
-                    code: 40903
-                    msg: 余额不足
-                    data: null
-                    traceId: c8f1d2ed
+                  $ref: '#/components/examples/balanceNotEnough'
                 couponUnavailable:
-                  summary: 券不可用
-                  value:
-                    code: 40907
-                    msg: 该券当前不可用
-                    data: null
-                    traceId: c8f1d2ee
+                  $ref: '#/components/examples/couponUnavailable'
                 orderStatusInvalid:
-                  summary: 订单状态不允许
-                  value:
-                    code: 40916
-                    msg: 当前订单状态不允许该操作
-                    data: null
-                    traceId: c8f1d2ef
+                  $ref: '#/components/examples/orderStatusInvalid'
                 memberDisabled:
-                  summary: 会员被停用
-                  value:
-                    code: 40901
-                    msg: 会员已被停用，请联系门店
-                    data: null
-                    traceId: c8f1d2f0
+                  $ref: '#/components/examples/memberDisabled'
         '500':
           description: 服务端错误（500xx）
           content:
@@ -570,12 +365,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 internalError:
-                  summary: 服务器内部错误
-                  value:
-                    code: 50001
-                    msg: 服务开小差了，请稍后重试
-                    data: null
-                    traceId: c8f1d2f2
+                  $ref: '#/components/examples/internalError'
         '503':
           description: 依赖不可用/维护中（503xx）
           content:
@@ -584,12 +374,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 serviceUnavailable:
-                  summary: 依赖不可用
-                  value:
-                    code: 50302
-                    msg: 系统繁忙，请稍后重试
-                    data: null
-                    traceId: c8f1d2f3
+                  $ref: '#/components/examples/serviceUnavailable'
       security: *id001
   /app/member/balance/flows:
     get:
@@ -619,26 +404,11 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 tokenMissing:
-                  summary: 未登录
-                  value:
-                    code: 40101
-                    msg: 请先登录
-                    data: null
-                    traceId: c8f1d2e5
+                  $ref: '#/components/examples/tokenMissing'
                 tokenExpired:
-                  summary: token 过期
-                  value:
-                    code: 40104
-                    msg: 登录已过期，请重新登录
-                    data: null
-                    traceId: c8f1d2e6
+                  $ref: '#/components/examples/tokenExpired'
                 adminToken:
-                  summary: token 类型错误
-                  value:
-                    code: 40105
-                    msg: 登录状态无效，请重新登录
-                    data: null
-                    traceId: c8f1d2e7
+                  $ref: '#/components/examples/adminToken'
         '400':
           description: 参数缺失/格式错误/取值非法/幂等键非法（400xx）
           content:
@@ -647,19 +417,9 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 paramMissing:
-                  summary: 缺少必填参数
-                  value:
-                    code: 40001
-                    msg: 缺少必填参数
-                    data: null
-                    traceId: c8f1d2e3
+                  $ref: '#/components/examples/paramMissing'
                 paramInvalid:
-                  summary: 参数格式/枚举非法
-                  value:
-                    code: 40003
-                    msg: 参数取值不合法
-                    data: null
-                    traceId: c8f1d2e4
+                  $ref: '#/components/examples/paramInvalid'
         '500':
           description: 服务端错误（500xx）
           content:
@@ -668,12 +428,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 internalError:
-                  summary: 服务器内部错误
-                  value:
-                    code: 50001
-                    msg: 服务开小差了，请稍后重试
-                    data: null
-                    traceId: c8f1d2f2
+                  $ref: '#/components/examples/internalError'
         '503':
           description: 依赖不可用/维护中（503xx）
           content:
@@ -682,12 +437,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 serviceUnavailable:
-                  summary: 依赖不可用
-                  value:
-                    code: 50302
-                    msg: 系统繁忙，请稍后重试
-                    data: null
-                    traceId: c8f1d2f3
+                  $ref: '#/components/examples/serviceUnavailable'
       parameters:
       - &id002
         name: pageNum
@@ -731,12 +481,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 internalError:
-                  summary: 服务器内部错误
-                  value:
-                    code: 50001
-                    msg: 服务开小差了，请稍后重试
-                    data: null
-                    traceId: c8f1d2f2
+                  $ref: '#/components/examples/internalError'
         '503':
           description: 依赖不可用/维护中（503xx）
           content:
@@ -745,12 +490,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 serviceUnavailable:
-                  summary: 依赖不可用
-                  value:
-                    code: 50302
-                    msg: 系统繁忙，请稍后重试
-                    data: null
-                    traceId: c8f1d2f3
+                  $ref: '#/components/examples/serviceUnavailable'
   /app/catalog/products:
     get:
       summary: 商品列表
@@ -779,19 +519,9 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 paramMissing:
-                  summary: 缺少必填参数
-                  value:
-                    code: 40001
-                    msg: 缺少必填参数
-                    data: null
-                    traceId: c8f1d2e3
+                  $ref: '#/components/examples/paramMissing'
                 paramInvalid:
-                  summary: 参数格式/枚举非法
-                  value:
-                    code: 40003
-                    msg: 参数取值不合法
-                    data: null
-                    traceId: c8f1d2e4
+                  $ref: '#/components/examples/paramInvalid'
         '500':
           description: 服务端错误（500xx）
           content:
@@ -800,12 +530,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 internalError:
-                  summary: 服务器内部错误
-                  value:
-                    code: 50001
-                    msg: 服务开小差了，请稍后重试
-                    data: null
-                    traceId: c8f1d2f2
+                  $ref: '#/components/examples/internalError'
         '503':
           description: 依赖不可用/维护中（503xx）
           content:
@@ -814,12 +539,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 serviceUnavailable:
-                  summary: 依赖不可用
-                  value:
-                    code: 50302
-                    msg: 系统繁忙，请稍后重试
-                    data: null
-                    traceId: c8f1d2f3
+                  $ref: '#/components/examples/serviceUnavailable'
       parameters:
       - *id002
       - *id003
@@ -855,26 +575,11 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 productNotFound:
-                  summary: 商品不存在
-                  value:
-                    code: 40401
-                    msg: 商品不存在或已下架
-                    data: null
-                    traceId: c8f1d2ea
+                  $ref: '#/components/examples/productNotFound'
                 orderNotFound:
-                  summary: 订单不存在
-                  value:
-                    code: 40404
-                    msg: 订单不存在
-                    data: null
-                    traceId: c8f1d2eb
+                  $ref: '#/components/examples/orderNotFound'
                 memberNotFound:
-                  summary: 会员不存在
-                  value:
-                    code: 40405
-                    msg: 会员不存在，请重新登录
-                    data: null
-                    traceId: c8f1d2ec
+                  $ref: '#/components/examples/memberNotFound'
         '500':
           description: 服务端错误（500xx）
           content:
@@ -883,12 +588,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 internalError:
-                  summary: 服务器内部错误
-                  value:
-                    code: 50001
-                    msg: 服务开小差了，请稍后重试
-                    data: null
-                    traceId: c8f1d2f2
+                  $ref: '#/components/examples/internalError'
         '503':
           description: 依赖不可用/维护中（503xx）
           content:
@@ -897,12 +597,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 serviceUnavailable:
-                  summary: 依赖不可用
-                  value:
-                    code: 50302
-                    msg: 系统繁忙，请稍后重试
-                    data: null
-                    traceId: c8f1d2f3
+                  $ref: '#/components/examples/serviceUnavailable'
       parameters:
       - name: code
         in: path
@@ -938,26 +633,11 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 tokenMissing:
-                  summary: 未登录
-                  value:
-                    code: 40101
-                    msg: 请先登录
-                    data: null
-                    traceId: c8f1d2e5
+                  $ref: '#/components/examples/tokenMissing'
                 tokenExpired:
-                  summary: token 过期
-                  value:
-                    code: 40104
-                    msg: 登录已过期，请重新登录
-                    data: null
-                    traceId: c8f1d2e6
+                  $ref: '#/components/examples/tokenExpired'
                 adminToken:
-                  summary: token 类型错误
-                  value:
-                    code: 40105
-                    msg: 登录状态无效，请重新登录
-                    data: null
-                    traceId: c8f1d2e7
+                  $ref: '#/components/examples/adminToken'
         '400':
           description: 参数缺失/格式错误/取值非法/幂等键非法（400xx）
           content:
@@ -966,19 +646,9 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 paramMissing:
-                  summary: 缺少必填参数
-                  value:
-                    code: 40001
-                    msg: 缺少必填参数
-                    data: null
-                    traceId: c8f1d2e3
+                  $ref: '#/components/examples/paramMissing'
                 paramInvalid:
-                  summary: 参数格式/枚举非法
-                  value:
-                    code: 40003
-                    msg: 参数取值不合法
-                    data: null
-                    traceId: c8f1d2e4
+                  $ref: '#/components/examples/paramInvalid'
         '500':
           description: 服务端错误（500xx）
           content:
@@ -987,12 +657,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 internalError:
-                  summary: 服务器内部错误
-                  value:
-                    code: 50001
-                    msg: 服务开小差了，请稍后重试
-                    data: null
-                    traceId: c8f1d2f2
+                  $ref: '#/components/examples/internalError'
         '503':
           description: 依赖不可用/维护中（503xx）
           content:
@@ -1001,12 +666,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 serviceUnavailable:
-                  summary: 依赖不可用
-                  value:
-                    code: 50302
-                    msg: 系统繁忙，请稍后重试
-                    data: null
-                    traceId: c8f1d2f3
+                  $ref: '#/components/examples/serviceUnavailable'
       parameters:
       - name: status
         in: query
@@ -1046,26 +706,11 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 tokenMissing:
-                  summary: 未登录
-                  value:
-                    code: 40101
-                    msg: 请先登录
-                    data: null
-                    traceId: c8f1d2e5
+                  $ref: '#/components/examples/tokenMissing'
                 tokenExpired:
-                  summary: token 过期
-                  value:
-                    code: 40104
-                    msg: 登录已过期，请重新登录
-                    data: null
-                    traceId: c8f1d2e6
+                  $ref: '#/components/examples/tokenExpired'
                 adminToken:
-                  summary: token 类型错误
-                  value:
-                    code: 40105
-                    msg: 登录状态无效，请重新登录
-                    data: null
-                    traceId: c8f1d2e7
+                  $ref: '#/components/examples/adminToken'
         '404':
           description: 资源不存在（404xx）
           content:
@@ -1074,26 +719,11 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 productNotFound:
-                  summary: 商品不存在
-                  value:
-                    code: 40401
-                    msg: 商品不存在或已下架
-                    data: null
-                    traceId: c8f1d2ea
+                  $ref: '#/components/examples/productNotFound'
                 orderNotFound:
-                  summary: 订单不存在
-                  value:
-                    code: 40404
-                    msg: 订单不存在
-                    data: null
-                    traceId: c8f1d2eb
+                  $ref: '#/components/examples/orderNotFound'
                 memberNotFound:
-                  summary: 会员不存在
-                  value:
-                    code: 40405
-                    msg: 会员不存在，请重新登录
-                    data: null
-                    traceId: c8f1d2ec
+                  $ref: '#/components/examples/memberNotFound'
         '500':
           description: 服务端错误（500xx）
           content:
@@ -1102,12 +732,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 internalError:
-                  summary: 服务器内部错误
-                  value:
-                    code: 50001
-                    msg: 服务开小差了，请稍后重试
-                    data: null
-                    traceId: c8f1d2f2
+                  $ref: '#/components/examples/internalError'
         '503':
           description: 依赖不可用/维护中（503xx）
           content:
@@ -1116,12 +741,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 serviceUnavailable:
-                  summary: 依赖不可用
-                  value:
-                    code: 50302
-                    msg: 系统繁忙，请稍后重试
-                    data: null
-                    traceId: c8f1d2f3
+                  $ref: '#/components/examples/serviceUnavailable'
       parameters:
       - name: couponNo
         in: path
@@ -1156,26 +776,11 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 tokenMissing:
-                  summary: 未登录
-                  value:
-                    code: 40101
-                    msg: 请先登录
-                    data: null
-                    traceId: c8f1d2e5
+                  $ref: '#/components/examples/tokenMissing'
                 tokenExpired:
-                  summary: token 过期
-                  value:
-                    code: 40104
-                    msg: 登录已过期，请重新登录
-                    data: null
-                    traceId: c8f1d2e6
+                  $ref: '#/components/examples/tokenExpired'
                 adminToken:
-                  summary: token 类型错误
-                  value:
-                    code: 40105
-                    msg: 登录状态无效，请重新登录
-                    data: null
-                    traceId: c8f1d2e7
+                  $ref: '#/components/examples/adminToken'
         '400':
           description: 参数缺失/格式错误/取值非法/幂等键非法（400xx）
           content:
@@ -1184,19 +789,9 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 paramMissing:
-                  summary: 缺少必填参数
-                  value:
-                    code: 40001
-                    msg: 缺少必填参数
-                    data: null
-                    traceId: c8f1d2e3
+                  $ref: '#/components/examples/paramMissing'
                 paramInvalid:
-                  summary: 参数格式/枚举非法
-                  value:
-                    code: 40003
-                    msg: 参数取值不合法
-                    data: null
-                    traceId: c8f1d2e4
+                  $ref: '#/components/examples/paramInvalid'
         '404':
           description: 资源不存在（404xx）
           content:
@@ -1205,26 +800,11 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 productNotFound:
-                  summary: 商品不存在
-                  value:
-                    code: 40401
-                    msg: 商品不存在或已下架
-                    data: null
-                    traceId: c8f1d2ea
+                  $ref: '#/components/examples/productNotFound'
                 orderNotFound:
-                  summary: 订单不存在
-                  value:
-                    code: 40404
-                    msg: 订单不存在
-                    data: null
-                    traceId: c8f1d2eb
+                  $ref: '#/components/examples/orderNotFound'
                 memberNotFound:
-                  summary: 会员不存在
-                  value:
-                    code: 40405
-                    msg: 会员不存在，请重新登录
-                    data: null
-                    traceId: c8f1d2ec
+                  $ref: '#/components/examples/memberNotFound'
         '409':
           description: 业务冲突/状态不允许（409xx）
           content:
@@ -1233,33 +813,13 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 balanceNotEnough:
-                  summary: 余额不足
-                  value:
-                    code: 40903
-                    msg: 余额不足
-                    data: null
-                    traceId: c8f1d2ed
+                  $ref: '#/components/examples/balanceNotEnough'
                 couponUnavailable:
-                  summary: 券不可用
-                  value:
-                    code: 40907
-                    msg: 该券当前不可用
-                    data: null
-                    traceId: c8f1d2ee
+                  $ref: '#/components/examples/couponUnavailable'
                 orderStatusInvalid:
-                  summary: 订单状态不允许
-                  value:
-                    code: 40916
-                    msg: 当前订单状态不允许该操作
-                    data: null
-                    traceId: c8f1d2ef
+                  $ref: '#/components/examples/orderStatusInvalid'
                 memberDisabled:
-                  summary: 会员被停用
-                  value:
-                    code: 40901
-                    msg: 会员已被停用，请联系门店
-                    data: null
-                    traceId: c8f1d2f0
+                  $ref: '#/components/examples/memberDisabled'
         '429':
           description: 限流/防刷（429xx）
           content:
@@ -1268,12 +828,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 tooManyRequests:
-                  summary: 请求过于频繁
-                  value:
-                    code: 42901
-                    msg: 操作过于频繁，请稍后重试
-                    data: null
-                    traceId: c8f1d2f1
+                  $ref: '#/components/examples/tooManyRequests'
         '500':
           description: 服务端错误（500xx）
           content:
@@ -1282,12 +837,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 internalError:
-                  summary: 服务器内部错误
-                  value:
-                    code: 50001
-                    msg: 服务开小差了，请稍后重试
-                    data: null
-                    traceId: c8f1d2f2
+                  $ref: '#/components/examples/internalError'
         '503':
           description: 依赖不可用/维护中（503xx）
           content:
@@ -1296,12 +846,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 serviceUnavailable:
-                  summary: 依赖不可用
-                  value:
-                    code: 50302
-                    msg: 系统繁忙，请稍后重试
-                    data: null
-                    traceId: c8f1d2f3
+                  $ref: '#/components/examples/serviceUnavailable'
       description: 幂等：Header Idempotency-Key 或 body.idempotencyKey；金额后端按商品价重算
       requestBody:
         required: true
@@ -1337,26 +882,11 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 tokenMissing:
-                  summary: 未登录
-                  value:
-                    code: 40101
-                    msg: 请先登录
-                    data: null
-                    traceId: c8f1d2e5
+                  $ref: '#/components/examples/tokenMissing'
                 tokenExpired:
-                  summary: token 过期
-                  value:
-                    code: 40104
-                    msg: 登录已过期，请重新登录
-                    data: null
-                    traceId: c8f1d2e6
+                  $ref: '#/components/examples/tokenExpired'
                 adminToken:
-                  summary: token 类型错误
-                  value:
-                    code: 40105
-                    msg: 登录状态无效，请重新登录
-                    data: null
-                    traceId: c8f1d2e7
+                  $ref: '#/components/examples/adminToken'
         '400':
           description: 参数缺失/格式错误/取值非法/幂等键非法（400xx）
           content:
@@ -1365,19 +895,9 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 paramMissing:
-                  summary: 缺少必填参数
-                  value:
-                    code: 40001
-                    msg: 缺少必填参数
-                    data: null
-                    traceId: c8f1d2e3
+                  $ref: '#/components/examples/paramMissing'
                 paramInvalid:
-                  summary: 参数格式/枚举非法
-                  value:
-                    code: 40003
-                    msg: 参数取值不合法
-                    data: null
-                    traceId: c8f1d2e4
+                  $ref: '#/components/examples/paramInvalid'
         '500':
           description: 服务端错误（500xx）
           content:
@@ -1386,12 +906,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 internalError:
-                  summary: 服务器内部错误
-                  value:
-                    code: 50001
-                    msg: 服务开小差了，请稍后重试
-                    data: null
-                    traceId: c8f1d2f2
+                  $ref: '#/components/examples/internalError'
         '503':
           description: 依赖不可用/维护中（503xx）
           content:
@@ -1400,12 +915,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 serviceUnavailable:
-                  summary: 依赖不可用
-                  value:
-                    code: 50302
-                    msg: 系统繁忙，请稍后重试
-                    data: null
-                    traceId: c8f1d2f3
+                  $ref: '#/components/examples/serviceUnavailable'
       parameters:
       - *id002
       - *id003
@@ -1441,26 +951,11 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 tokenMissing:
-                  summary: 未登录
-                  value:
-                    code: 40101
-                    msg: 请先登录
-                    data: null
-                    traceId: c8f1d2e5
+                  $ref: '#/components/examples/tokenMissing'
                 tokenExpired:
-                  summary: token 过期
-                  value:
-                    code: 40104
-                    msg: 登录已过期，请重新登录
-                    data: null
-                    traceId: c8f1d2e6
+                  $ref: '#/components/examples/tokenExpired'
                 adminToken:
-                  summary: token 类型错误
-                  value:
-                    code: 40105
-                    msg: 登录状态无效，请重新登录
-                    data: null
-                    traceId: c8f1d2e7
+                  $ref: '#/components/examples/adminToken'
         '404':
           description: 资源不存在（404xx）
           content:
@@ -1469,26 +964,11 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 productNotFound:
-                  summary: 商品不存在
-                  value:
-                    code: 40401
-                    msg: 商品不存在或已下架
-                    data: null
-                    traceId: c8f1d2ea
+                  $ref: '#/components/examples/productNotFound'
                 orderNotFound:
-                  summary: 订单不存在
-                  value:
-                    code: 40404
-                    msg: 订单不存在
-                    data: null
-                    traceId: c8f1d2eb
+                  $ref: '#/components/examples/orderNotFound'
                 memberNotFound:
-                  summary: 会员不存在
-                  value:
-                    code: 40405
-                    msg: 会员不存在，请重新登录
-                    data: null
-                    traceId: c8f1d2ec
+                  $ref: '#/components/examples/memberNotFound'
         '500':
           description: 服务端错误（500xx）
           content:
@@ -1497,12 +977,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 internalError:
-                  summary: 服务器内部错误
-                  value:
-                    code: 50001
-                    msg: 服务开小差了，请稍后重试
-                    data: null
-                    traceId: c8f1d2f2
+                  $ref: '#/components/examples/internalError'
         '503':
           description: 依赖不可用/维护中（503xx）
           content:
@@ -1511,12 +986,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 serviceUnavailable:
-                  summary: 依赖不可用
-                  value:
-                    code: 50302
-                    msg: 系统繁忙，请稍后重试
-                    data: null
-                    traceId: c8f1d2f3
+                  $ref: '#/components/examples/serviceUnavailable'
       parameters:
       - name: orderNo
         in: path
@@ -1551,26 +1021,11 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 tokenMissing:
-                  summary: 未登录
-                  value:
-                    code: 40101
-                    msg: 请先登录
-                    data: null
-                    traceId: c8f1d2e5
+                  $ref: '#/components/examples/tokenMissing'
                 tokenExpired:
-                  summary: token 过期
-                  value:
-                    code: 40104
-                    msg: 登录已过期，请重新登录
-                    data: null
-                    traceId: c8f1d2e6
+                  $ref: '#/components/examples/tokenExpired'
                 adminToken:
-                  summary: token 类型错误
-                  value:
-                    code: 40105
-                    msg: 登录状态无效，请重新登录
-                    data: null
-                    traceId: c8f1d2e7
+                  $ref: '#/components/examples/adminToken'
         '400':
           description: 参数缺失/格式错误/取值非法/幂等键非法（400xx）
           content:
@@ -1579,19 +1034,9 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 paramMissing:
-                  summary: 缺少必填参数
-                  value:
-                    code: 40001
-                    msg: 缺少必填参数
-                    data: null
-                    traceId: c8f1d2e3
+                  $ref: '#/components/examples/paramMissing'
                 paramInvalid:
-                  summary: 参数格式/枚举非法
-                  value:
-                    code: 40003
-                    msg: 参数取值不合法
-                    data: null
-                    traceId: c8f1d2e4
+                  $ref: '#/components/examples/paramInvalid'
         '404':
           description: 资源不存在（404xx）
           content:
@@ -1600,26 +1045,11 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 productNotFound:
-                  summary: 商品不存在
-                  value:
-                    code: 40401
-                    msg: 商品不存在或已下架
-                    data: null
-                    traceId: c8f1d2ea
+                  $ref: '#/components/examples/productNotFound'
                 orderNotFound:
-                  summary: 订单不存在
-                  value:
-                    code: 40404
-                    msg: 订单不存在
-                    data: null
-                    traceId: c8f1d2eb
+                  $ref: '#/components/examples/orderNotFound'
                 memberNotFound:
-                  summary: 会员不存在
-                  value:
-                    code: 40405
-                    msg: 会员不存在，请重新登录
-                    data: null
-                    traceId: c8f1d2ec
+                  $ref: '#/components/examples/memberNotFound'
         '409':
           description: 业务冲突/状态不允许（409xx）
           content:
@@ -1628,33 +1058,13 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 balanceNotEnough:
-                  summary: 余额不足
-                  value:
-                    code: 40903
-                    msg: 余额不足
-                    data: null
-                    traceId: c8f1d2ed
+                  $ref: '#/components/examples/balanceNotEnough'
                 couponUnavailable:
-                  summary: 券不可用
-                  value:
-                    code: 40907
-                    msg: 该券当前不可用
-                    data: null
-                    traceId: c8f1d2ee
+                  $ref: '#/components/examples/couponUnavailable'
                 orderStatusInvalid:
-                  summary: 订单状态不允许
-                  value:
-                    code: 40916
-                    msg: 当前订单状态不允许该操作
-                    data: null
-                    traceId: c8f1d2ef
+                  $ref: '#/components/examples/orderStatusInvalid'
                 memberDisabled:
-                  summary: 会员被停用
-                  value:
-                    code: 40901
-                    msg: 会员已被停用，请联系门店
-                    data: null
-                    traceId: c8f1d2f0
+                  $ref: '#/components/examples/memberDisabled'
         '500':
           description: 服务端错误（500xx）
           content:
@@ -1663,12 +1073,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 internalError:
-                  summary: 服务器内部错误
-                  value:
-                    code: 50001
-                    msg: 服务开小差了，请稍后重试
-                    data: null
-                    traceId: c8f1d2f2
+                  $ref: '#/components/examples/internalError'
         '503':
           description: 依赖不可用/维护中（503xx）
           content:
@@ -1677,12 +1082,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 serviceUnavailable:
-                  summary: 依赖不可用
-                  value:
-                    code: 50302
-                    msg: 系统繁忙，请稍后重试
-                    data: null
-                    traceId: c8f1d2f3
+                  $ref: '#/components/examples/serviceUnavailable'
       parameters:
       - name: orderNo
         in: path
@@ -1723,26 +1123,11 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 tokenMissing:
-                  summary: 未登录
-                  value:
-                    code: 40101
-                    msg: 请先登录
-                    data: null
-                    traceId: c8f1d2e5
+                  $ref: '#/components/examples/tokenMissing'
                 tokenExpired:
-                  summary: token 过期
-                  value:
-                    code: 40104
-                    msg: 登录已过期，请重新登录
-                    data: null
-                    traceId: c8f1d2e6
+                  $ref: '#/components/examples/tokenExpired'
                 adminToken:
-                  summary: token 类型错误
-                  value:
-                    code: 40105
-                    msg: 登录状态无效，请重新登录
-                    data: null
-                    traceId: c8f1d2e7
+                  $ref: '#/components/examples/adminToken'
         '404':
           description: 资源不存在（404xx）
           content:
@@ -1751,26 +1136,11 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 productNotFound:
-                  summary: 商品不存在
-                  value:
-                    code: 40401
-                    msg: 商品不存在或已下架
-                    data: null
-                    traceId: c8f1d2ea
+                  $ref: '#/components/examples/productNotFound'
                 orderNotFound:
-                  summary: 订单不存在
-                  value:
-                    code: 40404
-                    msg: 订单不存在
-                    data: null
-                    traceId: c8f1d2eb
+                  $ref: '#/components/examples/orderNotFound'
                 memberNotFound:
-                  summary: 会员不存在
-                  value:
-                    code: 40405
-                    msg: 会员不存在，请重新登录
-                    data: null
-                    traceId: c8f1d2ec
+                  $ref: '#/components/examples/memberNotFound'
         '409':
           description: 业务冲突/状态不允许（409xx）
           content:
@@ -1779,33 +1149,13 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 balanceNotEnough:
-                  summary: 余额不足
-                  value:
-                    code: 40903
-                    msg: 余额不足
-                    data: null
-                    traceId: c8f1d2ed
+                  $ref: '#/components/examples/balanceNotEnough'
                 couponUnavailable:
-                  summary: 券不可用
-                  value:
-                    code: 40907
-                    msg: 该券当前不可用
-                    data: null
-                    traceId: c8f1d2ee
+                  $ref: '#/components/examples/couponUnavailable'
                 orderStatusInvalid:
-                  summary: 订单状态不允许
-                  value:
-                    code: 40916
-                    msg: 当前订单状态不允许该操作
-                    data: null
-                    traceId: c8f1d2ef
+                  $ref: '#/components/examples/orderStatusInvalid'
                 memberDisabled:
-                  summary: 会员被停用
-                  value:
-                    code: 40901
-                    msg: 会员已被停用，请联系门店
-                    data: null
-                    traceId: c8f1d2f0
+                  $ref: '#/components/examples/memberDisabled'
         '500':
           description: 服务端错误（500xx）
           content:
@@ -1814,12 +1164,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 internalError:
-                  summary: 服务器内部错误
-                  value:
-                    code: 50001
-                    msg: 服务开小差了，请稍后重试
-                    data: null
-                    traceId: c8f1d2f2
+                  $ref: '#/components/examples/internalError'
         '503':
           description: 依赖不可用/维护中（503xx）
           content:
@@ -1828,12 +1173,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
                 serviceUnavailable:
-                  summary: 依赖不可用
-                  value:
-                    code: 50302
-                    msg: 系统繁忙，请稍后重试
-                    data: null
-                    traceId: c8f1d2f3
+                  $ref: '#/components/examples/serviceUnavailable'
       parameters:
       - name: orderNo
         in: path
@@ -2709,3 +2049,123 @@ components:
       type: http
       scheme: bearer
       bearerFormat: UUID
+  examples:
+    paramMissing:
+      summary: 缺少必填参数
+      value:
+        code: 40001
+        msg: 缺少必填参数
+        data: null
+        traceId: c8f1d2e3
+    paramInvalid:
+      summary: 参数格式/枚举非法
+      value:
+        code: 40003
+        msg: 参数取值不合法
+        data: null
+        traceId: c8f1d2e4
+    tokenMissing:
+      summary: 未登录
+      value:
+        code: 40101
+        msg: 请先登录
+        data: null
+        traceId: c8f1d2e5
+    tokenExpired:
+      summary: token 过期
+      value:
+        code: 40104
+        msg: 登录已过期，请重新登录
+        data: null
+        traceId: c8f1d2e6
+    adminToken:
+      summary: token 类型错误
+      value:
+        code: 40105
+        msg: 登录状态无效，请重新登录
+        data: null
+        traceId: c8f1d2e7
+    tooManyRequests:
+      summary: 请求过于频繁
+      value:
+        code: 42901
+        msg: 操作过于频繁，请稍后重试
+        data: null
+        traceId: c8f1d2f1
+    internalError:
+      summary: 服务器内部错误
+      value:
+        code: 50001
+        msg: 服务开小差了，请稍后重试
+        data: null
+        traceId: c8f1d2f2
+    serviceUnavailable:
+      summary: 依赖不可用
+      value:
+        code: 50302
+        msg: 系统繁忙，请稍后重试
+        data: null
+        traceId: c8f1d2f3
+    noPermission:
+      summary: 越权访问
+      value:
+        code: 40301
+        msg: 无权访问该资源
+        data: null
+        traceId: c8f1d2e8
+    mockDisabled:
+      summary: mock 登录未启用
+      value:
+        code: 40302
+        msg: 当前环境未开启联调登录
+        data: null
+        traceId: c8f1d2e9
+    balanceNotEnough:
+      summary: 余额不足
+      value:
+        code: 40903
+        msg: 余额不足
+        data: null
+        traceId: c8f1d2ed
+    couponUnavailable:
+      summary: 券不可用
+      value:
+        code: 40907
+        msg: 该券当前不可用
+        data: null
+        traceId: c8f1d2ee
+    orderStatusInvalid:
+      summary: 订单状态不允许
+      value:
+        code: 40916
+        msg: 当前订单状态不允许该操作
+        data: null
+        traceId: c8f1d2ef
+    memberDisabled:
+      summary: 会员被停用
+      value:
+        code: 40901
+        msg: 会员已被停用，请联系门店
+        data: null
+        traceId: c8f1d2f0
+    productNotFound:
+      summary: 商品不存在
+      value:
+        code: 40401
+        msg: 商品不存在或已下架
+        data: null
+        traceId: c8f1d2ea
+    orderNotFound:
+      summary: 订单不存在
+      value:
+        code: 40404
+        msg: 订单不存在
+        data: null
+        traceId: c8f1d2eb
+    memberNotFound:
+      summary: 会员不存在
+      value:
+        code: 40405
+        msg: 会员不存在，请重新登录
+        data: null
+        traceId: c8f1d2ec
