@@ -570,6 +570,7 @@ paths:
       security: *id001
   /app/catalog/categories:
     get:
+      operationId: listCategories
       summary: 分类列表
       tags:
       - app/商品
@@ -589,6 +590,34 @@ paths:
                       type: array
                       items:
                         $ref: '#/components/schemas/Category'
+              examples:
+                success:
+                  summary: 分类列表（16 条中展示 3 条）
+                  value:
+                    code: 200
+                    msg: ok
+                    data:
+                    - id: '1'
+                      code: matcha
+                      name: 抹茶
+                      nameEn: Matcha
+                      description: 宇治抹茶现点现刷，每杯 4g
+                      domain: coffee
+                      sortNo: 1
+                    - id: '2'
+                      code: frappe
+                      name: 星冰乐
+                      nameEn: Frappuccino
+                      description: 冰沙打底，奶油封顶
+                      domain: coffee
+                      sortNo: 2
+                    - id: '10'
+                      code: craft
+                      name: 精酿
+                      nameEn: Craft Beer
+                      description: 从清爽酒花到烘烤麦芽
+                      domain: bar
+                      sortNo: 10
         '500':
           description: 服务端错误（500xx）
           content:
@@ -609,6 +638,7 @@ paths:
                   $ref: '#/components/examples/serviceUnavailable'
   /app/catalog/products:
     get:
+      operationId: listProducts
       summary: 商品列表
       tags:
       - app/商品
@@ -629,7 +659,7 @@ paths:
                         $ref: '#/components/schemas/Product'
               examples:
                 success:
-                  summary: 商品列表（第 1 页）
+                  summary: 商品列表（第 1 页，total 30）
                   value:
                     code: 200
                     msg: ok
@@ -640,33 +670,72 @@ paths:
                       categoryId: '1'
                       name: 云朵奶盖抹茶
                       nameEn: Matcha Cloud Delight
-                      description: 宇治抹茶现刷，叠一层轻盈奶盖，最后撒上抹茶碎。
+                      description: 宇治抹茶现刷，叠一层轻盈奶盖，最后撒上抹茶碎。先别搅拌，第一口最好喝。
                       priceCent: 3200
                       rating: 9.6
                       soldCount: 2380
                       badge: 招牌
+                      ingredientsJson:
+                      - 宇治抹茶
+                      - 鲜牛奶
+                      - 奶盖
+                      - 冰块
+                      specGroupsJson:
+                      - size
+                      - ice
+                      - sugar
+                      - milk
+                      - extra
+                      artJson:
+                        cup: tall
+                        liquid:
+                        - '#9CBF63'
+                        - '#557F31'
+                        milk: '#EEF2DF'
+                        milkRatio: 22
+                        topping: cream
+                        toppingColor: '#F6F4E8'
+                        dust: '#7FA548'
+                        ice: true
+                        marble: true
+                      tileColorStart: '#EED6B5'
+                      tileColorEnd: '#C5976B'
                       stock: -1
                       status: 1
                       sortNo: 1
-                      storeId: '1'
+                    - id: '2'
+                      code: m2
+                      categoryId: '1'
+                      name: 冰抹茶拿铁
+                      nameEn: Iced Matcha Latte
+                      description: 一勺蜂蜜压住抹茶的涩，牛奶托底，冰块要多。
+                      priceCent: 2600
+                      rating: 9.3
+                      soldCount: 1912
+                      badge: ''
+                      ingredientsJson:
+                      - 抹茶
+                      - 冰块
+                      - 蜂蜜
+                      - 牛奶
+                      specGroupsJson:
+                      - size
+                      - ice
+                      - sugar
+                      - milk
+                      artJson:
+                        cup: rocks
+                        liquid:
+                        - '#A9C77A'
+                        - '#5E8A35'
+                        milk: '#E3EBCB'
+                        milkRatio: 30
+                        ice: true
                       tileColorStart: '#EED6B5'
                       tileColorEnd: '#C5976B'
-                    - id: '5'
-                      code: f1
-                      categoryId: '2'
-                      name: 焦糖漩涡星冰乐
-                      nameEn: Caramel Swirl Frappuccino
-                      description: 焦糖酱沿杯壁淋下，咖啡冰沙打底，奶油上再画一圈焦糖。
-                      priceCent: 3300
-                      rating: 9.4
-                      soldCount: 2016
-                      badge: 人气
                       stock: -1
                       status: 1
-                      sortNo: 5
-                      storeId: '1'
-                      tileColorStart: '#F1DEC4'
-                      tileColorEnd: '#C8A381'
+                      sortNo: 2
         '400':
           description: 参数缺失/格式错误/取值非法/幂等键非法（400xx）
           content:
@@ -674,10 +743,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
-                paramMissing:
-                  $ref: '#/components/examples/paramMissing'
                 paramInvalid:
                   $ref: '#/components/examples/paramInvalid'
+                pageSizeExceeded:
+                  $ref: '#/components/examples/pageSizeExceeded'
         '500':
           description: 服务端错误（500xx）
           content:
@@ -701,11 +770,13 @@ paths:
       - *id003
       - name: category
         in: query
+        description: 分类 code，如 matcha；未知编码返回空列表
         schema:
           type: string
-        description: 分类 code，如 matcha
+          pattern: '^[a-z0-9-]{1,32}$'
   /app/catalog/products/{code}:
     get:
+      operationId: getProductByCode
       summary: 商品详情
       tags:
       - app/商品
@@ -723,6 +794,51 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/Product'
+              examples:
+                success:
+                  summary: 商品详情（m1）
+                  value:
+                    code: 200
+                    msg: ok
+                    data:
+                      id: '1'
+                      code: m1
+                      categoryId: '1'
+                      name: 云朵奶盖抹茶
+                      nameEn: Matcha Cloud Delight
+                      description: 宇治抹茶现刷，叠一层轻盈奶盖，最后撒上抹茶碎。先别搅拌，第一口最好喝。
+                      priceCent: 3200
+                      rating: 9.6
+                      soldCount: 2380
+                      badge: 招牌
+                      ingredientsJson:
+                      - 宇治抹茶
+                      - 鲜牛奶
+                      - 奶盖
+                      - 冰块
+                      specGroupsJson:
+                      - size
+                      - ice
+                      - sugar
+                      - milk
+                      - extra
+                      artJson:
+                        cup: tall
+                        liquid:
+                        - '#9CBF63'
+                        - '#557F31'
+                        milk: '#EEF2DF'
+                        milkRatio: 22
+                        topping: cream
+                        toppingColor: '#F6F4E8'
+                        dust: '#7FA548'
+                        ice: true
+                        marble: true
+                      tileColorStart: '#EED6B5'
+                      tileColorEnd: '#C5976B'
+                      stock: -1
+                      status: 1
+                      sortNo: 1
         '404':
           description: 资源不存在（404xx）
           content:
@@ -732,10 +848,6 @@ paths:
               examples:
                 productNotFound:
                   $ref: '#/components/examples/productNotFound'
-                orderNotFound:
-                  $ref: '#/components/examples/orderNotFound'
-                memberNotFound:
-                  $ref: '#/components/examples/memberNotFound'
         '500':
           description: 服务端错误（500xx）
           content:
@@ -758,10 +870,13 @@ paths:
       - name: code
         in: path
         required: true
+        description: 商品编码，如 m1
         schema:
           type: string
+          pattern: '^[a-z0-9-]{1,32}$'
   /app/coupons:
     get:
+      operationId: listMyCoupons
       summary: 我的券背包
       tags:
       - app/优惠券
@@ -781,6 +896,67 @@ paths:
                       type: array
                       items:
                         $ref: '#/components/schemas/CouponUser'
+              examples:
+                success:
+                  summary: 我的券背包（种子 3 张未使用券）
+                  value:
+                    code: 200
+                    msg: ok
+                    data:
+                    - couponNo: CP20260001
+                      title: 雨天暖心券
+                      type: cash
+                      valueCent: 800
+                      discountRate: null
+                      thresholdCent: 3000
+                      maxOffCent: null
+                      issuer: 店长 Mia
+                      reason: 下雨天给会员的一点心意
+                      startAt: '2026-11-13T22:53:50+08:00'
+                      endAt: '2026-11-24T22:53:50+08:00'
+                      status: unused
+                      usedAt: null
+                      orderId: null
+                      source: grant
+                      transferNo: null
+                      transferAt: null
+                      acceptAt: null
+                    - couponNo: CP20260002
+                      title: 新品尝鲜券
+                      type: discount
+                      valueCent: null
+                      discountRate: 0.85
+                      thresholdCent: 0
+                      maxOffCent: 1000
+                      issuer: 可森
+                      reason: 秋季限定上新
+                      startAt: '2026-11-12T22:53:50+08:00'
+                      endAt: '2026-11-20T22:53:50+08:00'
+                      status: unused
+                      usedAt: null
+                      orderId: null
+                      source: grant
+                      transferNo: null
+                      transferAt: null
+                      acceptAt: null
+                    - couponNo: CP20260003
+                      title: 生日月饮品券
+                      type: gift
+                      valueCent: 3800
+                      discountRate: null
+                      thresholdCent: 0
+                      maxOffCent: null
+                      issuer: 可森会员中心
+                      reason: 11 月生日礼遇
+                      startAt: '2026-11-08T22:53:50+08:00'
+                      endAt: '2026-12-07T22:53:50+08:00'
+                      status: unused
+                      usedAt: null
+                      orderId: null
+                      source: grant
+                      transferNo: null
+                      transferAt: null
+                      acceptAt: null
         '401':
           description: 认证失败（401xx：token 无效/过期/类型错误、微信登录失败、手机号解密失败）
           content:
@@ -801,10 +977,26 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
-                paramMissing:
-                  $ref: '#/components/examples/paramMissing'
                 paramInvalid:
                   $ref: '#/components/examples/paramInvalid'
+        '404':
+          description: 资源不存在（404xx）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                memberNotFound:
+                  $ref: '#/components/examples/memberNotFound'
+        '409':
+          description: 业务冲突/状态不允许（409xx）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                memberDisabled:
+                  $ref: '#/components/examples/memberDisabled'
         '500':
           description: 服务端错误（500xx）
           content:
@@ -826,6 +1018,7 @@ paths:
       parameters:
       - name: status
         in: query
+        description: 券状态过滤；不传返回全部（最多 100 张）
         schema:
           type: string
           enum:
@@ -837,6 +1030,7 @@ paths:
       security: *id001
   /app/coupons/{couponNo}:
     get:
+      operationId: getCouponByNo
       summary: 券详情
       tags:
       - app/优惠券
@@ -854,6 +1048,31 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/CouponUser'
+              examples:
+                success:
+                  summary: 券详情（CP20260001）
+                  value:
+                    code: 200
+                    msg: ok
+                    data:
+                      couponNo: CP20260001
+                      title: 雨天暖心券
+                      type: cash
+                      valueCent: 800
+                      discountRate: null
+                      thresholdCent: 3000
+                      maxOffCent: null
+                      issuer: 店长 Mia
+                      reason: 下雨天给会员的一点心意
+                      startAt: '2026-11-13T22:53:50+08:00'
+                      endAt: '2026-11-24T22:53:50+08:00'
+                      status: unused
+                      usedAt: null
+                      orderId: null
+                      source: grant
+                      transferNo: null
+                      transferAt: null
+                      acceptAt: null
         '401':
           description: 认证失败（401xx：token 无效/过期/类型错误、微信登录失败、手机号解密失败）
           content:
@@ -874,12 +1093,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
-                productNotFound:
-                  $ref: '#/components/examples/productNotFound'
-                orderNotFound:
-                  $ref: '#/components/examples/orderNotFound'
-                memberNotFound:
-                  $ref: '#/components/examples/memberNotFound'
+                couponNotFound:
+                  $ref: '#/components/examples/couponNotFound'
         '500':
           description: 服务端错误（500xx）
           content:
@@ -902,8 +1117,10 @@ paths:
       - name: couponNo
         in: path
         required: true
+        description: 券实例号，如 CP20260001
         schema:
           type: string
+          pattern: '^[A-Za-z0-9-]{8,40}$'
       security: *id001
   /app/orders:
     post:
@@ -1735,6 +1952,7 @@ components:
         code:
           type: string
           maxLength: 32
+          pattern: '^[a-z0-9-]{1,32}$'
           description: 分类编码（前端 mock cat，如 matcha/craft）
         name:
           type: string
@@ -1759,24 +1977,8 @@ components:
         sortNo:
           type: integer
           format: int32
+          minimum: 0
           description: 排序，越小越前
-        status:
-          type: integer
-          format: int32
-          enum:
-          - 1
-          - 0
-          description: 1上架 0下架
-        createTime:
-          type: string
-          format: date-time
-          description: 创建时间
-          readOnly: true
-        updateTime:
-          type: string
-          format: date-time
-          description: 更新时间
-          readOnly: true
       x-table: cosen_category
       required:
       - code
@@ -1794,6 +1996,7 @@ components:
         code:
           type: string
           maxLength: 32
+          pattern: '^[a-z0-9-]{1,32}$'
           description: 商品编码（前端 mock id，如 m1/craft-pale）
         categoryId:
           type: string
@@ -1814,10 +2017,13 @@ components:
         priceCent:
           type: integer
           format: int64
+          minimum: 0
           description: 基础价（分）（bigint，单位：分/计数）
         rating:
           type: number
           format: double
+          minimum: 0
+          maximum: 10
           description: 评分 0.0-9.9
         soldCount:
           type: integer
@@ -1828,17 +2034,19 @@ components:
           maxLength: 16
           description: 角标：招牌/人气/限定/新品
         ingredientsJson:
-          type: object
-          additionalProperties: true
-          description: 原料数组 JSON（JSON 对象/数组，按原结构透传）
+          type: array
+          items:
+            type: string
+          description: 原料清单数组
         specGroupsJson:
-          type: object
-          additionalProperties: true
-          description: 规格组数组 JSON（size/ice/sugar/milk/extra）（JSON 对象/数组，按原结构透传）
+          type: array
+          items:
+            type: string
+          description: 规格组 key 数组（size/ice/sugar/milk/extra）
         artJson:
           type: object
           additionalProperties: true
-          description: 插画参数 DrinkArtSpec JSON（JSON 对象/数组，按原结构透传）
+          description: 插画参数 DrinkArtSpec（键值对象）
         tileColorStart:
           type: string
           maxLength: 7
@@ -1850,6 +2058,7 @@ components:
         stock:
           type: integer
           format: int32
+          minimum: -1
           description: -1 不限库存，>=0 为剩余量（乐观锁扣减）
         status:
           type: integer
@@ -1862,24 +2071,6 @@ components:
           type: integer
           format: int32
           description: 排序
-        storeId:
-          type: string
-          format: int64
-          description: 门店ID（bigint ID，JSON 用字符串避免精度丢失）
-        version:
-          type: integer
-          format: int32
-          description: 乐观锁（库存）
-        createTime:
-          type: string
-          format: date-time
-          description: 创建时间
-          readOnly: true
-        updateTime:
-          type: string
-          format: date-time
-          description: 更新时间
-          readOnly: true
       x-table: cosen_product
       required:
       - code
@@ -1899,14 +2090,6 @@ components:
           type: string
           maxLength: 40
           description: 券实例号
-        memberId:
-          type: string
-          format: int64
-          description: 持有人ID（bigint ID，JSON 用字符串避免精度丢失）
-        templateCode:
-          type: string
-          maxLength: 32
-          description: 发放模板编码（后台发券/活动）
         title:
           type: string
           maxLength: 64
@@ -1918,7 +2101,7 @@ components:
           - discount
           - gift
           maxLength: 16
-          description: cash 满减 / discount 折扣 / gift 兑换
+          description: cash 满减 / discount 折扣 / gift 赠品券（固定面额，到店核销，无兑换码）
         valueCent:
           type: integer
           format: int64
@@ -1973,14 +2156,9 @@ components:
           type: string
           enum:
           - grant
-          - redeem
           - transfer
           maxLength: 16
-          description: grant 后台发放 / redeem 兑换 / transfer 好友转赠
-        fromMemberId:
-          type: string
-          format: int64
-          description: 转赠来源会员ID（bigint ID，JSON 用字符串避免精度丢失）
+          description: grant 后台发放 / transfer 好友转赠（不设计兑换码通道）
         transferNo:
           type: string
           maxLength: 40
@@ -1993,10 +2171,6 @@ components:
           type: string
           format: date-time
           description: 接收时间
-        version:
-          type: integer
-          format: int32
-          description: 乐观锁（防重复核销/重复转赠）
         createTime:
           type: string
           format: date-time
@@ -2010,7 +2184,6 @@ components:
       x-table: cosen_coupon_user
       required:
       - couponNo
-      - memberId
       - title
       - type
       - startAt
@@ -2556,3 +2729,10 @@ components:
         msg: 分页参数超出范围（pageSize 最大 100）
         data: null
         traceId: c8f1d2f7
+    couponNotFound:
+      summary: 券不存在或不在本人背包
+      value:
+        code: 40403
+        msg: 券不存在或已不在你的背包
+        data: null
+        traceId: c8f1d2f8
