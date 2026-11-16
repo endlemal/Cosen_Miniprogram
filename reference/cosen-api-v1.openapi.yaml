@@ -114,6 +114,36 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/LoginResp'
+              examples:
+                success:
+                  summary: 联调账号登录成功
+                  value:
+                    code: 200
+                    msg: ok
+                    data:
+                      token: 3f1c9a2e-8b7d-4c6a-9f0e-2d5b8a1c7e64
+                      expiresIn: 604800
+                      member:
+                        id: '1'
+                        memberNo: '620108173325'
+                        openid: mock_openid_vivian
+                        phone: '13800000817'
+                        nickname: Vivian
+                        avatarUrl: ''
+                        gender: 2
+                        balanceCent: 51200
+                        giftBalanceCent: 1200
+                        points: 1280
+                        level: 2
+                        rechargeTotalCent: 50000
+                        storeId: '1'
+                        status: 1
+                        loginType: mock
+                        lastLoginAt: '2026-11-14T22:53:50+08:00'
+                        version: 0
+                        createTime: '2026-11-01T10:00:00+08:00'
+                        updateTime: '2026-11-14T22:53:50+08:00'
+                        deleted: 0
         '400':
           description: 参数缺失/格式错误/取值非法/幂等键非法（400xx）
           content:
@@ -528,6 +558,46 @@ paths:
                       type: array
                       items:
                         $ref: '#/components/schemas/Product'
+              examples:
+                success:
+                  summary: 商品列表（第 1 页）
+                  value:
+                    code: 200
+                    msg: ok
+                    total: 30
+                    rows:
+                    - id: '1'
+                      code: m1
+                      categoryId: '1'
+                      name: 云朵奶盖抹茶
+                      nameEn: Matcha Cloud Delight
+                      description: 宇治抹茶现刷，叠一层轻盈奶盖，最后撒上抹茶碎。
+                      priceCent: 3200
+                      rating: 9.6
+                      soldCount: 2380
+                      badge: 招牌
+                      stock: -1
+                      status: 1
+                      sortNo: 1
+                      storeId: '1'
+                      tileColorStart: '#EED6B5'
+                      tileColorEnd: '#C5976B'
+                    - id: '5'
+                      code: f1
+                      categoryId: '2'
+                      name: 焦糖漩涡星冰乐
+                      nameEn: Caramel Swirl Frappuccino
+                      description: 焦糖酱沿杯壁淋下，咖啡冰沙打底，奶油上再画一圈焦糖。
+                      priceCent: 3300
+                      rating: 9.4
+                      soldCount: 2016
+                      badge: 人气
+                      stock: -1
+                      status: 1
+                      sortNo: 5
+                      storeId: '1'
+                      tileColorStart: '#F1DEC4'
+                      tileColorEnd: '#C8A381'
         '400':
           description: 参数缺失/格式错误/取值非法/幂等键非法（400xx）
           content:
@@ -785,6 +855,73 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/OrderDetail'
+              examples:
+                success:
+                  summary: 下单成功（待支付）
+                  value:
+                    code: 200
+                    msg: ok
+                    data: &id004
+                      id: '10'
+                      orderNo: '2026111712120001'
+                      pickupCode: A021
+                      memberId: '1'
+                      storeId: '1'
+                      fulfillType: pickup
+                      itemCount: 2
+                      subtotalCent: 6600
+                      couponOffCent: 800
+                      payableCent: 5800
+                      balancePayCent: 0
+                      wechatPayCent: 0
+                      couponId: '1'
+                      payMode: balance
+                      payStatus: unpaid
+                      orderStatus: created
+                      remark: ''
+                      idempotencyKey: 3f1c9a2e-8b7d-4c6a-9f0e-2d5b8a1c7e64
+                      version: 0
+                      createTime: '2026-11-17T12:12:00+08:00'
+                      updateTime: '2026-11-17T12:12:00+08:00'
+                      items: &id005
+                      - id: '1'
+                        orderId: '10'
+                        productId: '1'
+                        productCode: m1
+                        productName: 云朵奶盖抹茶
+                        productNameEn: Matcha Cloud Delight
+                        specText: 大杯 / 少冰 / 少甜 / 鲜牛奶
+                        specJson:
+                          size: 大杯
+                          temp: 少冰
+                          sugar: 少甜
+                          milk: 鲜牛奶
+                        unitPriceCent: 3500
+                        qty: 1
+                        amountCent: 3500
+                        createTime: '2026-11-17T12:12:00+08:00'
+                      - id: '2'
+                        orderId: '10'
+                        productId: '8'
+                        productCode: h1
+                        productName: 燕麦拿铁
+                        productNameEn: Oat Latte
+                        specText: 中杯 / 热 / 标准甜 / 燕麦奶
+                        specJson:
+                          size: 中杯
+                          temp: 热
+                          sugar: 标准甜
+                          milk: 燕麦奶
+                        unitPriceCent: 3100
+                        qty: 1
+                        amountCent: 3100
+                        createTime: '2026-11-17T12:12:00+08:00'
+                idempotent:
+                  summary: 幂等重复下单（返回已有订单）
+                  value:
+                    code: 200
+                    msg: ok
+                    data: *id004
         '401':
           description: 认证失败（401xx：token 无效/过期/类型错误、微信登录失败、手机号解密失败）
           content:
@@ -960,6 +1097,51 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/OrderDetail'
+              examples:
+                success:
+                  summary: 订单详情（混合支付、制作中）
+                  value:
+                    code: 200
+                    msg: ok
+                    data:
+                      id: '2'
+                      orderNo: '2026110715302208'
+                      pickupCode: A019
+                      memberId: '1'
+                      storeId: '1'
+                      fulfillType: pickup
+                      itemCount: 2
+                      subtotalCent: 6600
+                      couponOffCent: 0
+                      payableCent: 6600
+                      balancePayCent: 3000
+                      wechatPayCent: 3600
+                      payMode: mixed
+                      payStatus: paid
+                      orderStatus: making
+                      remark: 少冰
+                      idempotencyKey: seed-order-2
+                      paidAt: '2026-11-13T22:53:50+08:00'
+                      version: 1
+                      createTime: '2026-11-13T22:53:50+08:00'
+                      updateTime: '2026-11-13T22:53:50+08:00'
+                      items:
+                      - id: '3'
+                        orderId: '2'
+                        productId: '5'
+                        productCode: f1
+                        productName: 焦糖漩涡星冰乐
+                        productNameEn: Caramel Swirl Frappuccino
+                        specText: 中杯 / 正常冰 / 标准甜 / 鲜牛奶
+                        specJson:
+                          size: 中杯
+                          temp: 正常冰
+                          sugar: 标准甜
+                          milk: 鲜牛奶
+                        unitPriceCent: 3300
+                        qty: 2
+                        amountCent: 6600
+                        createTime: '2026-11-17T12:12:00+08:00'
         '401':
           description: 认证失败（401xx：token 无效/过期/类型错误、微信登录失败、手机号解密失败）
           content:
@@ -1030,6 +1212,36 @@ paths:
                   properties:
                     data:
                       $ref: '#/components/schemas/OrderDetail'
+              examples:
+                success:
+                  summary: 支付成功（储值全付）
+                  value:
+                    code: 200
+                    msg: ok
+                    data:
+                      id: '10'
+                      orderNo: '2026111712120001'
+                      pickupCode: A021
+                      memberId: '1'
+                      storeId: '1'
+                      fulfillType: pickup
+                      itemCount: 2
+                      subtotalCent: 6600
+                      couponOffCent: 800
+                      payableCent: 5800
+                      balancePayCent: 5800
+                      wechatPayCent: 0
+                      couponId: '1'
+                      payMode: balance
+                      payStatus: paid
+                      orderStatus: paid
+                      remark: ''
+                      idempotencyKey: 3f1c9a2e-8b7d-4c6a-9f0e-2d5b8a1c7e64
+                      version: 1
+                      createTime: '2026-11-17T12:12:00+08:00'
+                      updateTime: '2026-11-17T12:13:10+08:00'
+                      items: *id005
+                      paidAt: '2026-11-17T12:13:10+08:00'
         '401':
           description: 认证失败（401xx：token 无效/过期/类型错误、微信登录失败、手机号解密失败）
           content:
