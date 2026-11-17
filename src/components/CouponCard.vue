@@ -33,8 +33,8 @@
         </view>
       </view>
     </view>
-    <view v-if="mode === 'used' || mode === 'expired'" class="stamp">
-      <text class="stamp-t">{{ mode === 'used' ? '已使用' : '已过期' }}</text>
+    <view v-if="stampText" class="stamp">
+      <text class="stamp-t">{{ stampText }}</text>
     </view>
     <Notch v-if="coupon.isNew && mode === 'available'" :bg="holeBg" :r="20" pad="4rpx 18rpx 8rpx 20rpx">
       <text class="new">新到</text>
@@ -53,7 +53,8 @@ import { md } from '@/utils/format'
 const props = withDefaults(
   defineProps<{
     coupon: Coupon
-    mode?: 'available' | 'used' | 'expired' | 'unusable'
+    /** 契约五态：available/used/expired/transferred/frozen（unusable 仅结算页不可用态） */
+    mode?: 'available' | 'used' | 'expired' | 'transferred' | 'frozen' | 'unusable'
     reason?: string
     selectable?: boolean
     selected?: boolean
@@ -64,6 +65,13 @@ const props = withDefaults(
 const emit = defineEmits<{ (e: 'use'): void; (e: 'select'): void }>()
 
 const face = computed(() => couponFace(props.coupon))
+const stampText = computed(() => {
+  if (props.mode === 'used') return '已使用'
+  if (props.mode === 'expired') return '已过期'
+  if (props.mode === 'transferred') return '已转赠'
+  if (props.mode === 'frozen') return '已冻结'
+  return ''
+})
 const shortRule = computed(() => {
   const c = props.coupon
   if (c.type === 'gift') return `${c.value} 元内任选`
@@ -74,6 +82,8 @@ const untilText = computed(() => {
   const c = props.coupon
   if (props.mode === 'used' && c.usedAt) return `${md(c.usedAt)} 已使用`
   if (props.mode === 'expired') return `${md(c.endAt)} 已过期`
+  if (props.mode === 'transferred') return c.transferAt ? `${md(c.transferAt)} 已转赠` : '已转赠'
+  if (props.mode === 'frozen') return '冻结中，暂不可用'
   const days = Math.ceil((c.endAt - Date.now()) / 86400000)
   return days <= 3 ? `${days} 天后到期` : `${md(c.endAt)} 前有效`
 })
@@ -117,7 +127,9 @@ function onTap() {
 }
 .unusable .stub,
 .used .stub,
-.expired .stub {
+.expired .stub,
+.transferred .stub,
+.frozen .stub {
   background: #c9cec4;
   color: $paper;
 }
@@ -196,6 +208,8 @@ function onTap() {
 }
 .used .issuer-t,
 .expired .issuer-t,
+.transferred .issuer-t,
+.frozen .issuer-t,
 .unusable .issuer-t {
   color: $ink-3;
 }
@@ -247,7 +261,9 @@ function onTap() {
 }
 .unusable .title,
 .used .title,
-.expired .title {
+.expired .title,
+.transferred .title,
+.frozen .title {
   color: $ink-2;
 }
 .stamp {

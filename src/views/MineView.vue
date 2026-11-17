@@ -13,16 +13,16 @@
       <!-- 个人信息 -->
       <view class="me">
         <view class="avatar">
-          <text class="avatar-t">{{ USER.name.slice(0, 1) }}</text>
+          <text class="avatar-t">{{ displayName.slice(0, 1) }}</text>
         </view>
         <view class="me-info">
-          <text class="me-name">{{ USER.name }}</text>
+          <text class="me-name">{{ displayName }}</text>
           <view class="me-row">
             <view class="level">
               <Icon name="crown" :size="22" color="#462719" :stroke="2.2" />
-              <text class="level-t">{{ memberLevel.name }}</text>
+              <text class="level-t">{{ displayLevel }}</text>
             </view>
-            <text class="me-phone">{{ USER.phone }}</text>
+            <text class="me-phone">{{ displayPhone }}</text>
           </view>
         </view>
       </view>
@@ -33,12 +33,12 @@
         <text class="card-l">储值余额</text>
         <view class="bal">
           <text class="bal-c">¥</text>
-          <text class="bal-n">{{ money2(state.balance) }}</text>
+          <text class="bal-n">{{ money2(displayBalance) }}</text>
         </view>
-        <text class="card-sub">累计充值 {{ state.rechargeTotal }} 元，已获赠 {{ state.bonusTotal }} 元</text>
+        <text class="card-sub">{{ profile ? '其中赠送余额 ¥' + money2(centToYuan(profile.giftBalanceCent || 0)) : '累计充值 ' + state.rechargeTotal + ' 元，已获赠 ' + state.bonusTotal + ' 元' }}</text>
         <view class="card-foot">
           <view class="stat" hover-class="tap-on" @tap="toast('积分商城下个月开放')">
-            <text class="stat-n">{{ thousands(state.points) }}</text>
+            <text class="stat-n">{{ thousands(displayPoints) }}</text>
             <text class="stat-l">积分</text>
           </view>
           <view class="stat" hover-class="tap-on" @tap="go('/pages/coupons/index')">
@@ -129,23 +129,25 @@
         <text class="o-total">¥{{ money(o.total) }}</text>
       </view>
 
-      <view class="reset" hover-class="tap-on" @tap="onReset">
+      <view v-if="useMock" class="reset" hover-class="tap-on" @tap="onReset">
         <Icon name="refresh" :size="24" color="#856951" />
         <text class="reset-t">重置演示数据</text>
       </view>
-      <text class="foot">可森 COSEN · 商品、订单与支付均为演示数据</text>
+      <text class="foot">{{ useMock ? '可森 COSEN · 商品、订单与支付均为演示数据' : '可森 COSEN · 会员数据来自线上接口' }}</text>
       <view class="tail" />
     </scroll-view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { computed, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import type { Order } from '@/types'
 import Icon from '@/components/Icon.vue'
 import DrinkArt from '@/components/DrinkArt.vue'
 import { STORE } from '@/mock/products'
 import { USER } from '@/mock/seed'
+import { useMock } from '@/config/env'
+import { centToYuan, getMemberProfile, type MemberProfile } from '@/api'
 import {
   state,
   memberLevel,
@@ -164,6 +166,26 @@ const scrolled = ref(false)
 const now = ref(Date.now())
 const timer = setInterval(() => (now.value = Date.now()), 5000)
 onUnmounted(() => clearInterval(timer))
+
+/* ---- 真实环境分支：useMock=false 时用会员接口覆盖展示（mock 默认不请求） ---- */
+const profile = ref<MemberProfile | null>(null)
+const LEVEL_NAMES: Record<number, string> = { 1: '可森会员', 2: '醇香会员', 3: '深焙会员' }
+const displayName = computed(() => profile.value?.nickname || USER.name)
+const displayPhone = computed(() => profile.value?.phoneMasked || USER.phone)
+const displayBalance = computed(() => (profile.value ? centToYuan(profile.value.balanceCent ?? 0) : state.balance))
+const displayPoints = computed(() => (profile.value ? profile.value.points ?? 0 : state.points))
+const displayLevel = computed(() =>
+  profile.value?.level ? LEVEL_NAMES[profile.value.level] || memberLevel.value.name : memberLevel.value.name
+)
+// 券背包 / 订单接口属下一轮，真实模式下这两块仍用 mock 数据兜底（README 已注明）
+onMounted(async () => {
+  if (useMock) return
+  try {
+    profile.value = await getMemberProfile()
+  } catch {
+    // 请求层已 toast；展示层回退到 mock，避免整页空白
+  }
+})
 
 const recent = computed(() => state.orders.slice(0, 4))
 const newest = computed(() => state.coupons.find((c) => c.isNew && couponState(c) === 'available'))

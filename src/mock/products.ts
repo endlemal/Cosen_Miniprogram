@@ -99,7 +99,7 @@ export const PRODUCTS: Product[] = [
       marble: true
     },
     tile: CARAMEL,
-    badge: '招牌'
+    badge: ['招牌']
   },
   {
     id: 'm2',
@@ -166,7 +166,7 @@ export const PRODUCTS: Product[] = [
       marble: true
     },
     tile: LATTE,
-    badge: '人气'
+    badge: ['人气']
   },
   {
     id: 'f2',
@@ -336,7 +336,7 @@ export const PRODUCTS: Product[] = [
       marble: true
     },
     tile: LATTE,
-    badge: '限定'
+    badge: ['限定']
   },
   {
     id: 's2',
@@ -360,7 +360,7 @@ export const PRODUCTS: Product[] = [
       ice: true
     },
     tile: LATTE,
-    badge: '新品'
+    badge: ['新品']
   },
   // ---- 精酿 ----
   {
@@ -434,7 +434,7 @@ export const PRODUCTS: Product[] = [
     specs: [],
     art: { cup: 'rocks', liquid: ['#935233', '#42241D'], ice: true },
     tile: LATTE,
-    badge: '可森特调'
+    badge: ['可森特调']
   },
   {
     id: 'signature-pomelo',

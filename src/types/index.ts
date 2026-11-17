@@ -34,6 +34,9 @@ export interface SpecGroup {
   options: SpecOption[]
 }
 
+/** 商品角标：契约 v1.1.0 起为多选数组（招牌/人气/限定/新品/可森特调） */
+export type ProductBadge = string
+
 export interface Category {
   id: string
   name: string
@@ -54,7 +57,8 @@ export interface Product {
   specs: string[]
   art: DrinkArtSpec
   tile: [string, string]
-  badge?: string
+  /** 契约 badge 为 array<string>；旧 mock 字符串请先过 normalizeBadges */
+  badge?: ProductBadge[]
 }
 
 export interface CartItem {
@@ -71,6 +75,9 @@ export interface CartItem {
 
 export type CouponType = 'cash' | 'discount' | 'gift'
 
+/** 契约 CouponUser.status 五态（unused 在前端映射成 available） */
+export type CouponStatus = 'unused' | 'used' | 'expired' | 'transferred' | 'frozen'
+
 export interface Coupon {
   id: string
   title: string
@@ -83,10 +90,15 @@ export interface Coupon {
   reason: string
   startAt: number
   endAt: number
-  status: 'unused' | 'used'
+  status: CouponStatus
   usedAt?: number
+  /** 转赠时间（status=transferred 时展示） */
+  transferAt?: number
   isNew?: boolean
 }
+
+/** 支付方式：mixed（储值 + 微信组合）契约已有，本轮不做 UI，只留类型位 */
+export type PayMode = 'balance' | 'wechat' | 'mixed'
 
 export interface Order {
   id: string
@@ -98,7 +110,8 @@ export interface Order {
   deliveryFee: number
   total: number
   couponTitle?: string
-  pay: 'balance' | 'wechat'
+  pay: PayMode
+  /** 契约 fulfillType 已只保留 pickup；delivery 仅存于 mock 历史订单 */
   mode: 'pickup' | 'delivery'
   remark: string
   createdAt: number

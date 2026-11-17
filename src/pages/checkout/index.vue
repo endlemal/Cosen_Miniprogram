@@ -10,35 +10,24 @@
     </view>
 
     <view v-else class="wrap">
-      <!-- 取餐方式 -->
+      <!-- 取餐方式：契约 v1.3.0 的 Order.fulfillType 仅 pickup，外送（delivery）已下线。
+           原「外卖配送」按钮与 4 元配送费代码位见 src/api/README.md「契约偏差」。
+           TODO(delivery): 外送域回归时在此恢复双按钮，并等契约新增 fulfillType 枚举值。 -->
       <view class="mode">
-        <view class="mode-i" :class="{ on: state.mode === 'pickup' }" @tap="state.mode = 'pickup'">
-          <Icon name="store" :size="34" :color="state.mode === 'pickup' ? '#FFF9F0' : '#6D513D'" />
+        <view class="mode-i on">
+          <Icon name="store" :size="34" color="#FFF9F0" />
           <text class="mode-t">到店自取</text>
-        </view>
-        <view class="mode-i" :class="{ on: state.mode === 'delivery' }" @tap="state.mode = 'delivery'">
-          <Icon name="scooter" :size="34" :color="state.mode === 'delivery' ? '#FFF9F0' : '#6D513D'" />
-          <text class="mode-t">外卖配送</text>
         </view>
       </view>
 
+      <!-- 自取门店信息；外送地址块（原 delivery 分支）已随契约 fulfillType 收敛移除 -->
       <view class="box where">
-        <template v-if="state.mode === 'pickup'">
-          <text class="w-t">{{ STORE.name }}</text>
-          <text class="w-s">{{ STORE.address }}，距你 {{ STORE.distance }}</text>
-          <view class="w-eta">
-            <Icon name="clock" :size="26" color="#87512E" />
-            <text class="w-eta-t">现在下单，约 8 分钟后可取</text>
-          </view>
-        </template>
-        <template v-else>
-          <text class="w-t">淮海中路 300 号 香港新世界大厦 18F 前台</text>
-          <text class="w-s">{{ USER.name }} {{ USER.phone }}</text>
-          <view class="w-eta">
-            <Icon name="clock" :size="26" color="#87512E" />
-            <text class="w-eta-t">预计 30 分钟送达，配送费 4 元</text>
-          </view>
-        </template>
+        <text class="w-t">{{ STORE.name }}</text>
+        <text class="w-s">{{ STORE.address }}，距你 {{ STORE.distance }}</text>
+        <view class="w-eta">
+          <Icon name="clock" :size="26" color="#87512E" />
+          <text class="w-eta-t">现在下单，约 8 分钟后可取</text>
+        </view>
       </view>
 
       <!-- 商品 -->
@@ -72,13 +61,7 @@
           </view>
         </view>
         <text v-if="chosen" class="row-note">已选「{{ chosen.title }}」，{{ chosen.issuer }}发放</text>
-        <view v-if="fee > 0" class="row">
-          <view class="row-l">
-            <Icon name="scooter" :size="32" color="#663A24" />
-            <text class="row-t">配送费</text>
-          </view>
-          <text class="row-v ink">¥{{ fee }}</text>
-        </view>
+        <!-- 配送费（原外送 4 元）已下线：fee 恒为 0，不再渲染条目 -->
         <view class="row">
           <view class="row-l">
             <Icon name="chat" :size="32" color="#663A24" />
@@ -172,13 +155,15 @@ import Sheet from '@/components/Sheet.vue'
 import DrinkArt from '@/components/DrinkArt.vue'
 import CouponCard from '@/components/CouponCard.vue'
 import { STORE } from '@/mock/products'
-import { USER } from '@/mock/seed'
 import { state, cartTotal, evalCoupon, bestCoupon, couponState, placeOrder, backToTab } from '@/store'
 import { money, money2 } from '@/utils/format'
 
 const items = computed(() => state.cart)
 const subtotal = computed(() => cartTotal.value)
-const fee = computed(() => (state.mode === 'delivery' ? 4 : 0))
+// 契约 v1.3.0：fulfillType 仅 pickup，结算页固定到店自取；
+// 外送（delivery）与 4 元配送费已下线，代码位见模板与 README「契约偏差」。
+state.mode = 'pickup'
+const fee = computed(() => 0)
 
 /* ---- 礼品券：默认自动选优惠最大的一张 ---- */
 const couponId = ref(bestCoupon(state.cart, cartTotal.value)?.id || '')
@@ -204,6 +189,8 @@ watch(subtotal, () => {
 const total = computed(() => Math.max(0, Math.round((subtotal.value - discount.value + fee.value) * 100) / 100))
 
 /* ---- 支付 ---- */
+// TODO(mixed): 契约 payMode 含 mixed（balancePayCent + wechatPayCent = payableCent），
+// 本轮不做组合支付 UI；接订单接口时需处理 40920（拆分不平）/ 40921（支付方式不支持）。
 const balanceEnough = computed(() => state.balance >= total.value)
 const pay = ref<'balance' | 'wechat'>(state.balance >= cartTotal.value ? 'balance' : 'wechat')
 watch(balanceEnough, (ok) => {

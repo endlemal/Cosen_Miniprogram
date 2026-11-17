@@ -186,11 +186,14 @@ export function qtyOfProduct(id: string) {
 
 /* ---------------- 礼品券 ---------------- */
 
-export type CouponState = 'available' | 'used' | 'expired'
+export type CouponState = 'available' | 'used' | 'expired' | 'transferred' | 'frozen'
 
+/** 契约 CouponUser.status 五态 → 券页 Tab 状态（unused 且有有效期 = available） */
 export function couponState(c: Coupon, now = Date.now()): CouponState {
   if (c.status === 'used') return 'used'
-  if (c.endAt < now) return 'expired'
+  if (c.status === 'transferred') return 'transferred'
+  if (c.status === 'frozen') return 'frozen'
+  if (c.status === 'expired' || c.endAt < now) return 'expired'
   return 'available'
 }
 
@@ -211,6 +214,8 @@ export function evalCoupon(c: Coupon, items: CartItem[], subtotal: number): { ok
   const st = couponState(c)
   if (st === 'used') return { ok: false, off: 0, reason: '已使用' }
   if (st === 'expired') return { ok: false, off: 0, reason: '已过期' }
+  if (st === 'transferred') return { ok: false, off: 0, reason: '已转赠' }
+  if (st === 'frozen') return { ok: false, off: 0, reason: '已冻结' }
   if (!items.length) return { ok: false, off: 0, reason: '购物车是空的' }
   if (subtotal < c.threshold) return { ok: false, off: 0, reason: `还差 ${Math.ceil(c.threshold - subtotal)} 元可用` }
   let off = 0

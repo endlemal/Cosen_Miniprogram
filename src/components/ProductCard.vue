@@ -2,8 +2,8 @@
 <template>
   <view class="pcard" @tap="emit('open')">
     <view class="panel">
-      <Notch v-if="product.badge" bg="#F8F0E3" :r="24" pad="6rpx 18rpx 10rpx 22rpx">
-        <text class="badge">{{ product.badge }}</text>
+      <Notch v-if="badges.length" bg="#F8F0E3" :r="24" pad="6rpx 18rpx 10rpx 22rpx">
+        <text class="badge">{{ badgeLabel }}</text>
       </Notch>
       <text class="name">{{ product.name }}</text>
       <text class="en">{{ product.en }}</text>
@@ -35,10 +35,14 @@ import type { Product } from '@/types'
 import Icon from './Icon.vue'
 import Notch from './Notch.vue'
 import DrinkArt from './DrinkArt.vue'
+import { badgeText, normalizeBadges } from '@/utils/badge'
 
 const props = withDefaults(defineProps<{ product: Product; qty?: number }>(), { qty: 0 })
 const emit = defineEmits<{ (e: 'open'): void; (e: 'add'): void }>()
 const tileBg = computed(() => `linear-gradient(165deg, ${props.product.tile[0]} 0%, ${props.product.tile[1]} 100%)`)
+// 契约 badge 是数组；兼容旧 mock 字符串，多个角标显示「首个 +N」
+const badges = computed(() => normalizeBadges(props.product.badge))
+const badgeLabel = computed(() => badgeText(badges.value))
 </script>
 
 <style lang="scss" scoped>

@@ -64,28 +64,43 @@ import Icon from '@/components/Icon.vue'
 import CouponCard from '@/components/CouponCard.vue'
 import { state, couponState, redeemCode, markCouponsSeen, backToTab, type CouponState } from '@/store'
 
+// 契约 CouponUser.status 五态：可用 / 已用 / 过期 / 转赠 / 冻结
 const TABS: { key: CouponState; label: string }[] = [
   { key: 'available', label: '可使用' },
   { key: 'used', label: '已使用' },
-  { key: 'expired', label: '已过期' }
+  { key: 'expired', label: '已过期' },
+  { key: 'transferred', label: '已转赠' },
+  { key: 'frozen', label: '已冻结' }
 ]
 const tab = ref<CouponState>('available')
 const code = ref('')
 
+// TODO(api): 券背包 GET /app/coupons 属下一轮接口；接入后在 useMock 分支外改调 src/api。
 const list = computed(() =>
   state.coupons
     .filter((c) => couponState(c) === tab.value)
     .sort((a, b) => Number(!!b.isNew) - Number(!!a.isNew) || a.endAt - b.endAt)
 )
 const counts = computed(() => {
-  const r: Record<string, number> = { available: 0, used: 0, expired: 0 }
+  const r: Record<CouponState, number> = { available: 0, used: 0, expired: 0, transferred: 0, frozen: 0 }
   state.coupons.forEach((c) => r[couponState(c)]++)
   return r
 })
 const newCount = computed(() => state.coupons.filter((c) => c.isNew && couponState(c) === 'available').length)
-const indLeft = computed(() => ['8rpx', 'calc(33.333% + 2.67rpx)', 'calc(66.666% - 2.67rpx)'][TABS.findIndex((t) => t.key === tab.value)])
+// 5 个 Tab：indicator 宽 = (100% - 16rpx) / 5；left = 8rpx + i * 宽
+const indLeft = computed(() => {
+  const index = Math.max(0, TABS.findIndex((t) => t.key === tab.value))
+  const offset = 8 - index * 3.2
+  return `calc(${index * 20}% ${offset >= 0 ? '+' : '-'} ${Math.abs(offset).toFixed(2)}rpx)`
+})
 const emptyText = computed(
-  () => ({ available: '暂时没有可用的券，下雨天记得来店里', used: '还没有用过礼品券', expired: '没有过期的券' })[tab.value]
+  () => ({
+    available: '暂时没有可用的券，下雨天记得来店里',
+    used: '还没有用过礼品券',
+    expired: '没有过期的券',
+    transferred: '还没有转赠出去的券',
+    frozen: '没有冻结中的券'
+  })[tab.value]
 )
 
 function onRedeem() {
@@ -218,14 +233,14 @@ onUnload(() => markCouponsSeen())
   justify-content: center;
 }
 .tab-t {
-  font-size: 26rpx;
+  font-size: 23rpx;
   font-weight: 700;
   color: $ink-2;
   transition: color 0.2s ease;
 }
 .tab-n {
-  margin-left: 8rpx;
-  font-size: 22rpx;
+  margin-left: 6rpx;
+  font-size: 19rpx;
   color: $ink-3;
   @include num;
 }
@@ -239,7 +254,7 @@ onUnload(() => markCouponsSeen())
   position: absolute;
   top: 8rpx;
   bottom: 8rpx;
-  width: calc(33.333% - 5.33rpx);
+  width: calc(20% - 3.2rpx);
   border-radius: 24rpx;
   background: $espresso;
   transition: left 0.25s cubic-bezier(0.22, 0.8, 0.26, 1);

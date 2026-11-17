@@ -82,6 +82,33 @@ export function seedCoupons(now = Date.now()): Coupon[] {
       startAt: now - 30 * D,
       endAt: now - 3 * D,
       status: 'unused'
+    },
+    // 契约五态演示：转赠（transferred）与冻结（frozen）
+    {
+      id: 'cp6',
+      title: '分享暖心券',
+      type: 'cash',
+      value: 10,
+      threshold: 40,
+      issuer: '店长 Mia',
+      reason: '已转赠给好友 阿岚',
+      startAt: now - 3 * D,
+      endAt: now + 12 * D,
+      status: 'transferred',
+      transferAt: now - 1 * D
+    },
+    {
+      id: 'cp7',
+      title: '周年庆 9 折券',
+      type: 'discount',
+      value: 0.9,
+      threshold: 0,
+      maxOff: 8,
+      issuer: '可森会员中心',
+      reason: '活动核验中，暂时冻结',
+      startAt: now - 5 * D,
+      endAt: now + 15 * D,
+      status: 'frozen'
     }
   ]
 }
