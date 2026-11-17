@@ -1,9 +1,9 @@
 openapi: 3.1.0
 info:
   title: cosen 业务接口
-  version: 1.3.0
+  version: 1.4.0
   description: 可森小程序后端第一切片 API 契约（ETL 后的 DDL/model 对齐版），供 Apifox 审阅。后台管理接口见「RuoYi
-    基础接口」模块。v1.1.0：按飞书多维表格口径对齐，Product.badge 改为多选数组（招牌/人气/限定/新品/可森特调），CouponUser.source 枚举补 redeem（积分或活动兑换发放）；接口路径、参数、错误码语义不变。v1.2.0：错误码响应示例对齐 error-codes.md v1.0.0（新增 40106/40002/42902/50002/50301 与券冲突 40908–40910 示例，修正 40002 与 40003、42901 与 42902 的误用），接口路径、参数与错误码语义不变。v1.3.0：充值纳入第一切片，新增 3 个接口（档位列表 / 创建充值单 / 状态查询）、RechargeTier/RechargeOrder/WxPayParams 模型、40407 充值单不存在或非本人，以及 40904/40905/40906/42904 示例；既有 16 个接口不变。
+    基础接口」模块。v1.1.0：按飞书多维表格口径对齐，Product.badge 改为多选数组（招牌/人气/限定/新品/可森特调），CouponUser.source 枚举补 redeem（积分或活动兑换发放）；接口路径、参数、错误码语义不变。v1.2.0：错误码响应示例对齐 error-codes.md v1.0.0（新增 40106/40002/42902/50002/50301 与券冲突 40908–40910 示例，修正 40002 与 40003、42901 与 42902 的误用），接口路径、参数与错误码语义不变。v1.3.0：充值纳入第一切片，新增 3 个接口（档位列表 / 创建充值单 / 状态查询）、RechargeTier/RechargeOrder/WxPayParams 模型、40407 充值单不存在或非本人，以及 40904/40905/40906/42904 示例；既有 16 个接口不变。v1.4.0：成功响应补齐 traceId（AppResult/PageResult required + 19 个 200 示例），RechargeOrder 增加可选 failCode/failMsg，充值创建 409 移除回调专属 40906，products 的 category 参数明确为分类 code（非分类 ID）；接口路径与参数不变。
 servers:
 - url: http://127.0.0.1:8080
   description: macbook 本机
@@ -45,6 +45,7 @@ paths:
                 success:
                   summary: 微信静默登录成功（已绑定会员）
                   value:
+                    traceId: c8f1e001
                     code: 200
                     msg: ok
                     data:
@@ -138,6 +139,7 @@ paths:
                 success:
                   summary: 联调账号登录成功
                   value:
+                    traceId: c8f1e002
                     code: 200
                     msg: ok
                     data:
@@ -231,6 +233,7 @@ paths:
                 success:
                   summary: 绑定成功，返回最新会员资料
                   value:
+                    traceId: c8f1e003
                     code: 200
                     msg: ok
                     data:
@@ -328,6 +331,7 @@ paths:
                 success:
                   summary: 注销成功（幂等）
                   value:
+                    traceId: c8f1e004
                     code: 200
                     msg: ok
                     data: null
@@ -385,6 +389,7 @@ paths:
                 success:
                   summary: 会员资料示例
                   value:
+                    traceId: c8f1e005
                     code: 200
                     msg: ok
                     data:
@@ -475,6 +480,7 @@ paths:
                 success:
                   summary: 储值流水（种子 3 条，倒序）
                   value:
+                    traceId: c8f1e006
                     code: 200
                     msg: ok
                     total: 3
@@ -537,8 +543,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
-                paramInvalid:
-                  $ref: '#/components/examples/paramInvalid'
+                invalidFormat:
+                  $ref: '#/components/examples/invalidFormat'
                 pageSizeExceeded:
                   $ref: '#/components/examples/pageSizeExceeded'
         '500':
@@ -604,6 +610,7 @@ paths:
                 success:
                   summary: 分类列表（16 条中展示 3 条）
                   value:
+                    traceId: c8f1e007
                     code: 200
                     msg: ok
                     data:
@@ -671,6 +678,7 @@ paths:
                 success:
                   summary: 商品列表（第 1 页，total 30）
                   value:
+                    traceId: c8f1e008
                     code: 200
                     msg: ok
                     total: 30
@@ -780,7 +788,7 @@ paths:
       - *id003
       - name: category
         in: query
-        description: 分类 code，如 matcha；未知编码返回空列表
+        description: 分类 code（与 Category.code/Product.code 同一套编码，如 matcha / craft），不是分类 ID；未知 code 返回 200 + 空列表
         schema:
           type: string
           pattern: '^[a-z0-9-]{1,32}$'
@@ -808,6 +816,7 @@ paths:
                 success:
                   summary: 商品详情（m1）
                   value:
+                    traceId: c8f1e009
                     code: 200
                     msg: ok
                     data:
@@ -910,6 +919,7 @@ paths:
                 success:
                   summary: 我的券背包（种子 3 张未使用券）
                   value:
+                    traceId: c8f1e00a
                     code: 200
                     msg: ok
                     data:
@@ -1064,6 +1074,7 @@ paths:
                 success:
                   summary: 券详情（CP20260001）
                   value:
+                    traceId: c8f1e00b
                     code: 200
                     msg: ok
                     data:
@@ -1182,6 +1193,7 @@ paths:
                 success:
                   summary: 下单成功（seed order 3，待支付）
                   value:
+                    traceId: c8f1e00c
                     code: 200
                     msg: ok
                     data:
@@ -1224,6 +1236,7 @@ paths:
                 idempotent:
                   summary: 幂等重复下单（HTTP 200，返回已有订单，code 40925）
                   value:
+                    traceId: c8f1e00d
                     code: 40925
                     msg: 订单已存在，返回原订单
                     data:
@@ -1393,6 +1406,7 @@ paths:
                 success:
                   summary: 我的订单（seed order 3/2/1，按 create_time desc）
                   value:
+                    traceId: c8f1e00e
                     code: 200
                     msg: ok
                     total: 3
@@ -1562,6 +1576,7 @@ paths:
                 success:
                   summary: 订单详情（seed order 2，混合支付、制作中）
                   value:
+                    traceId: c8f1e00f
                     code: 200
                     msg: ok
                     data:
@@ -1696,6 +1711,7 @@ paths:
                 success:
                   summary: 支付成功（seed order 1，储值全付）
                   value:
+                    traceId: c8f1e010
                     code: 200
                     msg: ok
                     data:
@@ -1747,6 +1763,7 @@ paths:
                 mixedSuccess:
                   summary: 组合支付成功（seed order 2，储值 3000 + 微信 3600）
                   value:
+                    traceId: c8f1e011
                     code: 200
                     msg: ok
                     data:
@@ -1796,6 +1813,7 @@ paths:
                 duplicateCallback:
                   summary: 重复支付回调（幂等成功，HTTP 200 + code 40926）
                   value:
+                    traceId: c8f1e012
                     code: 40926
                     msg: 支付回调已处理
                     data:
@@ -1971,6 +1989,7 @@ paths:
                 success:
                   summary: 取消成功（seed order 3）
                   value:
+                    traceId: c8f1e013
                     code: 200
                     msg: ok
                     data:
@@ -2262,7 +2281,7 @@ paths:
                 rechargeTierMissing:
                   $ref: '#/components/examples/rechargeTierMissing'
         '409':
-          description: 业务冲突（会员停用/活动失效/入账失败）
+          description: 业务冲突（会员停用/活动失效）
           content:
             application/json:
               schema:
@@ -2272,8 +2291,6 @@ paths:
                   $ref: '#/components/examples/memberDisabled'
                 rechargeCampaignExpired:
                   $ref: '#/components/examples/rechargeCampaignExpired'
-                rechargeLedgerFailed:
-                  $ref: '#/components/examples/rechargeLedgerFailed'
         '429':
           description: 限流/防刷（42904）
           content:
@@ -3115,6 +3132,9 @@ components:
         msg:
           type: string
           example: ok
+        traceId:
+          type: string
+          description: 服务端链路 ID（每请求生成，12 位；成功与错误都带）
         data:
           type: object
           nullable: true
@@ -3122,6 +3142,7 @@ components:
       required:
       - code
       - msg
+      - traceId
     PageResult:
       type: object
       title: PageResult
@@ -3141,9 +3162,13 @@ components:
           items:
             type: object
             additionalProperties: true
+        traceId:
+          type: string
+          description: 服务端链路 ID（每请求生成，12 位；成功与错误都带）
       required:
       - code
       - rows
+      - traceId
     LoginWechatReq:
       type: object
       title: LoginWechatReq
@@ -3573,6 +3598,14 @@ components:
           - closed
           - failed
           description: pending 待支付 / paid 已到账 / closed 已关闭 / failed 支付失败
+        failCode:
+          type: integer
+          format: int32
+          description: 失败业务码（仅 status=failed 时有值，如 40922；成功/pending 时为 null）
+        failMsg:
+          type: string
+          maxLength: 128
+          description: 失败原因文案（仅 status=failed 时有值）
         expireAt:
           type: string
           format: date-time
