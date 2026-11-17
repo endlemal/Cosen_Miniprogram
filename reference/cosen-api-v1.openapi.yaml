@@ -1,9 +1,9 @@
 openapi: 3.1.0
 info:
   title: cosen 业务接口
-  version: 1.0.0
+  version: 1.1.0
   description: 可森小程序后端第一切片 API 契约（ETL 后的 DDL/model 对齐版），供 Apifox 审阅。后台管理接口见「RuoYi
-    基础接口」模块。
+    基础接口」模块。v1.1.0：按飞书多维表格口径对齐，Product.badge 改为多选数组（招牌/人气/限定/新品/可森特调），CouponUser.source 枚举补 redeem（积分或活动兑换发放）；接口路径、参数、错误码语义不变。
 servers:
 - url: http://127.0.0.1:8080
   description: macbook 本机
@@ -674,7 +674,7 @@ paths:
                       priceCent: 3200
                       rating: 9.6
                       soldCount: 2380
-                      badge: 招牌
+                      badge: ["招牌"]
                       ingredientsJson:
                       - 宇治抹茶
                       - 鲜牛奶
@@ -712,7 +712,7 @@ paths:
                       priceCent: 2600
                       rating: 9.3
                       soldCount: 1912
-                      badge: ''
+                      badge: []
                       ingredientsJson:
                       - 抹茶
                       - 冰块
@@ -810,7 +810,7 @@ paths:
                       priceCent: 3200
                       rating: 9.6
                       soldCount: 2380
-                      badge: 招牌
+                      badge: ["招牌"]
                       ingredientsJson:
                       - 宇治抹茶
                       - 鲜牛奶
@@ -2352,9 +2352,16 @@ components:
           format: int32
           description: 累计销量（展示）
         badge:
-          type: string
-          maxLength: 16
-          description: 角标：招牌/人气/限定/新品
+          type: array
+          items:
+            type: string
+            enum:
+            - 招牌
+            - 人气
+            - 限定
+            - 新品
+            - 可森特调
+          description: 角标（多选，来自 Base「推荐/新品标签」）：招牌/人气/限定/新品/可森特调；无角标时为空数组
         ingredientsJson:
           type: array
           items:
@@ -2478,9 +2485,10 @@ components:
           type: string
           enum:
           - grant
+          - redeem
           - transfer
           maxLength: 16
-          description: grant 后台发放 / transfer 好友转赠（不设计兑换码通道）
+          description: grant 后台发放 / redeem 积分或活动兑换发放 / transfer 好友转赠；redeem 仅表示发放来源，券仍无兑换码字段与兑换接口（红线不变）
         transferNo:
           type: string
           maxLength: 40
