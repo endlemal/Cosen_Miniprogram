@@ -1,9 +1,9 @@
 openapi: 3.1.0
 info:
   title: cosen 业务接口
-  version: 1.1.0
+  version: 1.2.0
   description: 可森小程序后端第一切片 API 契约（ETL 后的 DDL/model 对齐版），供 Apifox 审阅。后台管理接口见「RuoYi
-    基础接口」模块。v1.1.0：按飞书多维表格口径对齐，Product.badge 改为多选数组（招牌/人气/限定/新品/可森特调），CouponUser.source 枚举补 redeem（积分或活动兑换发放）；接口路径、参数、错误码语义不变。
+    基础接口」模块。v1.1.0：按飞书多维表格口径对齐，Product.badge 改为多选数组（招牌/人气/限定/新品/可森特调），CouponUser.source 枚举补 redeem（积分或活动兑换发放）；接口路径、参数、错误码语义不变。v1.2.0：错误码响应示例对齐 error-codes.md v1.0.0（新增 40106/40002/42902/50002/50301 与券冲突 40908–40910 示例，修正 40002 与 40003、42901 与 42902 的误用），接口路径、参数与错误码语义不变。
 servers:
 - url: http://127.0.0.1:8080
   description: macbook 本机
@@ -68,8 +68,8 @@ paths:
               examples:
                 paramMissing:
                   $ref: '#/components/examples/paramMissing'
-                paramInvalid:
-                  $ref: '#/components/examples/paramInvalid'
+                invalidFormat:
+                  $ref: '#/components/examples/invalidFormat'
         '401':
           description: 认证失败（401xx：token 无效/过期/类型错误、微信登录失败、手机号解密失败）
           content:
@@ -104,8 +104,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
-                serviceUnavailable:
-                  $ref: '#/components/examples/serviceUnavailable'
+                wechatUnavailable:
+                  $ref: '#/components/examples/wechatUnavailable'
       requestBody:
         required: true
         content:
@@ -161,8 +161,8 @@ paths:
               examples:
                 paramMissing:
                   $ref: '#/components/examples/paramMissing'
-                paramInvalid:
-                  $ref: '#/components/examples/paramInvalid'
+                invalidFormat:
+                  $ref: '#/components/examples/invalidFormat'
         '403':
           description: 越权/功能未启用/账号受限（403xx）
           content:
@@ -243,7 +243,7 @@ paths:
                       phoneBound: true
                       phoneMasked: '138****0817'
         '401':
-          description: 认证失败（401xx：token 无效/过期/类型错误、微信登录失败、手机号解密失败）
+          description: 认证失败（401xx：token 无效/过期/类型错误/已注销、微信登录失败、手机号解密失败）
           content:
             application/json:
               schema:
@@ -255,6 +255,8 @@ paths:
                   $ref: '#/components/examples/tokenExpired'
                 adminToken:
                   $ref: '#/components/examples/adminToken'
+                tokenRevoked:
+                  $ref: '#/components/examples/tokenRevoked'
                 phoneDecryptFailed:
                   $ref: '#/components/examples/phoneDecryptFailed'
         '400':
@@ -266,8 +268,8 @@ paths:
               examples:
                 paramMissing:
                   $ref: '#/components/examples/paramMissing'
-                paramInvalid:
-                  $ref: '#/components/examples/paramInvalid'
+                invalidFormat:
+                  $ref: '#/components/examples/invalidFormat'
         '409':
           description: 业务冲突/状态不允许（409xx）
           content:
@@ -297,6 +299,8 @@ paths:
               examples:
                 serviceUnavailable:
                   $ref: '#/components/examples/serviceUnavailable'
+                wechatUnavailable:
+                  $ref: '#/components/examples/wechatUnavailable'
       requestBody:
         required: true
         content:
@@ -393,7 +397,7 @@ paths:
                       phoneBound: true
                       phoneMasked: '138****0817'
         '401':
-          description: 认证失败（401xx：token 无效/过期/类型错误、微信登录失败、手机号解密失败）
+          description: 认证失败（401xx：token 无效/过期/类型错误/已注销、微信登录失败、手机号解密失败）
           content:
             application/json:
               schema:
@@ -405,6 +409,8 @@ paths:
                   $ref: '#/components/examples/tokenExpired'
                 adminToken:
                   $ref: '#/components/examples/adminToken'
+                tokenRevoked:
+                  $ref: '#/components/examples/tokenRevoked'
         '404':
           description: 资源不存在（404xx）
           content:
@@ -508,7 +514,7 @@ paths:
                       remark: 充 500 送 100
                       createTime: '2026-11-01T00:00:01+08:00'
         '401':
-          description: 认证失败（401xx：token 无效/过期/类型错误、微信登录失败、手机号解密失败）
+          description: 认证失败（401xx：token 无效/过期/类型错误/已注销、微信登录失败、手机号解密失败）
           content:
             application/json:
               schema:
@@ -520,6 +526,8 @@ paths:
                   $ref: '#/components/examples/tokenExpired'
                 adminToken:
                   $ref: '#/components/examples/adminToken'
+                tokenRevoked:
+                  $ref: '#/components/examples/tokenRevoked'
         '400':
           description: 参数缺失/格式错误/取值非法/幂等键非法（400xx）
           content:
@@ -743,8 +751,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
-                paramInvalid:
-                  $ref: '#/components/examples/paramInvalid'
+                invalidFormat:
+                  $ref: '#/components/examples/invalidFormat'
                 pageSizeExceeded:
                   $ref: '#/components/examples/pageSizeExceeded'
         '500':
@@ -958,7 +966,7 @@ paths:
                       transferAt: null
                       acceptAt: null
         '401':
-          description: 认证失败（401xx：token 无效/过期/类型错误、微信登录失败、手机号解密失败）
+          description: 认证失败（401xx：token 无效/过期/类型错误/已注销、微信登录失败、手机号解密失败）
           content:
             application/json:
               schema:
@@ -970,6 +978,8 @@ paths:
                   $ref: '#/components/examples/tokenExpired'
                 adminToken:
                   $ref: '#/components/examples/adminToken'
+                tokenRevoked:
+                  $ref: '#/components/examples/tokenRevoked'
         '400':
           description: 参数缺失/格式错误/取值非法/幂等键非法（400xx）
           content:
@@ -1074,7 +1084,7 @@ paths:
                       transferAt: null
                       acceptAt: null
         '401':
-          description: 认证失败（401xx：token 无效/过期/类型错误、微信登录失败、手机号解密失败）
+          description: 认证失败（401xx：token 无效/过期/类型错误/已注销、微信登录失败、手机号解密失败）
           content:
             application/json:
               schema:
@@ -1086,6 +1096,8 @@ paths:
                   $ref: '#/components/examples/tokenExpired'
                 adminToken:
                   $ref: '#/components/examples/adminToken'
+                tokenRevoked:
+                  $ref: '#/components/examples/tokenRevoked'
         '404':
           description: 资源不存在（404xx）
           content:
@@ -1095,6 +1107,15 @@ paths:
               examples:
                 couponNotFound:
                   $ref: '#/components/examples/couponNotFound'
+        '409':
+          description: 业务冲突/状态不允许（40901：会员被停用）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                memberDisabled:
+                  $ref: '#/components/examples/memberDisabled'
         '500':
           description: 服务端错误（500xx）
           content:
@@ -1249,12 +1270,14 @@ paths:
               examples:
                 paramMissing:
                   $ref: '#/components/examples/paramMissing'
+                invalidFormat:
+                  $ref: '#/components/examples/invalidFormat'
                 paramInvalid:
                   $ref: '#/components/examples/paramInvalid'
                 idempotencyKeyMissing:
                   $ref: '#/components/examples/idempotencyKeyMissing'
         '401':
-          description: 认证失败（401xx：token 无效/过期/类型错误）
+          description: 认证失败（401xx：token 无效/过期/类型错误/已注销）
           content:
             application/json:
               schema:
@@ -1266,6 +1289,8 @@ paths:
                   $ref: '#/components/examples/tokenExpired'
                 adminToken:
                   $ref: '#/components/examples/adminToken'
+                tokenRevoked:
+                  $ref: '#/components/examples/tokenRevoked'
         '404':
           description: 商品不存在或已下架（40401）
           content:
@@ -1288,6 +1313,12 @@ paths:
                   $ref: '#/components/examples/balanceNotEnough'
                 couponUnavailable:
                   $ref: '#/components/examples/couponUnavailable'
+                couponExpired:
+                  $ref: '#/components/examples/couponExpired'
+                couponThreshold:
+                  $ref: '#/components/examples/couponThreshold'
+                couponNotApplicable:
+                  $ref: '#/components/examples/couponNotApplicable'
                 productOffShelf:
                   $ref: '#/components/examples/productOffShelf'
                 productSoldOut:
@@ -1307,8 +1338,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
-                tooManyRequests:
-                  $ref: '#/components/examples/tooManyRequests'
+                tooManyOrders:
+                  $ref: '#/components/examples/tooManyOrders'
         '500':
           description: 服务端错误（500xx）
           content:
@@ -1318,6 +1349,8 @@ paths:
               examples:
                 internalError:
                   $ref: '#/components/examples/internalError'
+                consistencyError:
+                  $ref: '#/components/examples/consistencyError'
         '503':
           description: 依赖不可用/维护中（503xx）
           content:
@@ -1423,12 +1456,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
-                paramInvalid:
-                  $ref: '#/components/examples/paramInvalid'
+                invalidFormat:
+                  $ref: '#/components/examples/invalidFormat'
                 pageSizeExceeded:
                   $ref: '#/components/examples/pageSizeExceeded'
         '401':
-          description: 认证失败（401xx：token 无效/过期/类型错误）
+          description: 认证失败（401xx：token 无效/过期/类型错误/已注销）
           content:
             application/json:
               schema:
@@ -1440,6 +1473,8 @@ paths:
                   $ref: '#/components/examples/tokenExpired'
                 adminToken:
                   $ref: '#/components/examples/adminToken'
+                tokenRevoked:
+                  $ref: '#/components/examples/tokenRevoked'
         '404':
           description: 会员记录不存在（40405）
           content:
@@ -1465,8 +1500,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResult'
               examples:
-                tooManyRequests:
-                  $ref: '#/components/examples/tooManyRequests'
+                tooManyOrders:
+                  $ref: '#/components/examples/tooManyOrders'
         '500':
           description: 服务端错误（500xx）
           content:
@@ -1572,7 +1607,7 @@ paths:
                           drizzle: '#A8682F'
                           marble: true
         '401':
-          description: 认证失败（401xx：token 无效/过期/类型错误）
+          description: 认证失败（401xx：token 无效/过期/类型错误/已注销）
           content:
             application/json:
               schema:
@@ -1584,6 +1619,8 @@ paths:
                   $ref: '#/components/examples/tokenExpired'
                 adminToken:
                   $ref: '#/components/examples/adminToken'
+                tokenRevoked:
+                  $ref: '#/components/examples/tokenRevoked'
         '404':
           description: 订单不存在或不在本人名下（40404，防订单号枚举）
           content:
@@ -1801,12 +1838,14 @@ paths:
               examples:
                 paramMissing:
                   $ref: '#/components/examples/paramMissing'
+                invalidFormat:
+                  $ref: '#/components/examples/invalidFormat'
                 paramInvalid:
                   $ref: '#/components/examples/paramInvalid'
                 payModeMismatch:
                   $ref: '#/components/examples/payModeMismatch'
         '401':
-          description: 认证失败（401xx：token 无效/过期/类型错误）
+          description: 认证失败（401xx：token 无效/过期/类型错误/已注销）
           content:
             application/json:
               schema:
@@ -1818,6 +1857,8 @@ paths:
                   $ref: '#/components/examples/tokenExpired'
                 adminToken:
                   $ref: '#/components/examples/adminToken'
+                tokenRevoked:
+                  $ref: '#/components/examples/tokenRevoked'
         '404':
           description: 订单不存在或不在本人名下（40404）
           content:
@@ -1846,6 +1887,15 @@ paths:
                   $ref: '#/components/examples/amountMismatch'
                 splitMismatch:
                   $ref: '#/components/examples/splitMismatch'
+        '429':
+          description: 限流/防刷（42902：支付过于频繁）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                tooManyOrders:
+                  $ref: '#/components/examples/tooManyOrders'
         '502':
           description: 微信支付下单或回调验签失败（40922）
           content:
@@ -1864,6 +1914,8 @@ paths:
               examples:
                 internalError:
                   $ref: '#/components/examples/internalError'
+                consistencyError:
+                  $ref: '#/components/examples/consistencyError'
         '503':
           description: 依赖不可用/维护中（503xx）
           content:
@@ -1873,6 +1925,8 @@ paths:
               examples:
                 serviceUnavailable:
                   $ref: '#/components/examples/serviceUnavailable'
+                wechatUnavailable:
+                  $ref: '#/components/examples/wechatUnavailable'
       parameters:
       - name: orderNo
         in: path
@@ -1956,7 +2010,7 @@ paths:
                           - '#E99A43'
                           ice: true
         '401':
-          description: 认证失败（401xx：token 无效/过期/类型错误）
+          description: 认证失败（401xx：token 无效/过期/类型错误/已注销）
           content:
             application/json:
               schema:
@@ -1968,6 +2022,8 @@ paths:
                   $ref: '#/components/examples/tokenExpired'
                 adminToken:
                   $ref: '#/components/examples/adminToken'
+                tokenRevoked:
+                  $ref: '#/components/examples/tokenRevoked'
         '404':
           description: 订单不存在或不在本人名下（40404）
           content:
@@ -3058,6 +3114,13 @@ components:
         msg: 参数取值不合法
         data: null
         traceId: c8f1d2e4
+    invalidFormat:
+      summary: 参数格式错误
+      value:
+        code: 40002
+        msg: 参数格式错误
+        data: null
+        traceId: c8f1d310
     tokenMissing:
       summary: 未登录
       value:
@@ -3079,6 +3142,13 @@ components:
         msg: 登录状态无效，请重新登录
         data: null
         traceId: c8f1d2e7
+    tokenRevoked:
+      summary: token 已注销或被踢
+      value:
+        code: 40106
+        msg: 登录状态已失效，请重新登录
+        data: null
+        traceId: c8f1d311
     tooManyRequests:
       summary: 请求过于频繁
       value:
@@ -3086,6 +3156,13 @@ components:
         msg: 操作过于频繁，请稍后重试
         data: null
         traceId: c8f1d2f1
+    tooManyOrders:
+      summary: 下单/支付过于频繁
+      value:
+        code: 42902
+        msg: 下单过于频繁，请稍后再试
+        data: null
+        traceId: c8f1d312
     internalError:
       summary: 服务器内部错误
       value:
@@ -3093,6 +3170,13 @@ components:
         msg: 服务开小差了，请稍后重试
         data: null
         traceId: c8f1d2f2
+    consistencyError:
+      summary: 数据一致性错误（需告警）
+      value:
+        code: 50002
+        msg: 数据校验异常，请稍后重试
+        data: null
+        traceId: c8f1d316
     serviceUnavailable:
       summary: 依赖不可用
       value:
@@ -3100,6 +3184,13 @@ components:
         msg: 系统繁忙，请稍后重试
         data: null
         traceId: c8f1d2f3
+    wechatUnavailable:
+      summary: 微信服务不可用
+      value:
+        code: 50301
+        msg: 微信服务暂不可用，请稍后重试
+        data: null
+        traceId: c8f1d317
     noPermission:
       summary: 越权访问
       value:
@@ -3128,6 +3219,27 @@ components:
         msg: 该券当前不可用
         data: null
         traceId: c8f1d2ee
+    couponExpired:
+      summary: 券已过期
+      value:
+        code: 40908
+        msg: 该券已过期
+        data: null
+        traceId: c8f1d313
+    couponThreshold:
+      summary: 未达到券使用门槛
+      value:
+        code: 40909
+        msg: 订单金额未达到该券使用门槛
+        data: null
+        traceId: c8f1d314
+    couponNotApplicable:
+      summary: 券不适用于该订单
+      value:
+        code: 40910
+        msg: 该券不适用于当前订单或商品
+        data: null
+        traceId: c8f1d315
     orderStatusInvalid:
       summary: 订单状态不允许
       value:
