@@ -303,7 +303,55 @@ await cancelOrder(order.orderNo)
 - `mixed` 组合支付 UI（`PayOrderReq` 参数位已留，需补拆分输入与 40920/40921 处理）。
 - 订单列表分页加载（当前列表页取第 1 页 20 条；`listMyOrders` 已支持 pageNum/pageSize）。
 
-## 10. 验收命令
+## 10. 本地联调（real 模式，H5）
+
+macbook 仓库根目录：
+
+```bash
+scripts/dev-real.sh start     # 后台启动（nohup），日志 /tmp/cosen-h5-real.log，pid /tmp/cosen-h5-real.pid
+scripts/dev-real.sh status    # pid / 5173 监听 / 首页状态码
+scripts/dev-real.sh restart   # 改代码后重启用（env 只在启动时注入）
+scripts/dev-real.sh stop      # 只停 H5 dev server，不碰 8080
+```
+
+等价命令：
+
+```bash
+VITE_COSEN_USE_MOCK=false VITE_COSEN_API_BASE_URL='' npm run dev:h5
+```
+
+- 地址：本机 `http://127.0.0.1:5173/`，tailnet `http://100.116.44.85:5173/`；
+- `vite.config.ts` 的开发态配置：`host: 0.0.0.0`、`port: 5173`（strictPort）、
+  `proxy: { '/app': { target: 'http://127.0.0.1:8080', changeOrigin: true } }`；
+  生产构建不受影响。
+- `VITE_COSEN_API_BASE_URL=''` 为 **显式空串 = 同源**：浏览器请求 `/app/**`，
+  由 vite proxy 转到 `127.0.0.1:8080`，因此无 CORS，也不依赖 `100.116.44.85:8080`。
+  未设置该变量时才回退契约地址 `http://127.0.0.1:8080`；填绝对地址则直连（需后端 CORS）。
+- 登录：真实模式首次访问需要会员态的页面（我的/券/订单/充值）会 401 跳
+  `/pages/login/index`，点「联调账号登录」（默认手机号 `13800000817`）即可；token 存
+  `cosen:member-token`。微信小程序内可用「微信一键登录」。
+- 三条自检：
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5173/
+curl -s -X POST http://127.0.0.1:5173/app/auth/login/mock \
+  -H 'Content-Type: application/json' -d '{"phone":"13800000817"}'
+curl -s -o /dev/null -w '%{http_code}\n' http://100.116.44.85:5173/
+```
+
+- 切回 mock：`scripts/dev-real.sh stop`，然后普通 `npm run dev:h5`（默认 `useMock=true`）。
+
+常见问题：
+
+| 现象 | 处理 |
+|---|---|
+| 5173 启动失败/端口占用 | `lsof -tiTCP:5173 -sTCP:LISTEN \| xargs kill -9`（只清 5173，不动 8080） |
+| 代理 502 / ECONNREFUSED | 后端 8080 没起；检查 `lsof -nP -iTCP:8080 -sTCP:LISTEN`。**联调期间不要 kill 8080** |
+| 浏览器报 CORS | 不要给 `VITE_COSEN_API_BASE_URL` 填绝对地址（如 `http://100.116.44.85:8080`），保持空串走同源代理 |
+| 页面数据仍是 mock | 确认启动命令带 `VITE_COSEN_USE_MOCK=false`；改 env 后需 restart；可在 devtools Network 看是否请求 `/app/**` |
+| 改了 env 但不生效 | Vite 的环境变量在启动时注入，`scripts/dev-real.sh restart` |
+
+## 11. 验收命令
 
 ```bash
 npm run type-check   # vue-tsc --noEmit，基线 0 错误，本轮必须保持

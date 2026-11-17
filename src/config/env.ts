@@ -11,8 +11,15 @@
 const rawBaseUrl = import.meta.env.VITE_COSEN_API_BASE_URL
 const rawUseMock = import.meta.env.VITE_COSEN_USE_MOCK
 
-/** 契约 servers[0] 是 http://127.0.0.1:8080；真实后端换端口时用环境变量覆盖。 */
-export const API_BASE_URL = (rawBaseUrl && rawBaseUrl.trim()) || 'http://127.0.0.1:8080'
+/**
+ * 契约 servers[0] 是 http://127.0.0.1:8080；真实后端换端口时用环境变量覆盖。
+ *
+ * 注意区分「未设置」与「显式空串」：
+ *   - 未设置：回退契约地址 http://127.0.0.1:8080；
+ *   - 显式空串：baseURL 留空 → 浏览器走同源 /app/**（配合 vite dev proxy，
+ *     见 scripts/dev-real.sh 与 vite.config.ts），避免 CORS。
+ */
+export const API_BASE_URL = rawBaseUrl === undefined ? 'http://127.0.0.1:8080' : rawBaseUrl.trim()
 
 /** true = 继续使用 src/mock/*；false = 页面走 src/api/* */
 export const useMock = rawUseMock === undefined || rawUseMock.trim() === ''
