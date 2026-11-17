@@ -1,7 +1,7 @@
 # 小程序请求层（`src/api`）
 
 契约来源：`reference/cosen-api-v1.openapi.yaml`（v1.4.0，19 接口），错误码口径见契约仓库 `docs/error-codes.md`。
-已接**第一组 9 个 + 第二组 7 个 = 16 个接口**（认证 4 + 会员 2 + 商品目录 3 + 券 2 + 订单/支付 5），充值 3 个只留位。
+已接**全部 19 个接口**：第一组 9（认证 4 + 会员 2 + 商品目录 3）+ 第二组 7（券 2 + 订单/支付 5）+ 充值 3。
 
 当前仓库默认仍是 **纯 mock 版**：`useMock = true`，页面继续读 `src/mock/*`，请求层不会被调用。
 后端（8080/8081）没起时也能正常跑 `npm run build:h5`。
@@ -25,6 +25,8 @@ src/api/catalog.ts       GET /app/catalog/categories、/app/catalog/products、
 src/api/coupon.ts        GET /app/coupons、/app/coupons/{couponNo}（含五态映射）
 src/api/order.ts         POST /app/orders、GET /app/orders、/app/orders/{orderNo}、
                          pay、cancel（含 DTO → 页面模型与状态文案）
+src/api/recharge.ts      GET /app/recharge/tiers、POST /app/recharges、
+                         GET /app/recharges/{rechargeNo}（含充值独立幂等键前缀）
 src/api/index.ts         统一出口
 ```
 
@@ -242,7 +244,45 @@ await cancelOrder(order.orderNo)
 - 券列表在真实模式改为 `listMyCoupons`（与券页同源），mock 分支完全不变。
 - mock 分支仍走 `placeOrder` 与 1200/700ms 演示动画。
 
-## 7. mock / 真实分支约定
+## 7. 充值（契约 v1.4.0，3 接口）
+
+### 7.1 模块与函数
+
+| 函数 | 契约 | 说明 |
+|---|---|---|
+| `listRechargeTiers()` | `GET /app/recharge/tiers` | **公开无鉴权**，显式 `auth:false`，不带会员 token |
+| `createRecharge({tierCode,payMode}, idempotencyKey?)` | `POST /app/recharges` | Header `Idempotency-Key` 必填；`payMode` 固定 `wechat` |
+| `getRecharge(rechargeNo)` | `GET /app/recharges/{rechargeNo}` | 只能查本人；不存在/非本人 40407 |
+
+适配：`toRechargeTier/toRechargeTiers`（分→元），`RechargeTierView` 带 `available/hot/note`。
+
+### 7.2 充值幂等键（独立命名空间）
+
+- 充值 key 由 `newRechargeIdempotencyKey()` 生成，前缀固定 **`cosen-recharge:`**，与下单 `genIdempotencyKey()` 分开，**不共用**同一个存储/变量。
+- 充值页用 `pendingRechargeKey + pendingRechargeSignature`（签名 = `tierCode|wechat`）：
+  - 同一次提交重试复用同一个 key；
+  - 切换档位 → 签名变化 → 重新生成；
+  - 成功后清空；`40007`（同 key 不同 payload）丢弃旧 key；
+  - 其它错误（40905/40904/40003/40922/50301）保留 key，同档位重试仍幂等。
+- Header 必填：请求只带 `Idempotency-Key` Header；body 只放契约定义的 `tierCode/payMode`（契约未定义 body 幂等字段）。
+- 同 key 同 payload 重放返回 HTTP 200 + 原充值单（**不返回 40925**，40925 专属下单）。
+
+### 7.3 pending 轮询策略
+
+- 创建后 `status=paid`（dev mock 微信渠道常见）→ 直接成功态，用 `balanceAfterCent`（缺省回查 `getMemberProfile`）刷新余额。
+- `status=pending` → 轮询 `getRecharge`：**1s / 2s / 3s 退避，之后每 3s**，最多 60s；
+  - `paid` → 成功；`closed` → 「支付已关闭」；`failed` → `failMsg`（如 40922）；
+  - 60s 仍未结束 → toast「支付结果确认中」，停止轮询；页面 `onUnload` 取消定时器。
+- `TODO(wxpay)`：真实微信 pending 需先 `uni.requestPayment(order.wx)` 再轮询，本轮留好轮询框架。
+
+### 7.4 档位展示与错误码
+
+- 档位由服务端下发，前端只渲染不硬编码；`hot` 显示「更划算」；`note` 原样展示。
+- `available=false`：**置灰、保留展示、不可选**（点击 toast「该档位活动已结束」），不隐藏（运营可能想展示活动结束态）。
+- 错误码：`40905` 活动结束、`40904` 档位/金额非法、`40003` 支付方式非法（非 wechat）、`40007` 幂等键非法、`40406` 档位/活动不存在、`40407` 充值单不存在/非本人、`40901` 会员停用、`40922` 微信下单失败、`42904` 限流；均按 `ERROR_RULES` 文案提示。
+- 充值成功触发服务端等级重算；页面成功后重新拉会员资料同步余额/等级。
+
+## 8. mock / 真实分支约定
 
 - `useMock` 默认 `true`：所有页面行为与之前一致，仍读 `src/mock/*`。
 - 已接真实分支的页面：
@@ -251,18 +291,19 @@ await cancelOrder(order.orderNo)
   - `pages/coupons/index.vue`：真实模式 `listMyCoupons` + 五态 Tab；兑换码入口仅 mock。
   - `pages/checkout/index.vue`：真实模式 `createOrder`（幂等键 + 券 couponNo）；mock 分支不变。
   - `pages/order/index.vue`：真实模式列表/详情/支付/取消；mock 分支不变。
-- 仍未接真实接口：MenuView 商品目录渲染、充值页、MineView 最近订单卡片（点「全部订单」已可看真实列表）。
+  - `pages/recharge/index.vue`：真实模式档位/创建/轮询；mock 分支（原演示动画、档位数据、购物车多档位）不变。
+- 仍未接真实接口：MenuView 商品目录渲染与充值轮播、MineView 最近订单卡片（点「全部订单」已可看真实列表）。
 - 不一次性把 MenuView 改成真实请求：后端可能没起，先保留 mock 分支，后续按页面逐个切。
 
-## 8. 后续留位（本轮只写类型/注释，不接）
+## 9. 后续留位（本轮只写类型/注释，不接）
 
-- 充值三接口（`docs/recharge-api-draft.md`）：`GET /app/recharge/tiers`、`POST /app/recharges`、
-  `GET /app/recharges/{rechargeNo}`；错误码 40407/40904–40906/42904 已在映射表内。
+- 真实微信支付：充值 `pending` 时接 `uni.requestPayment(order.wx)`，再复用现有 1s/2s/3s 轮询。
+- 充值记录列表：契约暂无充值单列表接口，充值页真实模式不展示「储值记录」。
 - 券详情页 UI（`getCoupon` 已封装，页面暂未接入）。
 - `mixed` 组合支付 UI（`PayOrderReq` 参数位已留，需补拆分输入与 40920/40921 处理）。
 - 订单列表分页加载（当前列表页取第 1 页 20 条；`listMyOrders` 已支持 pageNum/pageSize）。
 
-## 9. 验收命令
+## 10. 验收命令
 
 ```bash
 npm run type-check   # vue-tsc --noEmit，基线 0 错误，本轮必须保持

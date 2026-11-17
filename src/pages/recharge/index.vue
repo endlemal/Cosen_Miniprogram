@@ -7,12 +7,12 @@
           <text class="now-k">当前余额</text>
           <view class="now-v">
             <text class="now-c">¥</text>
-            <text class="now-n">{{ money2(state.balance) }}</text>
+            <text class="now-n">{{ money2(currentBalance) }}</text>
           </view>
         </view>
         <view class="level">
           <Icon name="crown" :size="22" color="#462719" :stroke="2.2" />
-          <text class="level-t">{{ memberLevel.name }}</text>
+          <text class="level-t">{{ levelName }}</text>
         </view>
       </view>
 
@@ -21,15 +21,16 @@
         <text class="head-s">赠送金额和本金同时到账</text>
       </view>
 
+      <view v-if="!fromCart && !tiers.length" class="empty-selection">档位加载中或暂不可用</view>
       <view v-if="!fromCart" class="tiers">
         <view
-          v-for="(t, i) in RECHARGE_TIERS"
-          :key="t.amount"
+          v-for="(t, i) in tiers"
+          :key="t.tierCode"
           class="tier"
-          :class="{ on: pick === i }"
-          @tap="pick = i"
+          :class="{ on: pick === i, off: !t.available }"
+          @tap="selectTier(i)"
         >
-          <view class="pic" :class="'p' + i">
+          <view class="pic" :class="'p' + (i % 2)">
             <view class="pic-orb a" />
             <view class="pic-orb b" />
             <view class="amt">
@@ -54,7 +55,8 @@
           </view>
           <view class="chips">
             <text class="chip">{{ t.note }}</text>
-            <text v-if="t.hot" class="chip strong">更划算</text>
+            <text v-if="t.hot && t.available" class="chip strong">更划算</text>
+            <text v-if="!t.available" class="chip ended">活动已结束</text>
           </view>
         </view>
       </view>
@@ -76,10 +78,10 @@
         <text class="rule">赠送金额与本金一起到账，可用于点单时的余额支付。</text>
         <text class="rule">储值余额长期有效，不可提现，不可转赠。</text>
         <text class="rule">累计储值满 2000 元升级为 深焙会员。</text>
-        <text class="rule">当前为演示环境，支付为模拟流程，不会产生真实扣款。</text>
+        <text class="rule">{{ useMock ? '当前为演示环境，支付为模拟流程，不会产生真实扣款。' : '支付由微信支付完成，储值到账后可在会员储值查看余额。' }}</text>
       </view>
 
-      <view v-if="state.recharges.length" class="records">
+      <view v-if="useMock && state.recharges.length" class="records">
         <text class="rules-t">储值记录</text>
         <view v-for="r in state.recharges" :key="r.id" class="rec">
           <view class="rec-l">
@@ -101,7 +103,7 @@
         </view>
         <text class="pb-s">到账 {{ payment.amount + payment.bonus }} 元</text>
       </view>
-      <view class="pb-btn" :class="{ busy }" hover-class="tap-on" @tap="submit">
+      <view class="pb-btn" :class="{ busy, off: !payment.available }" hover-class="tap-on" @tap="submit">
         <text class="pb-btn-t">{{ busy ? '支付中…' : fromCart ? '模拟微信支付' : '立即充值' }}</text>
       </view>
     </view>
@@ -117,7 +119,7 @@
           <text class="done-c">+¥</text>
           <text class="done-n">{{ done.amount + done.bonus }}</text>
         </view>
-        <text class="done-s">含赠送 {{ done.bonus }} 元，当前余额 ¥{{ money2(state.balance) }}</text>
+        <text class="done-s">含赠送 {{ done.bonus }} 元，当前余额 ¥{{ money2(currentBalance) }}</text>
         <view class="done-btns">
           <view class="d-btn ghost" hover-class="tap-on" @tap="closeDone">
             <text class="d-btn-t ink">完成</text>
@@ -132,43 +134,133 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { onLoad, onUnload } from '@dcloudio/uni-app'
 import NavBar from '@/components/NavBar.vue'
 import Icon from '@/components/Icon.vue'
 import Notch from '@/components/Notch.vue'
 import { RECHARGE_TIERS } from '@/mock/seed'
+import { useMock } from '@/config/env'
+import {
+  ApiError,
+  centToYuan,
+  createRecharge,
+  getMemberProfile,
+  getRecharge,
+  listRechargeTiers,
+  newRechargeIdempotencyKey,
+  toRechargeTiers,
+  type MemberProfile,
+  type RechargeOrderDto,
+  type RechargeTierView
+} from '@/api'
 import { state, memberLevel, recharge, backToTab, rechargeCart, rechargeCartTotal, changeRechargeQty } from '@/store'
 import { hm, money2, ymd } from '@/utils/format'
 
+const LEVEL_NAMES: Record<number, string> = { 1: '可森会员', 2: '醇香会员', 3: '深焙会员' }
+
 const pick = ref(1)
 const fromCart = ref(false)
-onLoad((q: any) => {
-  fromCart.value = q?.cart === '1'
-  const i = Number(q?.tier)
-  if (i === 0 || i === 1) pick.value = i
-})
-const payment = computed(() => fromCart.value
-  ? { amount: rechargeCartTotal.value, bonus: rechargeCart.value.reduce((sum, item) => sum + item.bonus * item.qty, 0) }
-  : RECHARGE_TIERS[pick.value]
-)
-
 const busy = ref(false)
 const done = ref<{ amount: number; bonus: number } | null>(null)
 const doneOn = ref(false)
-let paymentTimer: ReturnType<typeof setTimeout> | undefined
 
-onUnload(() => {
-  if (paymentTimer === undefined) return
-  clearTimeout(paymentTimer)
-  uni.hideLoading()
+/* ---- 数据源：mock 默认；useMock=false 时拉档位 + 会员资料 ---- */
+const realTiers = ref<RechargeTierView[]>([])
+const userProfile = ref<MemberProfile | null>(null)
+const realBalance = ref<number | null>(null)
+
+// mock 档位保持原演示数据（RECHARGE_TIERS），统一成 RechargeTierView 供模板复用
+const mockTiers = computed<RechargeTierView[]>(() =>
+  RECHARGE_TIERS.map((tier) => ({
+    tierCode: `MOCK_TIER_${tier.amount}`,
+    name: tier.name,
+    amount: tier.amount,
+    bonus: tier.bonus,
+    total: tier.amount + tier.bonus,
+    note: tier.note,
+    hot: tier.hot === true,
+    available: true
+  }))
+)
+const tiers = computed<RechargeTierView[]>(() => (useMock ? mockTiers.value : realTiers.value))
+const currentBalance = computed(() => (useMock ? state.balance : realBalance.value ?? 0))
+const levelName = computed(() => {
+  if (useMock) return memberLevel.value.name
+  const level = userProfile.value?.level
+  return level ? LEVEL_NAMES[level] || '可森会员' : '可森会员'
 })
 
-function submit() {
+onLoad((q) => {
+  // 真实模式暂不支持购物车多档位结算，按单档位选择处理（MenuView 本轮仍 mock）
+  fromCart.value = (q?.cart as string) === '1' && useMock
+  if (useMock) {
+    const i = Number(q?.tier)
+    if (i === 0 || i === 1) pick.value = i
+  }
+})
+
+onMounted(async () => {
+  if (useMock) return
+  await Promise.all([loadTiers(), loadProfile()])
+})
+
+async function loadTiers() {
+  try {
+    realTiers.value = toRechargeTiers(await listRechargeTiers())
+  } catch {
+    // 档位接口公开无鉴权；50001/50302 请求层已 toast
+    realTiers.value = []
+  }
+  pickFirstAvailable()
+}
+
+async function loadProfile() {
+  try {
+    userProfile.value = await getMemberProfile()
+    realBalance.value = centToYuan(userProfile.value.balanceCent ?? 0)
+  } catch {
+    // 余额展示失败不阻断充值，成功后会按充值单的 balanceAfterCent 刷新
+  }
+}
+
+function pickFirstAvailable() {
+  const hot = tiers.value.findIndex((tier) => tier.available && tier.hot)
+  const any = tiers.value.findIndex((tier) => tier.available)
+  pick.value = hot >= 0 ? hot : any >= 0 ? any : 0
+}
+
+function selectTier(index: number) {
+  const tier = tiers.value[index]
+  if (!tier) return
+  if (!tier.available) {
+    uni.showToast({ title: '该档位活动已结束', icon: 'none' })
+    return
+  }
+  pick.value = index
+}
+
+const payment = computed(() => {
+  if (fromCart.value) {
+    return {
+      amount: rechargeCartTotal.value,
+      bonus: rechargeCart.value.reduce((sum, item) => sum + item.bonus * item.qty, 0),
+      tierCode: '',
+      available: rechargeCart.value.length > 0
+    }
+  }
+  const tier = tiers.value[pick.value]
+  return tier
+    ? { amount: tier.amount, bonus: tier.bonus, tierCode: tier.tierCode, available: tier.available }
+    : { amount: 0, bonus: 0, tierCode: '', available: false }
+})
+
+/* ---- mock 演示支付 ---- */
+let paymentTimer: ReturnType<typeof setTimeout> | undefined
+
+function submitMock() {
   const { amount, bonus } = payment.value
-  if (busy.value || done.value || !amount) return
   const paidItems = fromCart.value ? rechargeCart.value : []
-  busy.value = true
   uni.showLoading({ title: '正在调起支付', mask: true })
   paymentTimer = setTimeout(() => {
     paymentTimer = undefined
@@ -180,6 +272,144 @@ function submit() {
     setTimeout(() => (doneOn.value = true), 30)
   }, 1200)
 }
+
+/* ---- 真实充值：独立幂等键（cosen-recharge:），与下单 key 分开 ---- */
+let pendingRechargeKey = ''
+let pendingRechargeSignature = ''
+
+function clearPendingRechargeKey() {
+  pendingRechargeKey = ''
+  pendingRechargeSignature = ''
+}
+
+function rechargeIdempotencyKeyFor(signature: string): string {
+  if (!pendingRechargeKey || pendingRechargeSignature !== signature) {
+    pendingRechargeKey = newRechargeIdempotencyKey()
+    pendingRechargeSignature = signature
+  }
+  return pendingRechargeKey
+}
+
+let pollCancelled = false
+let pollTimer: ReturnType<typeof setTimeout> | undefined
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    pollTimer = setTimeout(resolve, ms)
+  })
+}
+
+/** pending 轮询：1s / 2s / 3s 退避，之后每 3s 一次，最多 60s */
+async function pollRecharge(order: RechargeOrderDto): Promise<RechargeOrderDto | null> {
+  const started = Date.now()
+  const delays = [1000, 2000, 3000]
+  let attempt = 0
+  while (!pollCancelled && Date.now() - started < 60000) {
+    const delay = delays[Math.min(attempt, delays.length - 1)]
+    attempt += 1
+    await sleep(delay)
+    if (pollCancelled) return null
+    try {
+      const latest = await getRecharge(order.rechargeNo)
+      if (latest.status !== 'pending') return latest
+    } catch {
+      // 40407 / 401xx / 5xx 等请求层已提示，停止轮询
+      return null
+    }
+  }
+  return null
+}
+
+/** 到账：优先用充值单余额；缺省时回查会员资料 */
+async function applyPaid(order: RechargeOrderDto) {
+  if (order.balanceAfterCent != null) {
+    realBalance.value = centToYuan(order.balanceAfterCent)
+  } else {
+    try {
+      const profile = await getMemberProfile()
+      userProfile.value = profile
+      realBalance.value = centToYuan(profile.balanceCent ?? 0)
+    } catch {
+      // 忽略，成功弹层仍可展示本次到账金额
+    }
+  }
+  uni.hideLoading()
+  busy.value = false
+  done.value = { amount: centToYuan(order.amountCent), bonus: centToYuan(order.bonusCent) }
+  setTimeout(() => (doneOn.value = true), 30)
+  // 成功后刷新会员资料：余额以接口为准，同时同步可能升级的会员等级
+  void loadProfile()
+}
+
+function finishFailed(order: RechargeOrderDto) {
+  uni.hideLoading()
+  busy.value = false
+  const title = order.status === 'failed' ? order.failMsg || '支付失败，请重试' : '支付已关闭'
+  uni.showToast({ title, icon: 'none', duration: 2400 })
+}
+
+async function submitReal() {
+  const { tierCode } = payment.value
+  const signature = `${tierCode}|wechat`
+  uni.showLoading({ title: '正在拉起支付', mask: true })
+  try {
+    const order = await createRecharge({ tierCode, payMode: 'wechat' }, rechargeIdempotencyKeyFor(signature))
+    clearPendingRechargeKey()
+    if (order.status === 'paid') {
+      await applyPaid(order)
+      return
+    }
+    if (order.status === 'failed' || order.status === 'closed') {
+      finishFailed(order)
+      return
+    }
+    // TODO(wxpay): pending 时真实微信需先 uni.requestPayment(order.wx)；
+    // 当前 dev mock 渠道通常直接返回 paid，这里先按契约轮询兜底。
+    const settled = await pollRecharge(order)
+    if (pollCancelled) return
+    if (!settled) {
+      uni.hideLoading()
+      busy.value = false
+      uni.showToast({ title: '支付结果确认中，请稍后查看余额', icon: 'none', duration: 2400 })
+      return
+    }
+    if (settled.status === 'paid') await applyPaid(settled)
+    else finishFailed(settled)
+  } catch (e) {
+    uni.hideLoading()
+    busy.value = false
+    // 40007 = 同 key 不同 payload，丢弃旧 key；其余错误（40905/40904/40003/40922/50301）请求层已提示
+    if (e instanceof ApiError && e.code === 40007) clearPendingRechargeKey()
+  }
+}
+
+function submit() {
+  const { amount, available } = payment.value
+  if (busy.value || done.value || !amount) return
+  if (!available) {
+    uni.showToast({ title: '该档位活动已结束', icon: 'none' })
+    return
+  }
+  busy.value = true
+  if (useMock) {
+    submitMock()
+    return
+  }
+  void submitReal()
+}
+
+onUnload(() => {
+  pollCancelled = true
+  if (pollTimer !== undefined) {
+    clearTimeout(pollTimer)
+    pollTimer = undefined
+  }
+  if (paymentTimer !== undefined) {
+    clearTimeout(paymentTimer)
+    paymentTimer = undefined
+  }
+  uni.hideLoading()
+})
 
 function closeDone() {
   doneOn.value = false
@@ -276,6 +506,11 @@ function toMenu() {
   transition: border-color 0.2s ease;
   &.on {
     border-color: $espresso;
+  }
+  &.off {
+    opacity: 0.5;
+    border-color: transparent;
+    box-shadow: none;
   }
 }
 .pic {
@@ -412,6 +647,10 @@ function toMenu() {
     color: $roast;
     font-weight: 700;
   }
+  &.ended {
+    background: #d8d8d0;
+    color: $ink-3;
+  }
 }
 .rules,
 .records {
@@ -526,8 +765,9 @@ function toMenu() {
   display: flex;
   align-items: center;
   box-shadow: $shadow-coffee;
-  &.busy {
-    opacity: 0.7;
+  &.busy,
+  &.off {
+    opacity: 0.5;
   }
 }
 .pb-btn-t {

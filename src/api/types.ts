@@ -282,3 +282,71 @@ export interface OrderListQuery {
   pageSize?: number
   orderStatus?: OrderStatus
 }
+
+/* ---------------- 充值（第三组） ---------------- */
+
+/** 充值档位（契约 RechargeTier；金额单位分） */
+export interface RechargeTierDto {
+  /** 档位编码，如 TIER_500_100 */
+  tierCode: string
+  name: string
+  /** 实充金额（分） */
+  amountCent: number
+  /** 赠送金额（分） */
+  bonusCent: number
+  /** 到账合计（分） */
+  totalCent: number
+  /** 展示文案，如「相当于 8.3 折」 */
+  note?: string
+  /** 是否推荐档位 */
+  hot?: boolean
+  campaignId?: string
+  /** 当前是否可购买；false 时前端置灰但保留展示 */
+  available: boolean
+}
+
+export type RechargeStatus = 'pending' | 'paid' | 'closed' | 'failed'
+
+/** 微信小程序支付拉起参数（仅创建充值单响应返回，勿缓存） */
+export interface WxPayParamsDto {
+  prepayId: string
+  /** 秒级时间戳（字符串） */
+  timeStamp: string
+  nonceStr: string
+  package: string
+  signType: 'RSA' | 'HMAC-SHA256'
+  paySign: string
+}
+
+/** 充值单（契约 RechargeOrder） */
+export interface RechargeOrderDto {
+  /** 充值单号，同时是微信 out_trade_no */
+  rechargeNo: string
+  tierCode: string
+  campaignId?: string
+  amountCent: number
+  bonusCent: number
+  totalCent: number
+  /** 第一切片固定 wechat */
+  payMode: 'wechat'
+  status: RechargeStatus
+  /** 仅 status=failed 时有值（如 40922） */
+  failCode?: number | null
+  /** 仅 status=failed 时有值 */
+  failMsg?: string | null
+  /** ISO-8601，仅 pending 有意义 */
+  expireAt?: string
+  paidAt?: string
+  flowNo?: string
+  /** 到账后可用余额（分） */
+  balanceAfterCent?: number
+  /** 到账后赠送余额（分） */
+  giftBalanceAfterCent?: number
+  wx?: WxPayParamsDto
+}
+
+/** 创建充值单请求（契约 body；幂等键走 Header） */
+export interface CreateRechargeReq {
+  tierCode: string
+  payMode?: 'wechat'
+}
