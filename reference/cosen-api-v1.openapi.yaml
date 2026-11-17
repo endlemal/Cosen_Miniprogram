@@ -1,9 +1,9 @@
 openapi: 3.1.0
 info:
   title: cosen 业务接口
-  version: 1.4.0
+  version: 1.4.1
   description: 可森小程序后端第一切片 API 契约（ETL 后的 DDL/model 对齐版），供 Apifox 审阅。后台管理接口见「RuoYi
-    基础接口」模块。v1.1.0：按飞书多维表格口径对齐，Product.badge 改为多选数组（招牌/人气/限定/新品/可森特调），CouponUser.source 枚举补 redeem（积分或活动兑换发放）；接口路径、参数、错误码语义不变。v1.2.0：错误码响应示例对齐 error-codes.md v1.0.0（新增 40106/40002/42902/50002/50301 与券冲突 40908–40910 示例，修正 40002 与 40003、42901 与 42902 的误用），接口路径、参数与错误码语义不变。v1.3.0：充值纳入第一切片，新增 3 个接口（档位列表 / 创建充值单 / 状态查询）、RechargeTier/RechargeOrder/WxPayParams 模型、40407 充值单不存在或非本人，以及 40904/40905/40906/42904 示例；既有 16 个接口不变。v1.4.0：成功响应补齐 traceId（AppResult/PageResult required + 19 个 200 示例），RechargeOrder 增加可选 failCode/failMsg，充值创建 409 移除回调专属 40906，products 的 category 参数明确为分类 code（非分类 ID）；接口路径与参数不变。
+    基础接口」模块。v1.1.0：按飞书多维表格口径对齐，Product.badge 改为多选数组（招牌/人气/限定/新品/可森特调），CouponUser.source 枚举补 redeem（积分或活动兑换发放）；接口路径、参数、错误码语义不变。v1.2.0：错误码响应示例对齐 error-codes.md v1.0.0（新增 40106/40002/42902/50002/50301 与券冲突 40908–40910 示例，修正 40002 与 40003、42901 与 42902 的误用），接口路径、参数与错误码语义不变。v1.3.0：充值纳入第一切片，新增 3 个接口（档位列表 / 创建充值单 / 状态查询）、RechargeTier/RechargeOrder/WxPayParams 模型、40407 充值单不存在或非本人，以及 40904/40905/40906/42904 示例；既有 16 个接口不变。v1.4.0：成功响应补齐 traceId（AppResult/PageResult required + 19 个 200 示例），RechargeOrder 增加可选 failCode/failMsg，充值创建 409 移除回调专属 40906，products 的 category 参数明确为分类 code（非分类 ID）；接口路径与参数不变。v1.4.1：修正 40921 挂载（pay 专属，HTTP 400），从 POST /app/orders 的 409 移除。
 servers:
 - url: http://127.0.0.1:8080
   description: macbook 本机
@@ -1344,8 +1344,6 @@ paths:
                   $ref: '#/components/examples/amountMismatch'
                 splitMismatch:
                   $ref: '#/components/examples/splitMismatch'
-                payModeMismatch:
-                  $ref: '#/components/examples/payModeMismatch'
         '429':
           description: 限流/防刷（429xx）
           content:
