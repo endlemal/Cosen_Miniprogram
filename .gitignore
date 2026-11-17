@@ -19,3 +19,8 @@ dist
 *.njsproj
 *.sln
 *.sw?
+# 小程序 CI 产物
+dist/mp-preview-qr.png
+dist/mp-preview-info.json
+*.key
+private.*.key
