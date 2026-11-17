@@ -1,7 +1,7 @@
 # 小程序请求层（`src/api`）
 
-契约来源：`reference/cosen-api-v1.openapi.yaml`（v1.3.0，19 接口），错误码口径见契约仓库 `docs/error-codes.md`。
-本轮只接**第一组 9 个接口**（认证 4 + 会员 2 + 商品目录 3），其余接口只留位。
+契约来源：`reference/cosen-api-v1.openapi.yaml`（v1.4.0，19 接口），错误码口径见契约仓库 `docs/error-codes.md`。
+已接**第一组 9 个 + 第二组 7 个 = 16 个接口**（认证 4 + 会员 2 + 商品目录 3 + 券 2 + 订单/支付 5），充值 3 个只留位。
 
 当前仓库默认仍是 **纯 mock 版**：`useMock = true`，页面继续读 `src/mock/*`，请求层不会被调用。
 后端（8080/8081）没起时也能正常跑 `npm run build:h5`。
@@ -22,6 +22,9 @@ src/api/auth.ts          POST /app/auth/login/wechat、/app/auth/login/mock、
 src/api/member.ts        GET /app/member/profile、GET /app/member/balance/flows
 src/api/catalog.ts       GET /app/catalog/categories、/app/catalog/products、
                          /app/catalog/products/{code}（含 DTO → 页面模型适配）
+src/api/coupon.ts        GET /app/coupons、/app/coupons/{couponNo}（含五态映射）
+src/api/order.ts         POST /app/orders、GET /app/orders、/app/orders/{orderNo}、
+                         pay、cancel（含 DTO → 页面模型与状态文案）
 src/api/index.ts         统一出口
 ```
 
@@ -149,12 +152,27 @@ VITE_COSEN_API_BASE_URL=http://127.0.0.1:8080
 ### 4.5 调用方式
 
 ```ts
-import { getMemberProfile, listProducts, toProduct, centText } from '@/api'
+import {
+  getMemberProfile, listProducts, toProduct, centText,
+  listMyCoupons, toCoupon, createOrder, getOrder, payOrder, cancelOrder, genIdempotencyKey
+} from '@/api'
 
 const profile = await getMemberProfile()               // 已注入 token，data 已拆包
 const page = await listProducts({ category: 'matcha' }) // { total, rows }
 const products = page.rows.map((dto) => toProduct(dto, 'matcha'))
 console.log(centText(profile.balanceCent ?? 0))        // 分 → 元展示
+
+// 第二组：券 / 下单 / 支付
+const coupons = (await listMyCoupons()).map(toCoupon)
+const order = await createOrder({
+  items: [{ productCode: 'm1', qty: 2 }],
+  couponId: coupons[0]?.couponNo,   // 注意：是 couponNo，不是本地 id
+  payMode: 'wechat',
+  idempotencyKey: genIdempotencyKey()
+})
+const detail = await getOrder(order.orderNo)           // 详情自带 items
+await payOrder(order.orderNo, { payMode: 'wechat' })  // balance / wechat；mixed 暂不开放
+await cancelOrder(order.orderNo)
 ```
 
 错误：`try/catch` 拿到的是 `ApiError`（`code` / `httpStatus` / `traceId` / `action` / `message`），
@@ -169,25 +187,82 @@ console.log(centText(profile.balanceCent ?? 0))        // 分 → 元展示
 | 商品角标：契约 `badge` 为 `array<string>` | 前端类型改数组；`normalizeBadges()` 兼容旧 mock 字符串；商品卡多个角标显示「首个 +N」 | `types/index.ts`、`utils/badge.ts`、`components/ProductCard.vue`、`mock/products.ts` |
 | 组合支付 `mixed`（契约有、mock 无） | 本轮不做 UI；类型加 `PayMode`，结算页留 `TODO(mixed)` 注释 | `types/index.ts`、`pages/checkout/index.vue` |
 
-## 6. mock / 真实分支约定
+## 6. 第二组：券 / 订单 / 支付（契约 v1.4.0）
+
+### 6.1 模块与函数
+
+| 模块 | 函数 | 契约 |
+|---|---|---|
+| `coupon.ts` | `listMyCoupons(status?)` | `GET /app/coupons`（status 五态过滤，缺省全部，上限 100） |
+| `coupon.ts` | `getCoupon(couponNo)` | `GET /app/coupons/{couponNo}`（非本人/不存在统一 40403） |
+| `order.ts` | `createOrder(input)` | `POST /app/orders`（body/Header 幂等键） |
+| `order.ts` | `listMyOrders({pageNum,pageSize,orderStatus})` | `GET /app/orders` → `{total, rows}` |
+| `order.ts` | `getOrder(orderNo)` | `GET /app/orders/{orderNo}`（items 随详情返回） |
+| `order.ts` | `payOrder(orderNo,{payMode,...})` | `POST /app/orders/{orderNo}/pay` |
+| `order.ts` | `cancelOrder(orderNo)` | `POST /app/orders/{orderNo}/cancel` |
+
+适配：`toCoupon/toCoupons`、`toOrderView`（详情）、`toOrderListItem`（列表）、`orderStatusText/payModeText`。
+
+### 6.2 下单幂等键（重点）
+
+- `createOrder` 会同时带 `Idempotency-Key` Header 和 `body.idempotencyKey`，值相同（契约二选一，前后端任一侧读都能命中）。
+- **同一次提交的重试必须复用同一个 key**：结算页 `pages/checkout` 用 `pendingIdempotencyKey` + payload 签名保存；
+  - 购物车 / 券 / 支付方式 / 备注变化 → 签名变化 → 重新生成 key；
+  - 请求失败（网络、5xx、409xx）保留 key，用户再点提交仍走幂等；
+  - `40007`（同 key 不同 payload）→ 丢弃旧 key，下次重新生成；
+  - 成功后清空 key。
+- `40925` = 幂等重复下单：`request.ts` 已按成功放行并拆出 `data`，结算页按成功跳 `/pages/order/index?no=<orderNo>`，**不弹错误 toast**。
+- `40926` = 重复支付回调：同样按成功放行。
+
+### 6.3 券五态与错误码
+
+- 真实券列表 `status` 原样映射 `unused/used/expired/transferred/frozen` → 页面 `Coupon.status`；
+  券页 Tab 仍由 `store.couponState()` 统一派生（`unused` → `available`，并兼容 mock 的按有效期判过期）。
+- `40403`（券不存在/非本人）：`request.ts` 对 `/app/coupons*` 路径不弹错，券页 catch 后按空包处理。
+- `40101/40104/40105/40106`：请求层清 token → toast → `reLaunch('/pages/login/index')`。
+- 兑换码仅 mock 演示：契约没有兑换码通道，真实模式券页隐藏兑换入口。
+
+### 6.4 订单页（`pages/order/index`）
+
+- 路由：
+  - 无参数 → 订单列表（真实 `listMyOrders` / mock `state.orders`）；
+  - `?no=<16 位订单号>` → 真实详情（`getOrder`，带 items）；
+  - `?id=<本地 id>` → mock 详情（保持原演示行为）。
+- 取消：`cancelOrder`；`40916`（paid/making/ready，状态不允许取消）文案「订单状态已变化，请刷新」，
+  `40918`（completed，已完成/已取消）文案「订单已取消或已完成」，两者由 `ERROR_RULES` 区分；
+  `cancelled` 重复取消是幂等成功。
+- 支付：`payOrder` 先支持 `balance` / `wechat`；`mixed` 仍不做 UI，按钮层提示「组合支付暂未开放」并留 `TODO(mixed)`，
+  `PayOrderReq.balancePayCent/wechatPayCent` 参数位已就绪（40920/40921 文案已在映射表）。
+- 40917（订单已支付）、40903（余额不足）、40922（微信失败）等由请求层 toast，页面刷新详情。
+
+### 6.5 结算页真实分支（`pages/checkout`）
+
+- `useMock=false` 时：购物车 → `{productCode: item.productId, qty}`；券 → `couponNo`；`payMode` 用当前选择；备注原样。
+- 成功后清购物车并跳 `/pages/order/index?no=<orderNo>`（40925 幂等重放也走这里）。
+- 券列表在真实模式改为 `listMyCoupons`（与券页同源），mock 分支完全不变。
+- mock 分支仍走 `placeOrder` 与 1200/700ms 演示动画。
+
+## 7. mock / 真实分支约定
 
 - `useMock` 默认 `true`：所有页面行为与之前一致，仍读 `src/mock/*`。
 - 已接真实分支的页面：
   - `pages/login/index.vue`：mock 模式写演示 token；真实模式调 `loginByWechat` / `loginByMock`。
   - `views/MineView.vue`：`useMock=false` 时 `onMounted` 调 `getMemberProfile()` 覆盖昵称、手机号、余额、积分、等级；失败回退 mock。
-  - 券背包 / 订单 / 充值：接口不在第一组，**本轮不接**，页面继续 mock。
-- 不一次性改 MenuView / checkout 的数据源：后端可能没起，先保留 mock 分支，后续按页面逐个切。
-- 新增页面 `/pages/login/index` 只作为 401 的落地页，不影响现有 tab 流程。
+  - `pages/coupons/index.vue`：真实模式 `listMyCoupons` + 五态 Tab；兑换码入口仅 mock。
+  - `pages/checkout/index.vue`：真实模式 `createOrder`（幂等键 + 券 couponNo）；mock 分支不变。
+  - `pages/order/index.vue`：真实模式列表/详情/支付/取消；mock 分支不变。
+- 仍未接真实接口：MenuView 商品目录渲染、充值页、MineView 最近订单卡片（点「全部订单」已可看真实列表）。
+- 不一次性把 MenuView 改成真实请求：后端可能没起，先保留 mock 分支，后续按页面逐个切。
 
-## 7. 后续留位（本轮只写类型/注释，不接）
+## 8. 后续留位（本轮只写类型/注释，不接）
 
-- 券：`GET /app/coupons`、`GET /app/coupons/{couponNo}`。
-- 订单：`POST /app/orders`、`GET /app/orders`、`GET /app/orders/{orderNo}`、`pay`、`cancel`；
-  下单需 `Idempotency-Key`，工具已备 `genIdempotencyKey()`；`40925/40926` 已按幂等成功放行。
 - 充值三接口（`docs/recharge-api-draft.md`）：`GET /app/recharge/tiers`、`POST /app/recharges`、
   `GET /app/recharges/{rechargeNo}`；错误码 40407/40904–40906/42904 已在映射表内。
+- 券详情页 UI（`getCoupon` 已封装，页面暂未接入）。
+- `mixed` 组合支付 UI（`PayOrderReq` 参数位已留，需补拆分输入与 40920/40921 处理）。
+- 订单列表分页加载（当前列表页取第 1 页 20 条；`listMyOrders` 已支持 pageNum/pageSize）。
 
-## 8. 验收命令
+## 9. 验收命令
 
 ```bash
 npm run type-check   # vue-tsc --noEmit，基线 0 错误，本轮必须保持

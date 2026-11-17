@@ -302,7 +302,9 @@ async function execute(path: string, options: RequestOptions = {}): Promise<unkn
   }
 
   const err = makeError(code ?? statusToCode(response.statusCode, !!token), serverMsg, response.statusCode, traceId)
-  handleError(err, silent, suppressAuthRedirect)
+  // 券详情 40403 = 不存在/非本人，页面按空状态处理，不弹错（error-codes.md §5.2）
+  const quietCouponMiss = !silent && path.startsWith('/app/coupons') && err.code === 40403
+  handleError(err, silent || quietCouponMiss, suppressAuthRedirect)
   throw err
 }
 

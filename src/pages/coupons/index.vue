@@ -13,8 +13,8 @@
         <text class="intro-s">礼品券由店长和店员发放：下雨天、生日月、新品上市时多留意。</text>
       </view>
 
-      <!-- 兑换码 -->
-      <view class="redeem">
+      <!-- 兑换码：mock 演示专用；契约无兑换码通道，真实模式隐藏 -->
+      <view v-if="useMock" class="redeem">
         <input
           v-model="code"
           class="r-input"
@@ -28,7 +28,7 @@
           <text class="r-btn-t">兑换</text>
         </view>
       </view>
-      <text class="r-hint">演示兑换码：MOSS2026、MATCHA88</text>
+      <text v-if="useMock" class="r-hint">演示兑换码：MOSS2026、MATCHA88</text>
 
       <!-- tabs -->
       <view class="tabs">
@@ -39,7 +39,10 @@
         <view class="tab-ind" :style="{ left: indLeft }" />
       </view>
 
-      <view class="list">
+      <view v-if="loading" class="empty">
+        <text class="empty-t">正在加载券包…</text>
+      </view>
+      <view v-else class="list">
         <CouponCard
           v-for="c in list"
           :key="c.id"
@@ -57,11 +60,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { onUnload } from '@dcloudio/uni-app'
 import NavBar from '@/components/NavBar.vue'
 import Icon from '@/components/Icon.vue'
 import CouponCard from '@/components/CouponCard.vue'
+import { useMock } from '@/config/env'
+import { listMyCoupons, toCoupons } from '@/api'
+import type { Coupon } from '@/types'
 import { state, couponState, redeemCode, markCouponsSeen, backToTab, type CouponState } from '@/store'
 
 // 契约 CouponUser.status 五态：可用 / 已用 / 过期 / 转赠 / 冻结
@@ -75,18 +81,36 @@ const TABS: { key: CouponState; label: string }[] = [
 const tab = ref<CouponState>('available')
 const code = ref('')
 
-// TODO(api): 券背包 GET /app/coupons 属下一轮接口；接入后在 useMock 分支外改调 src/api。
+/* ---- 数据源：mock 默认；useMock=false 时调 GET /app/coupons ---- */
+const realCoupons = ref<Coupon[] | null>(null)
+const loading = ref(false)
+const source = computed<Coupon[]>(() => (useMock ? state.coupons : realCoupons.value ?? []))
+
+// 契约五态 status 原样映射；券页 Tab 由 couponState() 统一派生（unused → available）
 const list = computed(() =>
-  state.coupons
+  source.value
     .filter((c) => couponState(c) === tab.value)
     .sort((a, b) => Number(!!b.isNew) - Number(!!a.isNew) || a.endAt - b.endAt)
 )
 const counts = computed(() => {
   const r: Record<CouponState, number> = { available: 0, used: 0, expired: 0, transferred: 0, frozen: 0 }
-  state.coupons.forEach((c) => r[couponState(c)]++)
+  source.value.forEach((c) => r[couponState(c)]++)
   return r
 })
-const newCount = computed(() => state.coupons.filter((c) => c.isNew && couponState(c) === 'available').length)
+const newCount = computed(() => source.value.filter((c) => c.isNew && couponState(c) === 'available').length)
+
+onMounted(async () => {
+  if (useMock) return
+  loading.value = true
+  try {
+    realCoupons.value = toCoupons(await listMyCoupons())
+  } catch {
+    // 40101/40104/40106 请求层已清 token 跳登录；40403 按空包处理（request 层不弹错）
+    realCoupons.value = []
+  } finally {
+    loading.value = false
+  }
+})
 // 5 个 Tab：indicator 宽 = (100% - 16rpx) / 5；left = 8rpx + i * 宽
 const indLeft = computed(() => {
   const index = Math.max(0, TABS.findIndex((t) => t.key === tab.value))
@@ -116,7 +140,9 @@ function useIt() {
   backToTab('menu')
 }
 
-onUnload(() => markCouponsSeen())
+onUnload(() => {
+  if (useMock) markCouponsSeen()
+})
 </script>
 
 <style lang="scss" scoped>

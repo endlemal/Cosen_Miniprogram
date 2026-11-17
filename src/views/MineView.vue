@@ -97,6 +97,7 @@
       <view class="sec-head">
         <text class="sec-t">最近订单</text>
         <text class="sec-s">共 {{ state.orders.length }} 单</text>
+        <text class="sec-more" hover-class="tap-on" @tap="go('/pages/order/index')">全部订单 ›</text>
       </view>
       <view v-if="!state.orders.length" class="empty">
         <text class="empty-t">还没有订单，去点一杯吧</text>
@@ -504,6 +505,12 @@ function onReset() {
   margin-left: 14rpx;
   font-size: 23rpx;
   color: $ink-3;
+}
+.sec-more {
+  margin-left: auto;
+  font-size: 23rpx;
+  color: $toffee;
+  font-weight: 600;
 }
 .empty {
   margin: 0 28rpx;

@@ -51,7 +51,7 @@ export function toCategory(dto: CategoryDto): Category {
 }
 
 /** artJson 是契约里的自由对象；字段不全时回退到默认插画，避免页面崩 */
-function toArt(raw: Record<string, unknown> | undefined): DrinkArtSpec {
+export function toArtSpec(raw: Record<string, unknown> | undefined): DrinkArtSpec {
   if (!raw) return FALLBACK_ART
   const liquid = Array.isArray(raw.liquid)
     ? raw.liquid.filter((item): item is string => typeof item === 'string')
@@ -82,7 +82,7 @@ export function toProduct(dto: ProductDto, categoryCode?: string): Product {
     sold: dto.soldCount ?? 0,
     ingredients: dto.ingredientsJson ?? [],
     specs: dto.specGroupsJson ?? [],
-    art: toArt(dto.artJson),
+    art: toArtSpec(dto.artJson),
     tile: toTile(dto.tileColorStart, dto.tileColorEnd),
     badge: normalizeBadges(dto.badge)
   }

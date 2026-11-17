@@ -157,3 +157,128 @@ export interface ProductListQuery {
   /** 分类 code，如 matcha；未知编码返回空列表 */
   category?: string
 }
+
+/* ---------------- 优惠券（第二组） ---------------- */
+
+/** 券状态（契约 CouponUser.status 五态） */
+export type CouponUserStatus = 'unused' | 'used' | 'expired' | 'transferred' | 'frozen'
+
+/** 券发放来源：grant 后台发放 / redeem 积分或活动兑换 / transfer 好友转赠 */
+export type CouponSource = 'grant' | 'redeem' | 'transfer'
+
+/** 券背包 / 券详情（契约 CouponUser） */
+export interface CouponUserDto {
+  id?: string
+  couponNo: string
+  title: string
+  type: 'cash' | 'discount' | 'gift'
+  /** cash/gift 面额（分）；discount 时为 null */
+  valueCent?: number | null
+  /** 折扣率，如 0.85（仅 discount） */
+  discountRate?: number | null
+  /** 门槛（分），0 无门槛 */
+  thresholdCent?: number
+  /** 折扣券最高减（分） */
+  maxOffCent?: number | null
+  issuer?: string
+  reason?: string
+  /** ISO-8601 */
+  startAt: string
+  /** ISO-8601 */
+  endAt: string
+  status: CouponUserStatus
+  usedAt?: string | null
+  orderId?: string | null
+  source?: CouponSource
+  transferNo?: string | null
+  transferAt?: string | null
+  acceptAt?: string | null
+  createTime?: string
+  updateTime?: string
+}
+
+/* ---------------- 订单 / 支付（第二组） ---------------- */
+
+export type OrderPayMode = 'balance' | 'wechat' | 'mixed'
+export type OrderPayStatus = 'unpaid' | 'paid' | 'refunded' | 'closed'
+export type OrderStatus = 'created' | 'paid' | 'making' | 'ready' | 'completed' | 'cancelled'
+
+/** 订单列表模型（契约 Order，脱敏；不含 items） */
+export interface OrderDto {
+  id: string
+  orderNo: string
+  pickupCode?: string
+  storeId?: string
+  /** 契约仅 pickup */
+  fulfillType: 'pickup'
+  itemCount?: number
+  subtotalCent?: number
+  couponOffCent?: number
+  payableCent?: number
+  balancePayCent?: number
+  wechatPayCent?: number
+  /** 使用的用户券 ID（bigint 字符串），未用券为 null；不是 couponNo */
+  couponId?: string | null
+  payMode: OrderPayMode
+  payStatus: OrderPayStatus
+  orderStatus: OrderStatus
+  remark?: string
+  createTime: string
+  paidAt?: string | null
+  finishedAt?: string | null
+  cancelledAt?: string | null
+}
+
+/** 订单明细快照（契约 OrderItem） */
+export interface OrderItemDto {
+  id?: string
+  productCode: string
+  productName: string
+  productNameEn?: string
+  specText?: string
+  specJson?: Record<string, string>
+  unitPriceCent: number
+  qty: number
+  amountCent: number
+  /** CSS 插画快照 */
+  artJson?: Record<string, unknown>
+}
+
+/** 订单详情（契约 OrderDetail = Order + items） */
+export interface OrderDetailDto extends OrderDto {
+  items: OrderItemDto[]
+}
+
+/** 下单明细（契约 CreateOrderItemReq） */
+export interface CreateOrderItemReq {
+  productCode: string
+  /** 1..99 */
+  qty: number
+  /** 规格选择，如 { size: '大杯', temp: '少冰' }；当前购物车只有 specText，暂不传 */
+  spec?: Record<string, string>
+}
+
+/** 下单请求（契约 CreateOrderReq；幂等键 Header 或 body 二选一必填） */
+export interface CreateOrderReq {
+  /** 1..50 项 */
+  items: CreateOrderItemReq[]
+  /** 使用的用户券 couponNo（不是券 ID） */
+  couponId?: string
+  payMode?: OrderPayMode
+  remark?: string
+  /** 与 Header Idempotency-Key 二选一；前端两者都带同一个值 */
+  idempotencyKey?: string
+}
+
+/** 支付请求（契约 PayOrderReq；mixed 时两个金额列均须 > 0） */
+export interface PayOrderReq {
+  payMode: OrderPayMode
+  balancePayCent?: number
+  wechatPayCent?: number
+}
+
+export interface OrderListQuery {
+  pageNum?: number
+  pageSize?: number
+  orderStatus?: OrderStatus
+}

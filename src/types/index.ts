@@ -79,7 +79,10 @@ export type CouponType = 'cash' | 'discount' | 'gift'
 export type CouponStatus = 'unused' | 'used' | 'expired' | 'transferred' | 'frozen'
 
 export interface Coupon {
+  /** mock 用本地 id；真实数据映射为 couponNo */
   id: string
+  /** 契约券实例号（真实接口下单时作为 CreateOrderReq.couponId） */
+  couponNo?: string
   title: string
   type: CouponType
   /** cash: 减免金额；discount: 折扣率(0.85)；gift: 兑换上限金额 */

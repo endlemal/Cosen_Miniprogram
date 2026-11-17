@@ -148,14 +148,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import NavBar from '@/components/NavBar.vue'
 import Icon from '@/components/Icon.vue'
 import Sheet from '@/components/Sheet.vue'
 import DrinkArt from '@/components/DrinkArt.vue'
 import CouponCard from '@/components/CouponCard.vue'
 import { STORE } from '@/mock/products'
-import { state, cartTotal, evalCoupon, bestCoupon, couponState, placeOrder, backToTab } from '@/store'
+import { useMock } from '@/config/env'
+import { ApiError, createOrder, genIdempotencyKey, listMyCoupons, toCoupons, type CreateOrderReq } from '@/api'
+import { state, cartTotal, evalCoupon, couponState, placeOrder, backToTab } from '@/store'
+import type { Coupon } from '@/types'
 import { money, money2 } from '@/utils/format'
 
 const items = computed(() => state.cart)
@@ -165,22 +168,45 @@ const subtotal = computed(() => cartTotal.value)
 state.mode = 'pickup'
 const fee = computed(() => 0)
 
-/* ---- 礼品券：默认自动选优惠最大的一张 ---- */
-const couponId = ref(bestCoupon(state.cart, cartTotal.value)?.id || '')
+/* ---- 礼品券：mock 读本地；真实模式读 GET /app/coupons，默认自动选优惠最大的一张 ---- */
+const couponId = ref('')
 const couponOpen = ref(false)
+const realCoupons = ref<Coupon[]>([])
+const couponSource = computed<Coupon[]>(() => (useMock ? state.coupons : realCoupons.value))
 const couponRows = computed(() =>
-  state.coupons
+  couponSource.value
     .filter((c) => couponState(c) === 'available')
     .map((c) => ({ coupon: c, ...evalCoupon(c, items.value, subtotal.value) }))
     .sort((a, b) => Number(b.ok) - Number(a.ok) || b.off - a.off)
 )
 const usableCount = computed(() => couponRows.value.filter((r) => r.ok).length)
-const chosen = computed(() => state.coupons.find((c) => c.id === couponId.value))
+const chosen = computed(() => couponSource.value.find((c) => c.id === couponId.value))
 const discount = computed(() => {
   if (!chosen.value) return 0
   const r = evalCoupon(chosen.value, items.value, subtotal.value)
   return r.ok ? r.off : 0
 })
+
+function pickBestCoupon() {
+  if (chosen.value && evalCoupon(chosen.value, items.value, subtotal.value).ok) return
+  const best = couponRows.value.find((row) => row.ok)
+  couponId.value = best ? best.coupon.id : ''
+}
+
+// mock 分支保持「进页面即自动选最大优惠券」的原行为
+if (useMock) pickBestCoupon()
+
+onMounted(async () => {
+  if (useMock) return
+  try {
+    realCoupons.value = toCoupons(await listMyCoupons())
+  } catch {
+    // 40101/40104/40106 请求层已清 token 跳登录；其余错误请求层已 toast
+    realCoupons.value = []
+  }
+  pickBestCoupon()
+})
+
 // 购物车变化导致券不再满足条件时，自动取消
 watch(subtotal, () => {
   if (chosen.value && !evalCoupon(chosen.value, items.value, subtotal.value).ok) couponId.value = ''
@@ -189,6 +215,8 @@ watch(subtotal, () => {
 const total = computed(() => Math.max(0, Math.round((subtotal.value - discount.value + fee.value) * 100) / 100))
 
 /* ---- 支付 ---- */
+// TODO(api): 真实模式下余额展示/可付判断应来自 getMemberProfile；
+// 本轮只接订单创建，结算页余额仍沿用 mock state，服务端最终校验（40903）。
 // TODO(mixed): 契约 payMode 含 mixed（balancePayCent + wechatPayCent = payableCent），
 // 本轮不做组合支付 UI；接订单接口时需处理 40920（拆分不平）/ 40921（支付方式不支持）。
 const balanceEnough = computed(() => state.balance >= total.value)
@@ -211,11 +239,42 @@ function toRecharge() {
   uni.navigateTo({ url: '/pages/recharge/index' })
 }
 
-function submit() {
-  if (busy.value || !items.value.length) return
-  if (pay.value === 'balance' && !balanceEnough.value) return pickBalance()
-  busy.value = true
-  uni.showLoading({ title: pay.value === 'wechat' ? '正在调起支付' : '余额支付中', mask: true })
+/* ---- 下单：同一次提交的重试复用同一个 Idempotency-Key ---- */
+let pendingIdempotencyKey = ''
+let pendingPayloadSignature = ''
+
+function idempotencyKeyFor(signature: string): string {
+  if (!pendingIdempotencyKey || pendingPayloadSignature !== signature) {
+    pendingIdempotencyKey = genIdempotencyKey()
+    pendingPayloadSignature = signature
+  }
+  return pendingIdempotencyKey
+}
+
+function realOrderPayload(): CreateOrderReq {
+  return {
+    items: items.value.map((item) => ({ productCode: item.productId, qty: item.qty })),
+    // 契约 CreateOrderReq.couponId 是券实例号 couponNo（不是本地 id）
+    couponId: chosen.value?.couponNo || undefined,
+    payMode: pay.value,
+    remark: remark.value.trim()
+  }
+}
+
+async function submitReal() {
+  const payload = realOrderPayload()
+  const signature = JSON.stringify(payload)
+  const detail = await createOrder({ ...payload, idempotencyKey: idempotencyKeyFor(signature) })
+  // 40925（幂等重放）已由请求层按成功放行，落到与成功相同的分支
+  state.cart.splice(0, state.cart.length)
+  pendingIdempotencyKey = ''
+  pendingPayloadSignature = ''
+  uni.hideLoading()
+  busy.value = false
+  uni.redirectTo({ url: `/pages/order/index?no=${detail.orderNo}&fresh=1` })
+}
+
+function submitMock() {
   setTimeout(() => {
     const order = placeOrder({
       items: items.value.map((i) => ({ ...i })),
@@ -231,6 +290,30 @@ function submit() {
     busy.value = false
     uni.redirectTo({ url: `/pages/order/index?id=${order.id}&fresh=1` })
   }, pay.value === 'wechat' ? 1200 : 700)
+}
+
+function submit() {
+  if (busy.value || !items.value.length) return
+  if (pay.value === 'balance' && !balanceEnough.value) return pickBalance()
+  busy.value = true
+  const loadingTitle = useMock
+    ? pay.value === 'wechat' ? '正在调起支付' : '余额支付中'
+    : '正在提交订单'
+  uni.showLoading({ title: loadingTitle, mask: true })
+  if (useMock) {
+    submitMock()
+    return
+  }
+  submitReal().catch((e) => {
+    uni.hideLoading()
+    busy.value = false
+    // 40007 = 同 key 不同 payload，丢弃旧 key，下次提交重新生成；
+    // 其它错误保留 key，同 payload 重试仍走幂等。
+    if (e instanceof ApiError && e.code === 40007) {
+      pendingIdempotencyKey = ''
+      pendingPayloadSignature = ''
+    }
+  })
 }
 </script>
 
