@@ -2,7 +2,7 @@
  * 商品图片 URL 归一化（契约 v1.5.0：Product.coverUrl / Product.gallery）。
  *
  * 后端只存相对路径（如 `/images/products/m1-0-3f2a1c9d.png`），域名由前端拼：
- *   1. undefined / null / '' → ''（页面回退 CSS 插画 DrinkArt）；
+ *   1. undefined / null / '' → ''（页面回退「图片待上传」空占位）；
  *   2. 绝对 http(s) URL 原样返回（将来换 CDN 时不用改调用方）；
  *   3. 相对路径拼现有 API base（与 request.ts 的 buildUrl 同口径，避免双斜杠）；
  *   4. mock 模式（useMock=true）一律返回 ''，保证纯 mock 版外观与现在完全一致。

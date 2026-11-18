@@ -8,8 +8,9 @@
     </template>
     <scroll-view scroll-y class="list" :style="{ height: listHeight }">
       <view v-for="it in state.cart" :key="it.key" class="row">
-        <view class="thumb" :style="{ background: 'linear-gradient(160deg,' + it.tile[0] + ',' + it.tile[1] + ')' }">
-          <DrinkArt :spec="it.art" :size="74" />
+        <view class="thumb">
+          <image v-if="coverOf(it)" class="thumb-img" :src="coverOf(it)" mode="aspectFill" />
+          <ProductImagePlaceholder v-else compact />
         </view>
         <view class="info">
           <text class="name">{{ it.name }}</text>
@@ -64,11 +65,15 @@ import { computed, watch } from 'vue'
 import Sheet from './Sheet.vue'
 import Icon from './Icon.vue'
 import Stepper from './Stepper.vue'
-import DrinkArt from './DrinkArt.vue'
+import ProductImagePlaceholder from './ProductImagePlaceholder.vue'
 import { state, cartCount, cartTotal, changeQty, clearCart, rechargeCart, rechargeCartTotal, changeRechargeQty } from '@/store'
 import { money } from '@/utils/format'
+import { mediaUrl } from '@/utils/media'
 
 const props = defineProps<{ show: boolean }>()
+
+// 购物车缩略图：有商品封面用封面，无图显示空占位（mock 模式 mediaUrl 恒为 ''）
+const coverOf = (it: { coverUrl?: string }) => mediaUrl(it.coverUrl)
 const emit = defineEmits<{ (e: 'update:show', v: boolean): void; (e: 'checkout'): void; (e: 'recharge'): void }>()
 
 const listHeight = computed(() => Math.min((state.cart.length + rechargeCart.value.length) * 168 + 20, 680) + 'rpx')
@@ -112,14 +117,22 @@ function onClear() {
   border-bottom: 1rpx solid $line;
 }
 .thumb {
+  position: relative;
   width: 116rpx;
   height: 116rpx;
   border-radius: 28rpx;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   overflow: hidden;
   flex-shrink: 0;
+}
+.thumb-img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
 }
 .recharge-thumb {
   align-items: center;

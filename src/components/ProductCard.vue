@@ -17,12 +17,12 @@
       </view>
     </view>
     <view class="tile" :style="{ background: tileBg }" />
-    <!-- 契约 v1.5.0：有封面图时用真实图片覆盖插画区域；无图 / 加载失败回退 DrinkArt -->
+    <!-- 契约 v1.5.0：有封面图时显示图片；无图 / 加载失败显示空占位（等待图片上传） -->
     <view v-if="coverSrc && !coverBroken" class="cover">
       <image class="cover-img" :src="coverSrc" mode="aspectFill" @error="onCoverError" />
     </view>
     <view v-else class="art">
-      <DrinkArt :spec="product.art" :size="196" />
+      <ProductImagePlaceholder />
     </view>
     <view class="plus" hover-class="tap-on" @tap.stop="emit('add')">
       <Icon name="plus" :size="38" color="#462719" :stroke="3" />
@@ -38,7 +38,7 @@ import { computed, ref, watch } from 'vue'
 import type { Product } from '@/types'
 import Icon from './Icon.vue'
 import Notch from './Notch.vue'
-import DrinkArt from './DrinkArt.vue'
+import ProductImagePlaceholder from './ProductImagePlaceholder.vue'
 import { badgeText, normalizeBadges } from '@/utils/badge'
 import { mediaCover } from '@/utils/media'
 
@@ -48,7 +48,7 @@ const tileBg = computed(() => `linear-gradient(165deg, ${props.product.tile[0]} 
 // 契约 badge 是数组；兼容旧 mock 字符串，多个角标显示「首个 +N」
 const badges = computed(() => normalizeBadges(props.product.badge))
 const badgeLabel = computed(() => badgeText(badges.value))
-// 契约 v1.5.0 封面：mock 模式恒为 ''（外观走 DrinkArt），真实模式拼 API base
+// 契约 v1.5.0 封面：mock 模式恒为 ''（外观走空占位），真实模式拼 API base
 const coverSrc = computed(() => mediaCover(props.product.coverUrl, props.product.gallery))
 const coverBroken = ref(false)
 watch(coverSrc, () => {
@@ -157,8 +157,12 @@ function onCoverError() {
 }
 .art {
   position: absolute;
-  left: 9rpx;
-  top: -4rpx;
+  left: 3rpx;
+  top: 47rpx;
+  width: 208rpx;
+  height: 250rpx;
+  border-radius: 37rpx;
+  overflow: hidden;
 }
 .plus {
   position: absolute;

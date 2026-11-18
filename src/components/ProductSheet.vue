@@ -4,7 +4,7 @@
     <template v-if="product">
       <scroll-view scroll-y class="body" :style="{ height: bodyHeight }">
         <view class="hero" :style="{ background: heroBg }">
-          <!-- 契约 v1.5.0：相册非空时顶部轮播；无图或全部加载失败回退现有插画 -->
+          <!-- 契约 v1.5.0：相册非空时顶部轮播；无图或全部加载失败显示空占位（等待图片上传） -->
           <swiper
             v-if="visibleShots.length"
             class="shots"
@@ -17,8 +17,8 @@
               <image class="shot" :src="src" mode="aspectFill" @error="onShotError(src)" />
             </swiper-item>
           </swiper>
-          <view v-if="showArt" class="art">
-            <DrinkArt :spec="product.art" :size="280" animated />
+          <view v-if="!visibleShots.length" class="empty">
+            <ProductImagePlaceholder />
           </view>
           <Notch bg="#FFF9F0" :r="36" pad="12rpx 30rpx 20rpx 34rpx">
             <view class="tag">
@@ -92,7 +92,7 @@ import Sheet from './Sheet.vue'
 import Notch from './Notch.vue'
 import Icon from './Icon.vue'
 import Stepper from './Stepper.vue'
-import DrinkArt from './DrinkArt.vue'
+import ProductImagePlaceholder from './ProductImagePlaceholder.vue'
 import { specGroupsOf } from '@/mock/products'
 import { addToCart, describeSelection, type Selection } from '@/store'
 import { money } from '@/utils/format'
@@ -122,7 +122,6 @@ const shots = computed(() => {
 const shotBroken = ref<string[]>([])
 // 加载失败的图片从轮播里摘掉；全部失败 / 本来无图时回退现有插画
 const visibleShots = computed(() => shots.value.filter((src) => !shotBroken.value.includes(src)))
-const showArt = computed(() => visibleShots.value.length === 0)
 
 function onShotError(src: string) {
   if (!shotBroken.value.includes(src)) shotBroken.value = [...shotBroken.value, src]
@@ -195,13 +194,12 @@ function add() {
 .shots :deep(.uni-swiper-dots-horizontal) {
   bottom: 76rpx;
 }
-.art {
+.empty {
   position: absolute;
   left: 0;
-  right: 0;
-  bottom: 70rpx;
-  display: flex;
-  justify-content: center;
+  top: 0;
+  width: 100%;
+  height: 500rpx;
 }
 .tag {
   display: flex;

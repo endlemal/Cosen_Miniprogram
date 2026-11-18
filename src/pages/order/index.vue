@@ -60,8 +60,8 @@
 
       <view class="box">
         <view v-for="it in order.items" :key="it.key" class="item">
-          <view class="thumb" :style="{ background: 'linear-gradient(160deg,' + it.tile[0] + ',' + it.tile[1] + ')' }">
-            <DrinkArt :spec="it.art" :size="62" />
+          <view class="thumb">
+            <ProductImagePlaceholder compact />
           </view>
           <view class="it-info">
             <text class="it-name">{{ it.name }}</text>
@@ -141,7 +141,7 @@ import { computed, ref } from 'vue'
 import { onLoad, onUnload } from '@dcloudio/uni-app'
 import NavBar from '@/components/NavBar.vue'
 import Icon from '@/components/Icon.vue'
-import DrinkArt from '@/components/DrinkArt.vue'
+import ProductImagePlaceholder from '@/components/ProductImagePlaceholder.vue'
 import { STORE } from '@/mock/products'
 import { useMock } from '@/config/env'
 import {
@@ -530,7 +530,7 @@ async function payNow() {
   height: 96rpx;
   border-radius: 26rpx;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   overflow: hidden;
   flex-shrink: 0;

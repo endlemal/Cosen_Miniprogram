@@ -137,7 +137,8 @@ export function addToCart(p: Product, groups: SpecGroup[], sel: Selection, qty =
       unitPrice: p.price + extra,
       qty,
       art: p.art,
-      tile: p.tile
+      tile: p.tile,
+      coverUrl: p.coverUrl || (p.gallery && p.gallery[0]) || ''
     })
   state.ui.cartPulse++
 }

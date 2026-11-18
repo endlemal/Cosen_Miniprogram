@@ -78,6 +78,8 @@ export interface CartItem {
   qty: number
   art: DrinkArtSpec
   tile: [string, string]
+  /** 契约 v1.5.0 商品封面（相对路径，来自商品；未上传为空） */
+  coverUrl?: string
 }
 
 export type CouponType = 'cash' | 'discount' | 'gift'

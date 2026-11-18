@@ -114,9 +114,9 @@
             v-for="(it, k) in o.items.slice(0, 2)"
             :key="it.key"
             class="o-thumb"
-            :style="{ background: 'linear-gradient(160deg,' + it.tile[0] + ',' + it.tile[1] + ')', marginLeft: k ? '-28rpx' : '0' }"
+            :style="{ marginLeft: k ? '-28rpx' : '0' }"
           >
-            <DrinkArt :spec="it.art" :size="60" />
+            <ProductImagePlaceholder compact />
           </view>
         </view>
         <view class="o-info">
@@ -144,7 +144,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import type { Order } from '@/types'
 import Icon from '@/components/Icon.vue'
-import DrinkArt from '@/components/DrinkArt.vue'
+import ProductImagePlaceholder from '@/components/ProductImagePlaceholder.vue'
 import { STORE } from '@/mock/products'
 import { USER } from '@/mock/seed'
 import { useMock } from '@/config/env'
@@ -542,9 +542,10 @@ function onReset() {
   border-radius: 26rpx;
   border: 4rpx solid $paper;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   overflow: hidden;
+  background: $latte;
 }
 .o-info {
   flex: 1;

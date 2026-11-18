@@ -33,8 +33,9 @@
       <!-- 商品 -->
       <view class="box">
         <view v-for="it in items" :key="it.key" class="item">
-          <view class="thumb" :style="{ background: 'linear-gradient(160deg,' + it.tile[0] + ',' + it.tile[1] + ')' }">
-            <DrinkArt :spec="it.art" :size="66" />
+          <view class="thumb">
+            <image v-if="mediaUrl(it.coverUrl)" class="thumb-img" :src="mediaUrl(it.coverUrl)" mode="aspectFill" />
+            <ProductImagePlaceholder v-else compact />
           </view>
           <view class="it-info">
             <text class="it-name">{{ it.name }}</text>
@@ -152,7 +153,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import NavBar from '@/components/NavBar.vue'
 import Icon from '@/components/Icon.vue'
 import Sheet from '@/components/Sheet.vue'
-import DrinkArt from '@/components/DrinkArt.vue'
+import ProductImagePlaceholder from '@/components/ProductImagePlaceholder.vue'
 import CouponCard from '@/components/CouponCard.vue'
 import { STORE } from '@/mock/products'
 import { useMock } from '@/config/env'
@@ -160,6 +161,7 @@ import { ApiError, createOrder, genIdempotencyKey, listMyCoupons, toCoupons, typ
 import { state, cartTotal, evalCoupon, couponState, placeOrder, backToTab } from '@/store'
 import type { Coupon } from '@/types'
 import { money, money2 } from '@/utils/format'
+import { mediaUrl } from '@/utils/media'
 
 const items = computed(() => state.cart)
 const subtotal = computed(() => cartTotal.value)
@@ -422,14 +424,22 @@ function submit() {
   padding: 14rpx 0;
 }
 .thumb {
+  position: relative;
   width: 100rpx;
   height: 100rpx;
   border-radius: 26rpx;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   overflow: hidden;
   flex-shrink: 0;
+}
+.thumb-img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
 }
 .it-info {
   flex: 1;

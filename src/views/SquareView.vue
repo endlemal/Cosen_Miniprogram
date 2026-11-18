@@ -39,7 +39,8 @@
 
         <view class="today" hover-class="tap-on" @tap="openToday">
           <view class="today-art">
-            <DrinkArt :spec="today.art" :size="54" />
+            <image v-if="todayCover" class="today-img" :src="todayCover" mode="aspectFill" />
+            <ProductImagePlaceholder v-else compact />
           </view>
           <view class="today-info">
             <text class="today-label">今日推荐</text>
@@ -101,9 +102,10 @@ import { ref } from 'vue'
 import type { Post } from '@/types'
 import Icon from '@/components/Icon.vue'
 import CoverArt from '@/components/CoverArt.vue'
-import DrinkArt from '@/components/DrinkArt.vue'
+import ProductImagePlaceholder from '@/components/ProductImagePlaceholder.vue'
 import { fetchPosts } from '@/mock/posts'
 import { getProduct } from '@/mock/products'
+import { mediaCover } from '@/utils/media'
 import { USER } from '@/mock/seed'
 import { state, newCouponCount, switchTab } from '@/store'
 import { getLayout } from '@/utils/layout'
@@ -113,6 +115,7 @@ const L = getLayout()
 const hi = greeting()
 const dateText = `${md(Date.now())} ${weekday()}`
 const today = getProduct('s1')!
+const todayCover = mediaCover(today.coverUrl, today.gallery)
 
 const first = fetchPosts(0)
 const posts = ref(first.list)
@@ -297,14 +300,22 @@ function toCoupons() {
   color: $paper;
 }
 .today-art {
+  position: relative;
   display: flex;
   flex: 0 0 76rpx;
   height: 76rpx;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   border-radius: 16rpx;
   background: $caramel;
   overflow: hidden;
+}
+.today-img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
 }
 .today-info {
   flex: 1;
