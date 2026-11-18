@@ -2,8 +2,8 @@
   "openapi": "3.0.3",
   "info": {
     "title": "COSEN 管理后台",
-    "version": "1.1.0",
-    "description": "COSEN 管理后台接口 v1.1.0；已实现真实业务接口。充值仅允许微信支付；购买饮品先扣充值金额，再扣赠送金额，未成交取消按原扣款构成退回。\n\n依据：管理后台方案 v0.2 第 7/8 节最新修订及现有小程序 OpenAPI/DDL。系统 DB 唯一真源，Base 是只读镜像，pull-enabled=false。文档旧版 Base-first 和订单推进描述不再采用；只开放已支付订单标记完成。\n\n统一规则：Bearer 使用 RuoYi /login token；复用 /getInfo、/getRouters、/system/user、role、menu、/monitor/operlog 等既有能力，不重复创建。HTTP 200 + code=200 表示成功，分页 rows/total 位于根层，失败检查 errorCode。请求字段不得包含未定义项。金额单位整数分；数据库 bigint ID 为字符串；时间 ISO 8601 带时区。默认单门店数据范围 ALL，仍必须后端逐接口鉴权。\n\n写入：DB/余额流水/幂等结果/审计事件/outbox 原子提交。每次业务意图一个 Idempotency-Key，网络重试复用原键；版本冲突刷新后重新确认并生成新键。不自动重放金额写入。镜像失败不会将已提交业务写入变成失败。\n\n部署：servers 的 /api 是浏览器开发代理前缀，并非后端 Controller 前缀；后端直连使用 MacBook 本机 http://127.0.0.1:8080。其他设备不能把自己的 127.0.0.1 当作 MacBook，须使用可达地址或经前端代理。\n\n已有同步 API /system/bitable/status、sync、logs、conflicts 继续复用，未复制覆盖；本模块只新增死信、重试、任务查询。现有 conflicts 返回需扩展 version。无退款、人工充值到账、制作/取餐推进、券兑换码接口。\n\n迁移新增：统一版本字段、持久化幂等记录、事务 outbox、订单变更序列、图片暂存及相册关联、券作废元数据、同步任务记录。部署前执行 scripts/cosen-admin-migrate.py，属于增量迁移。"
+    "version": "1.2.0",
+    "description": "COSEN 管理后台接口 v1.2.0；已实现真实业务接口。充值仅允许微信支付；购买饮品先扣充值金额，再扣赠送金额，未成交取消按原扣款构成退回。\n\n依据：管理后台方案 v0.2 第 7/8 节最新修订及现有小程序 OpenAPI/DDL。系统 DB 唯一真源，Base 是只读镜像，pull-enabled=false。文档旧版 Base-first 和订单推进描述不再采用；只开放已支付订单标记完成。\n\n统一规则：Bearer 使用 RuoYi /login token；复用 /getInfo、/getRouters、/system/user、role、menu、/monitor/operlog 等既有能力，不重复创建。HTTP 200 + code=200 表示成功，分页 rows/total 位于根层，失败检查 errorCode。请求字段不得包含未定义项。金额单位整数分；数据库 bigint ID 为字符串；时间 ISO 8601 带时区。默认单门店数据范围 ALL，仍必须后端逐接口鉴权。\n\n写入：DB/余额流水/幂等结果/审计事件/outbox 原子提交。每次业务意图一个 Idempotency-Key，网络重试复用原键；版本冲突刷新后重新确认并生成新键。不自动重放金额写入。镜像失败不会将已提交业务写入变成失败。\n\n部署：servers 的 /api 是浏览器开发代理前缀，并非后端 Controller 前缀；后端直连使用 MacBook 本机 http://127.0.0.1:8080。其他设备不能把自己的 127.0.0.1 当作 MacBook，须使用可达地址或经前端代理。\n\n已有同步 API /system/bitable/status、sync、logs、conflicts 继续复用，未复制覆盖；本模块只新增死信、重试、任务查询。现有 conflicts 返回需扩展 version。无退款、人工充值到账、制作/取餐推进、券兑换码接口。\n\n迁移新增：统一版本字段、持久化幂等记录、事务 outbox、订单变更序列、图片暂存及相册关联、券作废元数据、同步任务记录。部署前执行 scripts/cosen-admin-migrate.py，属于增量迁移。"
   },
   "servers": [
     {
@@ -2269,6 +2269,259 @@
         "x-apifox-status": "released",
         "x-backend-status": "implemented",
         "x-data-authority": "system-db"
+      },
+      "post": {
+        "summary": "添加商品",
+        "operationId": "AdminProduct40",
+        "tags": [
+          "商品与分类"
+        ],
+        "description": "权限：`cosen:product:add`。单门店；服务端校验角色、按钮权限及资源范围。\n\n创建商品及异步镜像事件，幂等键重试不会创建重复商品。编码由系统生成，规格初始为空。\n\n写操作须 @Log 审计。幂等以用户 ID+HTTP 方法+规范化路径+Idempotency-Key 为键，记录请求体摘要；同键同参返回首次结果，同键异参冲突。幂等记录与业务事务原子落库，处理中不重复执行；先鉴权，再查幂等，再查版本。DB 与镜像 outbox 同事务，Base 失败仅标记同步失败。",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "每次用户意图生成 UUID；同一请求重试复用，保留至少 24 小时",
+              "example": "2378ab45-fc03-45d0-9971-cfa251df7417",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "必须检查 code；成功 200，业务失败非 200。成功和失败为互斥信封。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminProduct40Response"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
+                },
+                "examples": {
+                  "success": {
+                    "summary": "成功示例（设计数据）",
+                    "value": {
+                      "code": 200,
+                      "msg": "操作成功",
+                      "traceId": "trace-cosen-example",
+                      "data": {
+                        "id": "1001",
+                        "code": "m1",
+                        "categoryCode": "coffee",
+                        "name": "可森拿铁",
+                        "nameEn": "Cosen Latte",
+                        "description": "",
+                        "priceCent": 1800,
+                        "stock": 50,
+                        "sort": 10,
+                        "status": "on",
+                        "tags": [
+                          "招牌"
+                        ],
+                        "specs": [
+                          "热 / 冰"
+                        ],
+                        "images": [
+                          {
+                            "imageId": "1001",
+                            "url": "/profile/cosen/example.jpg",
+                            "width": 800,
+                            "height": 800,
+                            "sizeBytes": 102400
+                          }
+                        ],
+                        "version": 1,
+                        "updatedAt": "2026-11-18T10:00:00+08:00",
+                        "sync": {
+                          "eventId": "1001",
+                          "status": "pending",
+                          "updatedAt": "2026-11-18T10:00:00+08:00"
+                        }
+                      }
+                    }
+                  },
+                  "VALIDATION_ERROR": {
+                    "summary": "参数不合法",
+                    "value": {
+                      "code": 400,
+                      "msg": "参数不合法",
+                      "errorCode": "VALIDATION_ERROR",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "UNAUTHENTICATED": {
+                    "summary": "会话已过期",
+                    "value": {
+                      "code": 401,
+                      "msg": "会话已过期",
+                      "errorCode": "UNAUTHENTICATED",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "PERMISSION_DENIED": {
+                    "summary": "没有操作权限",
+                    "value": {
+                      "code": 403,
+                      "msg": "没有操作权限",
+                      "errorCode": "PERMISSION_DENIED",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "NOT_FOUND": {
+                    "summary": "资源不存在或不可见",
+                    "value": {
+                      "code": 404,
+                      "msg": "资源不存在或不可见",
+                      "errorCode": "NOT_FOUND",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "RATE_LIMITED": {
+                    "summary": "操作过于频繁",
+                    "value": {
+                      "code": 429,
+                      "msg": "操作过于频繁",
+                      "errorCode": "RATE_LIMITED",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "INTERNAL_ERROR": {
+                    "summary": "服务暂时不可用",
+                    "value": {
+                      "code": 500,
+                      "msg": "服务暂时不可用",
+                      "errorCode": "INTERNAL_ERROR",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "VERSION_CONFLICT": {
+                    "summary": "资源已变化，请刷新后重试",
+                    "value": {
+                      "code": 409,
+                      "msg": "资源已变化，请刷新后重试",
+                      "errorCode": "VERSION_CONFLICT",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "IDEMPOTENCY_CONFLICT": {
+                    "summary": "同一幂等键不能用于不同请求",
+                    "value": {
+                      "code": 409,
+                      "msg": "同一幂等键不能用于不同请求",
+                      "errorCode": "IDEMPOTENCY_CONFLICT",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "IDEMPOTENCY_IN_PROGRESS": {
+                    "summary": "相同请求正在处理中，请稍后查询",
+                    "value": {
+                      "code": 409,
+                      "msg": "相同请求正在处理中，请稍后查询",
+                      "errorCode": "IDEMPOTENCY_IN_PROGRESS",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "认证过滤器拒绝，兼容 HTTP 层认证失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 401,
+                  "msg": "会话已过期",
+                  "errorCode": "UNAUTHENTICATED",
+                  "traceId": "trace-cosen-example",
+                  "data": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "权限过滤器拒绝",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 403,
+                  "msg": "没有操作权限",
+                  "errorCode": "PERMISSION_DENIED",
+                  "traceId": "trace-cosen-example",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "x-permission": "cosen:product:add",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
+        "x-data-authority": "system-db",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductCreateInput"
+              },
+              "example": {
+                "categoryCode": "coffee",
+                "name": "可森拿铁",
+                "nameEn": "Cosen Latte",
+                "description": "",
+                "priceCent": 1800,
+                "stock": 50,
+                "sort": 10,
+                "tags": [
+                  "招牌"
+                ],
+                "status": "on"
+              }
+            }
+          }
+        }
       }
     },
     "/admin/cosen/products/{productCode}": {
@@ -9895,7 +10148,94 @@
         ],
         "additionalProperties": false,
         "title": "Product",
-        "description": "商品由系统 DB 主导，Base 只读镜像。规格只读；支持编辑和逻辑删除现有商品；删除后下架并从列表隐藏，保留历史订单。"
+        "description": "商品由系统 DB 主导，Base 只读镜像。规格只读；支持创建、编辑和逻辑删除商品；删除后下架并从列表隐藏，保留历史订单。"
+      },
+      "ProductCreateInput": {
+        "type": "object",
+        "properties": {
+          "categoryCode": {
+            "type": "string",
+            "description": "稳定业务编码",
+            "example": "coffee",
+            "minLength": 1,
+            "maxLength": 32,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "name": {
+            "type": "string",
+            "description": "显示名称",
+            "example": "可森拿铁",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "nameEn": {
+            "type": "string",
+            "description": "英文名",
+            "example": "Cosen Latte",
+            "maxLength": 64
+          },
+          "description": {
+            "type": "string",
+            "description": "描述文本；空字符串表示清空",
+            "example": "",
+            "maxLength": 500
+          },
+          "priceCent": {
+            "type": "integer",
+            "description": "人民币分，整数；不得使用浮点元，最大不超过 JS 安全整数",
+            "example": 1800,
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "format": "int64"
+          },
+          "stock": {
+            "type": "integer",
+            "description": "可售库存，-1 表示不限库存",
+            "example": 50,
+            "minimum": -1
+          },
+          "sort": {
+            "type": "integer",
+            "description": "显示顺序，小值在前",
+            "example": 10,
+            "minimum": 0
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "商品标签；允许保留已有自定义标签，新标签须来自既有选项",
+              "example": "招牌",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "uniqueItems": true,
+            "maxItems": 5
+          },
+          "status": {
+            "type": "string",
+            "description": "管理端展示状态；映射 DB 1/0",
+            "example": "on",
+            "enum": [
+              "on",
+              "off"
+            ]
+          }
+        },
+        "required": [
+          "categoryCode",
+          "name",
+          "nameEn",
+          "description",
+          "priceCent",
+          "stock",
+          "sort",
+          "tags",
+          "status"
+        ],
+        "additionalProperties": false,
+        "title": "ProductCreateInput",
+        "description": "新建商品，编码由服务端生成；先保存商品，再上传相册。新建表单默认下架。"
       },
       "ProductEditInput": {
         "type": "object",
@@ -13180,6 +13520,41 @@
         "additionalProperties": false,
         "title": "AdminProductDeletion39Response",
         "description": "删除商品成功响应"
+      },
+      "AdminProduct40Response": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "成功固定 200",
+            "example": 200,
+            "enum": [
+              200
+            ]
+          },
+          "msg": {
+            "type": "string",
+            "description": "结果说明",
+            "example": "操作成功"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "追踪号",
+            "example": "trace-cosen-example"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Product"
+          }
+        },
+        "required": [
+          "code",
+          "msg",
+          "traceId",
+          "data"
+        ],
+        "additionalProperties": false,
+        "title": "AdminProduct40Response",
+        "description": "添加商品成功响应"
       },
       "RuoYiAuthError": {
         "type": "object",
