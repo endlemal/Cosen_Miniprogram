@@ -65,6 +65,12 @@ function toTile(start?: string, end?: string): [string, string] {
   return [start || FALLBACK_TILE[0], end || FALLBACK_TILE[1]]
 }
 
+/** v1.5.0 相册：只保留非空字符串路径（防御后端返回 null / 脏数据） */
+function toGallery(raw?: string[] | null): string[] {
+  if (!Array.isArray(raw)) return []
+  return raw.filter((item): item is string => typeof item === 'string' && item.length > 0)
+}
+
 /**
  * 契约商品 → 页面商品。
  * @param dto 契约 Product
@@ -84,6 +90,9 @@ export function toProduct(dto: ProductDto, categoryCode?: string): Product {
     specs: dto.specGroupsJson ?? [],
     art: toArtSpec(dto.artJson),
     tile: toTile(dto.tileColorStart, dto.tileColorEnd),
-    badge: normalizeBadges(dto.badge)
+    badge: normalizeBadges(dto.badge),
+    // v1.5.0：保留后端相对路径，组件用 @/utils/media 的 mediaUrl() 统一拼 base
+    coverUrl: dto.coverUrl ?? '',
+    gallery: toGallery(dto.gallery)
   }
 }

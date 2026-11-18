@@ -17,7 +17,11 @@
       </view>
     </view>
     <view class="tile" :style="{ background: tileBg }" />
-    <view class="art">
+    <!-- 契约 v1.5.0：有封面图时用真实图片覆盖插画区域；无图 / 加载失败回退 DrinkArt -->
+    <view v-if="coverSrc && !coverBroken" class="cover">
+      <image class="cover-img" :src="coverSrc" mode="aspectFill" @error="onCoverError" />
+    </view>
+    <view v-else class="art">
       <DrinkArt :spec="product.art" :size="196" />
     </view>
     <view class="plus" hover-class="tap-on" @tap.stop="emit('add')">
@@ -30,12 +34,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { Product } from '@/types'
 import Icon from './Icon.vue'
 import Notch from './Notch.vue'
 import DrinkArt from './DrinkArt.vue'
 import { badgeText, normalizeBadges } from '@/utils/badge'
+import { mediaCover } from '@/utils/media'
 
 const props = withDefaults(defineProps<{ product: Product; qty?: number }>(), { qty: 0 })
 const emit = defineEmits<{ (e: 'open'): void; (e: 'add'): void }>()
@@ -43,6 +48,15 @@ const tileBg = computed(() => `linear-gradient(165deg, ${props.product.tile[0]} 
 // 契约 badge 是数组；兼容旧 mock 字符串，多个角标显示「首个 +N」
 const badges = computed(() => normalizeBadges(props.product.badge))
 const badgeLabel = computed(() => badgeText(badges.value))
+// 契约 v1.5.0 封面：mock 模式恒为 ''（外观走 DrinkArt），真实模式拼 API base
+const coverSrc = computed(() => mediaCover(props.product.coverUrl, props.product.gallery))
+const coverBroken = ref(false)
+watch(coverSrc, () => {
+  coverBroken.value = false
+})
+function onCoverError() {
+  coverBroken.value = true
+}
 </script>
 
 <style lang="scss" scoped>
@@ -125,6 +139,21 @@ const badgeLabel = computed(() => badgeText(badges.value))
   border-radius: 40rpx;
   border: 1rpx solid rgba($paper, 0.55);
   box-shadow: $shadow-coffee;
+}
+/* 封面图：占住原插画所在的焦糖底座位置（内缩 3rpx 露出纸边），圆角裁切 */
+.cover {
+  position: absolute;
+  left: 3rpx;
+  top: 47rpx;
+  width: 208rpx;
+  height: 250rpx;
+  border-radius: 37rpx;
+  overflow: hidden;
+}
+.cover-img {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 .art {
   position: absolute;

@@ -4,7 +4,20 @@
     <template v-if="product">
       <scroll-view scroll-y class="body" :style="{ height: bodyHeight }">
         <view class="hero" :style="{ background: heroBg }">
-          <view class="art">
+          <!-- 契约 v1.5.0：相册非空时顶部轮播；无图或全部加载失败回退现有插画 -->
+          <swiper
+            v-if="visibleShots.length"
+            class="shots"
+            indicator-dots
+            circular
+            indicator-color="rgba(255, 249, 240, 0.45)"
+            indicator-active-color="#FFF9F0"
+          >
+            <swiper-item v-for="(src, i) in visibleShots" :key="src + '#' + i">
+              <image class="shot" :src="src" mode="aspectFill" @error="onShotError(src)" />
+            </swiper-item>
+          </swiper>
+          <view v-if="showArt" class="art">
             <DrinkArt :spec="product.art" :size="280" animated />
           </view>
           <Notch bg="#FFF9F0" :r="36" pad="12rpx 30rpx 20rpx 34rpx">
@@ -83,6 +96,7 @@ import DrinkArt from './DrinkArt.vue'
 import { specGroupsOf } from '@/mock/products'
 import { addToCart, describeSelection, type Selection } from '@/store'
 import { money } from '@/utils/format'
+import { mediaCover, mediaUrls } from '@/utils/media'
 
 const props = defineProps<{ show: boolean; product: Product | null }>()
 const emit = defineEmits<{ (e: 'update:show', v: boolean): void; (e: 'added'): void }>()
@@ -98,9 +112,26 @@ const heroBg = computed(() =>
   props.product ? `linear-gradient(160deg, ${props.product.tile[0]} 0%, ${props.product.tile[1]} 100%)` : ''
 )
 
+// 契约 v1.5.0 相册：mock 模式为空（保持 CSS 插画）；gallery 缺省时用封面兜底成单图轮播
+const shots = computed(() => {
+  const list = mediaUrls(props.product?.gallery)
+  if (list.length) return list
+  const cover = props.product ? mediaCover(props.product.coverUrl, props.product.gallery) : ''
+  return cover ? [cover] : []
+})
+const shotBroken = ref<string[]>([])
+// 加载失败的图片从轮播里摘掉；全部失败 / 本来无图时回退现有插画
+const visibleShots = computed(() => shots.value.filter((src) => !shotBroken.value.includes(src)))
+const showArt = computed(() => visibleShots.value.length === 0)
+
+function onShotError(src: string) {
+  if (!shotBroken.value.includes(src)) shotBroken.value = [...shotBroken.value, src]
+}
+
 watch(
   () => [props.show, props.product?.id],
   () => {
+    shotBroken.value = []
     if (!props.show) return
     const s: Selection = {}
     groups.value.forEach((g) => (s[g.key] = g.multi ? [] : 0))
@@ -146,6 +177,23 @@ function add() {
   height: 500rpx;
   border-radius: 44rpx;
   overflow: hidden;
+}
+/* 相册轮播：铺满原插画区（500rpx），圆角由 .hero 的 overflow 裁切 */
+.shots {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 500rpx;
+}
+.shot {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* 轮播指示点抬高到「储值余额可直接支付」条（64rpx）之上 */
+.shots :deep(.uni-swiper-dots-horizontal) {
+  bottom: 76rpx;
 }
 .art {
   position: absolute;

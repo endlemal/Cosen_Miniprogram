@@ -128,6 +128,14 @@ export interface ProductDto {
   id?: string
   code: string
   categoryId: string
+  /**
+   * v1.5.0 商品封面图（相册第一张），相对 API 根的路径
+   * （如 /images/products/m1-0-3f2a1c9d.png）；未上传图片为空串。
+   * 展示前用 @/utils/media 的 mediaUrl() 拼 API base。
+   */
+  coverUrl?: string
+  /** v1.5.0 商品相册（轮播图组，按展示顺序，第一张即封面）；未上传图片为空数组 */
+  gallery?: string[]
   name: string
   nameEn?: string
   description?: string

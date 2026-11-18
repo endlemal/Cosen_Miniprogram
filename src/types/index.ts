@@ -59,6 +59,13 @@ export interface Product {
   tile: [string, string]
   /** 契约 badge 为 array<string>；旧 mock 字符串请先过 normalizeBadges */
   badge?: ProductBadge[]
+  /**
+   * 契约 v1.5.0 商品封面图：相对 API 根的路径，未上传为空串/缺省。
+   * mock 数据没有该字段；组件展示前用 @/utils/media 的 mediaUrl() 归一化。
+   */
+  coverUrl?: string
+  /** 契约 v1.5.0 商品相册（相对路径数组，第一张即封面）；mock 数据缺省 */
+  gallery?: string[]
 }
 
 export interface CartItem {
