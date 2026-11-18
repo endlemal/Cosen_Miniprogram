@@ -2,13 +2,13 @@
   "openapi": "3.0.3",
   "info": {
     "title": "COSEN 管理后台",
-    "version": "1.0.0",
-    "description": "COSEN 管理后台接口设计 v1.0.0；尚未实现，不代表真实业务已接通。\n\n依据：管理后台方案 v0.2 第 7/8 节最新修订及现有小程序 OpenAPI/DDL。系统 DB 唯一真源，Base 是只读镜像，pull-enabled=false。文档旧版 Base-first 和订单推进描述不再采用；只开放已支付订单标记完成。\n\n统一规则：Bearer 使用 RuoYi /login token；复用 /getInfo、/getRouters、/system/user、role、menu、/monitor/operlog 等既有能力，不重复创建。HTTP 200 + code=200 表示成功，分页 rows/total 位于根层，失败检查 errorCode。请求字段不得包含未定义项。金额单位整数分；数据库 bigint ID 为字符串；时间 ISO 8601 带时区。默认单门店数据范围 ALL，仍必须后端逐接口鉴权。\n\n写入：DB/余额流水/幂等结果/审计事件/outbox 原子提交。每次业务意图一个 Idempotency-Key，网络重试复用原键；版本冲突刷新后重新确认并生成新键。不自动重放金额写入。镜像失败不会将已提交业务写入变成失败。\n\n部署：servers 的 /api 是浏览器开发代理前缀，并非后端 Controller 前缀；后端直连使用 MacBook 本机 http://127.0.0.1:8080。其他设备不能把自己的 127.0.0.1 当作 MacBook，须使用可达地址或经前端代理。\n\n已有同步 API /system/bitable/status、sync、logs、conflicts 继续复用，未复制覆盖；本模块只新增死信、重试、任务查询。现有 conflicts 返回需扩展 version。无退款、人工充值到账、制作/取餐推进、券兑换码接口。\n\n设计新增依赖：统一版本字段、持久化幂等记录、事务 outbox、订单变更序列、图片暂存及相册关联、券作废元数据、同步任务记录。需后端迁移实现；没有执行 SQL 或修改已有业务。"
+    "version": "1.0.1",
+    "description": "COSEN 管理后台接口 v1.0.1；已实现真实业务接口。充值仅允许微信支付；购买饮品先扣充值金额，再扣赠送金额，未成交取消按原扣款构成退回。\n\n依据：管理后台方案 v0.2 第 7/8 节最新修订及现有小程序 OpenAPI/DDL。系统 DB 唯一真源，Base 是只读镜像，pull-enabled=false。文档旧版 Base-first 和订单推进描述不再采用；只开放已支付订单标记完成。\n\n统一规则：Bearer 使用 RuoYi /login token；复用 /getInfo、/getRouters、/system/user、role、menu、/monitor/operlog 等既有能力，不重复创建。HTTP 200 + code=200 表示成功，分页 rows/total 位于根层，失败检查 errorCode。请求字段不得包含未定义项。金额单位整数分；数据库 bigint ID 为字符串；时间 ISO 8601 带时区。默认单门店数据范围 ALL，仍必须后端逐接口鉴权。\n\n写入：DB/余额流水/幂等结果/审计事件/outbox 原子提交。每次业务意图一个 Idempotency-Key，网络重试复用原键；版本冲突刷新后重新确认并生成新键。不自动重放金额写入。镜像失败不会将已提交业务写入变成失败。\n\n部署：servers 的 /api 是浏览器开发代理前缀，并非后端 Controller 前缀；后端直连使用 MacBook 本机 http://127.0.0.1:8080。其他设备不能把自己的 127.0.0.1 当作 MacBook，须使用可达地址或经前端代理。\n\n已有同步 API /system/bitable/status、sync、logs、conflicts 继续复用，未复制覆盖；本模块只新增死信、重试、任务查询。现有 conflicts 返回需扩展 version。无退款、人工充值到账、制作/取餐推进、券兑换码接口。\n\n迁移新增：统一版本字段、持久化幂等记录、事务 outbox、订单变更序列、图片暂存及相册关联、券作废元数据、同步任务记录。部署前执行 scripts/cosen-admin-migrate.py，属于增量迁移。"
   },
   "servers": [
     {
       "url": "/api",
-      "description": "管理前端同源代理；待业务接口实现"
+      "description": "管理前端同源代理"
     },
     {
       "url": "http://127.0.0.1:8080",
@@ -80,6 +80,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -171,7 +174,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -188,7 +198,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -202,8 +219,8 @@
           }
         },
         "x-permission": "cosen:dashboard:view",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db"
       }
     },
@@ -240,6 +257,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -447,7 +467,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -464,7 +491,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -478,8 +512,8 @@
           }
         },
         "x-permission": "cosen:dashboard:view",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db"
       }
     },
@@ -617,6 +651,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -737,7 +774,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -754,7 +798,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -768,8 +819,8 @@
           }
         },
         "x-permission": "cosen:order:list",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db"
       }
     },
@@ -817,6 +868,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -914,7 +968,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -931,7 +992,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -945,8 +1013,8 @@
           }
         },
         "x-permission": "cosen:order:list",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db"
       }
     },
@@ -983,6 +1051,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -1098,7 +1169,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -1115,7 +1193,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -1129,8 +1214,8 @@
           }
         },
         "x-permission": "cosen:order:list",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db"
       }
     },
@@ -1179,6 +1264,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -1334,7 +1422,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -1351,7 +1446,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -1365,8 +1467,8 @@
           }
         },
         "x-permission": "cosen:order:complete",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db",
         "requestBody": {
           "required": true,
@@ -1428,6 +1530,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -1593,7 +1698,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -1610,7 +1722,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -1624,8 +1743,8 @@
           }
         },
         "x-permission": "cosen:order:cancel",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db",
         "requestBody": {
           "required": true,
@@ -1688,6 +1807,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -1833,7 +1955,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -1850,7 +1979,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -1864,8 +2000,8 @@
           }
         },
         "x-permission": "cosen:order:remark",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db",
         "requestBody": {
           "required": true,
@@ -1962,6 +2098,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -2082,7 +2221,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -2099,7 +2245,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -2113,8 +2266,8 @@
           }
         },
         "x-permission": "cosen:product:list",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db"
       }
     },
@@ -2153,6 +2306,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -2268,7 +2424,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -2285,7 +2448,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -2299,8 +2469,8 @@
           }
         },
         "x-permission": "cosen:product:list",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db"
       },
       "put": {
@@ -2349,6 +2519,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -2494,7 +2667,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -2511,7 +2691,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -2525,8 +2712,8 @@
           }
         },
         "x-permission": "cosen:product:edit",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db",
         "requestBody": {
           "required": true,
@@ -2600,6 +2787,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -2745,7 +2935,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -2762,7 +2959,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -2776,8 +2980,8 @@
           }
         },
         "x-permission": "cosen:product:status",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db",
         "requestBody": {
           "required": true,
@@ -2842,6 +3046,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -2987,7 +3194,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -3004,7 +3218,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -3018,8 +3239,8 @@
           }
         },
         "x-permission": "cosen:product:stock",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db",
         "requestBody": {
           "required": true,
@@ -3084,6 +3305,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -3229,7 +3453,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -3246,7 +3477,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -3260,8 +3498,8 @@
           }
         },
         "x-permission": "cosen:product:sort",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db",
         "requestBody": {
           "required": true,
@@ -3326,6 +3564,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -3464,7 +3705,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -3481,7 +3729,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -3495,8 +3750,8 @@
           }
         },
         "x-permission": "cosen:product:image",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db",
         "requestBody": {
           "required": true,
@@ -3557,6 +3812,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -3712,7 +3970,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -3729,7 +3994,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -3743,8 +4015,8 @@
           }
         },
         "x-permission": "cosen:product:image",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db",
         "requestBody": {
           "required": true,
@@ -3819,6 +4091,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -3921,7 +4196,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -3938,7 +4220,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -3952,8 +4241,8 @@
           }
         },
         "x-permission": "cosen:category:list",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db"
       },
       "post": {
@@ -3989,6 +4278,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -4126,7 +4418,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -4143,7 +4442,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -4157,8 +4463,8 @@
           }
         },
         "x-permission": "cosen:category:edit",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db",
         "requestBody": {
           "required": true,
@@ -4227,6 +4533,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -4354,7 +4663,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -4371,7 +4687,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -4385,8 +4708,8 @@
           }
         },
         "x-permission": "cosen:category:edit",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db",
         "requestBody": {
           "required": true,
@@ -4474,6 +4797,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -4575,7 +4901,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -4592,7 +4925,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -4606,8 +4946,8 @@
           }
         },
         "x-permission": "cosen:member:list",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db"
       }
     },
@@ -4644,6 +4984,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -4740,7 +5083,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -4757,7 +5107,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -4771,8 +5128,8 @@
           }
         },
         "x-permission": "cosen:member:list",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db"
       }
     },
@@ -4866,6 +5223,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -4967,7 +5327,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -4984,7 +5351,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -4998,8 +5372,8 @@
           }
         },
         "x-permission": "cosen:member:list",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db"
       }
     },
@@ -5010,7 +5384,7 @@
         "tags": [
           "会员与储值"
         ],
-        "description": "权限：`cosen:member:balance-adjust`。单门店；服务端校验角色、按钮权限及资源范围。\n\n单笔绝对值上限 10000000 分（10 万元），由服务端校验。会员必须正常；禁止修改或删除既有流水。本金桶变动只改总余额；赠送桶变动同时改总余额和赠送余额，始终满足 0 ≤ gift ≤ total。\n\n写操作须 @Log 审计。幂等以用户 ID+HTTP 方法+规范化路径+Idempotency-Key 为键，记录请求体摘要；同键同参返回首次结果，同键异参冲突。幂等记录与业务事务原子落库，处理中不重复执行；先鉴权，再查幂等，再查版本。DB 与镜像 outbox 同事务，Base 失败仅标记同步失败。",
+        "description": "权限：`cosen:member:balance-adjust`。单门店；服务端校验角色、按钮权限及资源范围。\n\n单笔绝对值上限 10000000 分（10 万元），由服务端校验。会员必须正常；禁止修改或删除既有流水。充值金额桶变动只改总余额；赠送桶变动同时改总余额和赠送余额，始终满足 0 ≤ gift ≤ total。\n\n写操作须 @Log 审计。幂等以用户 ID+HTTP 方法+规范化路径+Idempotency-Key 为键，记录请求体摘要；同键同参返回首次结果，同键异参冲突。幂等记录与业务事务原子落库，处理中不重复执行；先鉴权，再查幂等，再查版本。DB 与镜像 outbox 同事务，Base 失败仅标记同步失败。",
         "parameters": [
           {
             "name": "memberId",
@@ -5048,6 +5422,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -5206,7 +5583,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -5223,7 +5607,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -5237,8 +5628,8 @@
           }
         },
         "x-permission": "cosen:member:balance-adjust",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db",
         "requestBody": {
           "required": true,
@@ -5347,6 +5738,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -5452,7 +5846,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -5469,7 +5870,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -5483,8 +5891,8 @@
           }
         },
         "x-permission": "cosen:coupon:list",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db"
       }
     },
@@ -5521,6 +5929,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -5621,7 +6032,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -5638,7 +6056,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -5652,8 +6077,8 @@
           }
         },
         "x-permission": "cosen:coupon:list",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db"
       }
     },
@@ -5727,6 +6152,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -5824,7 +6252,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -5841,7 +6276,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -5855,8 +6297,8 @@
           }
         },
         "x-permission": "cosen:coupon:list",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db"
       }
     },
@@ -5894,6 +6336,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -6034,7 +6479,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -6051,7 +6503,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -6065,8 +6524,8 @@
           }
         },
         "x-permission": "cosen:coupon:issue",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db",
         "requestBody": {
           "required": true,
@@ -6132,6 +6591,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -6272,7 +6734,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -6289,7 +6758,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -6303,8 +6779,8 @@
           }
         },
         "x-permission": "cosen:coupon:void",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db",
         "requestBody": {
           "required": true,
@@ -6422,6 +6898,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -6523,7 +7002,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -6540,7 +7026,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -6554,8 +7047,8 @@
           }
         },
         "x-permission": "cosen:recharge:list",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db"
       }
     },
@@ -6591,6 +7084,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -6687,7 +7183,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -6704,7 +7207,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -6718,8 +7228,8 @@
           }
         },
         "x-permission": "cosen:recharge:list",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db"
       }
     },
@@ -6744,6 +7254,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -6836,7 +7349,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -6853,7 +7373,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -6867,8 +7394,8 @@
           }
         },
         "x-permission": "cosen:settings:view",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db"
       },
       "put": {
@@ -6904,6 +7431,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -7026,7 +7556,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -7043,7 +7580,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -7057,8 +7601,8 @@
           }
         },
         "x-permission": "cosen:settings:edit",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db",
         "requestBody": {
           "required": true,
@@ -7103,6 +7647,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -7198,7 +7745,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -7215,7 +7769,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -7229,8 +7790,8 @@
           }
         },
         "x-permission": "cosen:settings:view",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db"
       },
       "put": {
@@ -7266,6 +7827,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -7391,7 +7955,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -7408,7 +7979,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -7422,8 +8000,8 @@
           }
         },
         "x-permission": "cosen:settings:edit",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db",
         "requestBody": {
           "required": true,
@@ -7525,6 +8103,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -7623,7 +8204,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -7640,7 +8228,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -7654,8 +8249,8 @@
           }
         },
         "x-permission": "cosen:bitable:deadletters",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db"
       }
     },
@@ -7704,6 +8299,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -7835,7 +8433,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -7852,7 +8457,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -7866,8 +8478,8 @@
           }
         },
         "x-permission": "cosen:bitable:retry",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db",
         "requestBody": {
           "required": true,
@@ -7930,6 +8542,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -8061,7 +8676,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -8078,7 +8700,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -8092,8 +8721,8 @@
           }
         },
         "x-permission": "cosen:bitable:retry",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db",
         "requestBody": {
           "required": true,
@@ -8144,6 +8773,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
                     }
                   ]
                 },
@@ -8235,7 +8867,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 401,
@@ -8252,7 +8891,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdminError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
                 },
                 "example": {
                   "code": 403,
@@ -8266,8 +8912,8 @@
           }
         },
         "x-permission": "cosen:bitable:retry",
-        "x-apifox-status": "designing",
-        "x-backend-status": "not-implemented",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
         "x-data-authority": "system-db"
       }
     }
@@ -8340,8 +8986,9 @@
           "eventId": {
             "type": "string",
             "description": "数据库 bigint ID；以十进制字符串传输，禁止转为 JS Number",
-            "example": "1001",
-            "pattern": "^[1-9]\\d{0,18}$"
+            "example": null,
+            "pattern": "^[1-9]\\d{0,18}$",
+            "nullable": true
           },
           "status": {
             "type": "string",
@@ -8350,7 +8997,8 @@
             "enum": [
               "pending",
               "synced",
-              "failed"
+              "failed",
+              "not_requested"
             ]
           },
           "updatedAt": {
@@ -8367,7 +9015,7 @@
         ],
         "additionalProperties": false,
         "title": "SyncReceipt",
-        "description": "DB 事务和 outbox 原子提交后返回。pending/failed 只表示镜像状态；不得回滚已提交业务或重新提交业务写操作。"
+        "description": "DB 事务和 outbox 原子提交后返回。pending/failed 只表示镜像状态；不得回滚已提交业务或重新提交业务写操作。 历史资源尚无镜像任务时 eventId=null、status=not_requested。"
       },
       "OrderItem": {
         "type": "object",
@@ -8385,7 +9033,7 @@
             "description": "显示名称",
             "example": "可森拿铁",
             "minLength": 1,
-            "maxLength": 100
+            "maxLength": 64
           },
           "specText": {
             "type": "string",
@@ -8908,13 +9556,13 @@
             "description": "显示名称",
             "example": "可森拿铁",
             "minLength": 1,
-            "maxLength": 100
+            "maxLength": 64
           },
           "nameEn": {
             "type": "string",
             "description": "英文名",
             "example": "Cosen Latte",
-            "maxLength": 100
+            "maxLength": 64
           },
           "description": {
             "type": "string",
@@ -8932,9 +9580,9 @@
           },
           "stock": {
             "type": "integer",
-            "description": "可售库存",
+            "description": "可售库存，-1 表示不限库存",
             "example": 50,
-            "minimum": 0
+            "minimum": -1
           },
           "sort": {
             "type": "integer",
@@ -8955,15 +9603,10 @@
             "type": "array",
             "items": {
               "type": "string",
-              "description": "既有多选标签",
+              "description": "商品标签；允许保留已有自定义标签，新标签须来自既有选项",
               "example": "招牌",
-              "enum": [
-                "招牌",
-                "人气",
-                "限定",
-                "新品",
-                "可森特调"
-              ]
+              "minLength": 1,
+              "maxLength": 64
             },
             "uniqueItems": true,
             "maxItems": 5
@@ -9037,13 +9680,13 @@
             "description": "显示名称",
             "example": "可森拿铁",
             "minLength": 1,
-            "maxLength": 100
+            "maxLength": 64
           },
           "nameEn": {
             "type": "string",
             "description": "英文名",
             "example": "Cosen Latte",
-            "maxLength": 100
+            "maxLength": 64
           },
           "description": {
             "type": "string",
@@ -9061,9 +9704,9 @@
           },
           "stock": {
             "type": "integer",
-            "description": "可售库存",
+            "description": "可售库存，-1 表示不限库存",
             "example": 50,
-            "minimum": 0
+            "minimum": -1
           },
           "sort": {
             "type": "integer",
@@ -9075,15 +9718,10 @@
             "type": "array",
             "items": {
               "type": "string",
-              "description": "既有多选标签",
+              "description": "商品标签；允许保留已有自定义标签，新标签须来自既有选项",
               "example": "招牌",
-              "enum": [
-                "招牌",
-                "人气",
-                "限定",
-                "新品",
-                "可森特调"
-              ]
+              "minLength": 1,
+              "maxLength": 64
             },
             "uniqueItems": true,
             "maxItems": 5
@@ -9142,9 +9780,9 @@
         "properties": {
           "stock": {
             "type": "integer",
-            "description": "可售库存",
+            "description": "可售库存，-1 表示不限库存",
             "example": 50,
-            "minimum": 0
+            "minimum": -1
           },
           "expectedVersion": {
             "type": "integer",
@@ -9253,13 +9891,13 @@
             "description": "显示名称",
             "example": "咖啡",
             "minLength": 1,
-            "maxLength": 100
+            "maxLength": 64
           },
           "nameEn": {
             "type": "string",
             "description": "英文名",
             "example": "Coffee",
-            "maxLength": 100
+            "maxLength": 64
           },
           "description": {
             "type": "string",
@@ -9330,13 +9968,13 @@
             "description": "显示名称",
             "example": "咖啡",
             "minLength": 1,
-            "maxLength": 100
+            "maxLength": 64
           },
           "nameEn": {
             "type": "string",
             "description": "英文名",
             "example": "Coffee",
-            "maxLength": 100
+            "maxLength": 64
           },
           "description": {
             "type": "string",
@@ -9380,13 +10018,13 @@
             "description": "显示名称",
             "example": "咖啡",
             "minLength": 1,
-            "maxLength": 100
+            "maxLength": 64
           },
           "nameEn": {
             "type": "string",
             "description": "英文名",
             "example": "Coffee",
-            "maxLength": 100
+            "maxLength": 64
           },
           "description": {
             "type": "string",
@@ -9663,7 +10301,7 @@
           },
           "bucket": {
             "type": "string",
-            "description": "调整本金还是赠送余额",
+            "description": "调整充值余额还是赠送余额",
             "example": "principal",
             "enum": [
               "principal",
@@ -9834,8 +10472,9 @@
           "templateId": {
             "type": "string",
             "description": "数据库 bigint ID；以十进制字符串传输，禁止转为 JS Number",
-            "example": "1001",
-            "pattern": "^[1-9]\\d{0,18}$"
+            "example": null,
+            "pattern": "^[1-9]\\d{0,18}$",
+            "nullable": true
           },
           "title": {
             "type": "string",
@@ -10052,8 +10691,9 @@
           "tierId": {
             "type": "string",
             "description": "数据库 bigint ID；以十进制字符串传输，禁止转为 JS Number",
-            "example": "1001",
-            "pattern": "^[1-9]\\d{0,18}$"
+            "example": null,
+            "pattern": "^[1-9]\\d{0,18}$",
+            "nullable": true
           },
           "amountCent": {
             "type": "integer",
@@ -10135,7 +10775,7 @@
         ],
         "additionalProperties": false,
         "title": "Recharge",
-        "description": "充值只读；paid 仅由已验证微信回调驱动。展示充值本金/赠送快照，不提供人工到账或退款操作。"
+        "description": "充值只读；paid 仅由已验证微信回调驱动。展示充值金额/赠送金额快照，不提供人工到账或退款操作。"
       },
       "StoreSettings": {
         "type": "object",
@@ -10437,7 +11077,7 @@
         ],
         "additionalProperties": false,
         "title": "RechargeTierInput",
-        "description": "id 已有则更新，新增不传 id；不允许修改已有档位本金/赠送金额，须停用旧档位并新增，防止客户端旧档位请求被静默重定价。"
+        "description": "id 已有则更新，新增不传 id；不允许修改已有档位充值/赠送金额，须停用旧档位并新增，防止客户端旧档位请求被静默重定价。"
       },
       "RechargeTiersInput": {
         "type": "object",
@@ -10595,14 +11235,16 @@
             "example": "conflict",
             "enum": [
               "conflict",
-              "deadletter"
+              "deadletter",
+              "outbox"
             ]
           },
           "sourceId": {
             "type": "string",
             "description": "数据库 bigint ID；以十进制字符串传输，禁止转为 JS Number",
-            "example": "1001",
-            "pattern": "^[1-9]\\d{0,18}$"
+            "example": null,
+            "pattern": "^[1-9]\\d{0,18}$",
+            "nullable": true
           },
           "status": {
             "type": "string",
@@ -12207,6 +12849,26 @@
         "additionalProperties": false,
         "title": "AdminSyncJob38Response",
         "description": "同步重试任务结果成功响应"
+      },
+      "RuoYiAuthError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "msg"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "enum": [
+              401,
+              403
+            ]
+          },
+          "msg": {
+            "type": "string"
+          }
+        }
       }
     }
   }
