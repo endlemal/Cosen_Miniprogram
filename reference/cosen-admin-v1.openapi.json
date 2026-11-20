@@ -5444,6 +5444,197 @@
         "x-apifox-status": "released",
         "x-backend-status": "implemented",
         "x-data-authority": "system-db"
+      },
+      "post": {
+        "summary": "按手机号预建待认领会员",
+        "operationId": "PrecreateMember",
+        "tags": [
+          "会员与储值"
+        ],
+        "description": "手机号唯一。新建会员余额为零。换号时原微信须重新验证，会员资产与流水保留。",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "每次用户意图生成 UUID；同一请求重试复用，保留至少 24 小时",
+              "example": "2378ab45-fc03-45d0-9971-cfa251df7417",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "必须检查 code；成功 200，业务失败非 200。成功和失败为互斥信封。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminMember21Response"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
+                },
+                "examples": {
+                  "success": {
+                    "summary": "成功示例（设计数据）",
+                    "value": {
+                      "code": 200,
+                      "msg": "操作成功",
+                      "traceId": "trace-cosen-example",
+                      "data": {
+                        "id": "1001",
+                        "memberNo": "620108173325",
+                        "nickname": "可森会员",
+                        "phoneMasked": "138****0000",
+                        "level": "普通会员",
+                        "balanceCent": 11000,
+                        "principalBalanceCent": 10000,
+                        "giftBalanceCent": 1000,
+                        "spentCent": 3600,
+                        "orderCount": 2,
+                        "status": "active",
+                        "version": 1,
+                        "createdAt": "2026-11-18T10:00:00+08:00"
+                      }
+                    }
+                  },
+                  "VALIDATION_ERROR": {
+                    "summary": "参数不合法",
+                    "value": {
+                      "code": 400,
+                      "msg": "参数不合法",
+                      "errorCode": "VALIDATION_ERROR",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "UNAUTHENTICATED": {
+                    "summary": "会话已过期",
+                    "value": {
+                      "code": 401,
+                      "msg": "会话已过期",
+                      "errorCode": "UNAUTHENTICATED",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "PERMISSION_DENIED": {
+                    "summary": "没有操作权限",
+                    "value": {
+                      "code": 403,
+                      "msg": "没有操作权限",
+                      "errorCode": "PERMISSION_DENIED",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "NOT_FOUND": {
+                    "summary": "资源不存在或不可见",
+                    "value": {
+                      "code": 404,
+                      "msg": "资源不存在或不可见",
+                      "errorCode": "NOT_FOUND",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "RATE_LIMITED": {
+                    "summary": "操作过于频繁",
+                    "value": {
+                      "code": 429,
+                      "msg": "操作过于频繁",
+                      "errorCode": "RATE_LIMITED",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "INTERNAL_ERROR": {
+                    "summary": "服务暂时不可用",
+                    "value": {
+                      "code": 500,
+                      "msg": "服务暂时不可用",
+                      "errorCode": "INTERNAL_ERROR",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "认证过滤器拒绝，兼容 HTTP 层认证失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 401,
+                  "msg": "会话已过期",
+                  "errorCode": "UNAUTHENTICATED",
+                  "traceId": "trace-cosen-example",
+                  "data": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "权限过滤器拒绝",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 403,
+                  "msg": "没有操作权限",
+                  "errorCode": "PERMISSION_DENIED",
+                  "traceId": "trace-cosen-example",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "x-permission": "cosen:member:edit",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
+        "x-data-authority": "system-db",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrecreateMemberInput"
+              }
+            }
+          }
+        }
       }
     },
     "/admin/cosen/members/{memberId}": {
@@ -5626,6 +5817,208 @@
         "x-apifox-status": "released",
         "x-backend-status": "implemented",
         "x-data-authority": "system-db"
+      },
+      "put": {
+        "summary": "编辑会员共享资料与认领手机号",
+        "operationId": "EditMemberIdentity",
+        "tags": [
+          "会员与储值"
+        ],
+        "description": "手机号唯一。新建会员余额为零。换号时原微信须重新验证，会员资产与流水保留。",
+        "parameters": [
+          {
+            "name": "memberId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "数据库 bigint ID；以十进制字符串传输，禁止转为 JS Number",
+              "example": "1001",
+              "pattern": "^[1-9]\\d{0,18}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "每次用户意图生成 UUID；同一请求重试复用，保留至少 24 小时",
+              "example": "2378ab45-fc03-45d0-9971-cfa251df7417",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "必须检查 code；成功 200，业务失败非 200。成功和失败为互斥信封。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminMember21Response"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
+                },
+                "examples": {
+                  "success": {
+                    "summary": "成功示例（设计数据）",
+                    "value": {
+                      "code": 200,
+                      "msg": "操作成功",
+                      "traceId": "trace-cosen-example",
+                      "data": {
+                        "id": "1001",
+                        "memberNo": "620108173325",
+                        "nickname": "可森会员",
+                        "phoneMasked": "138****0000",
+                        "level": "普通会员",
+                        "balanceCent": 11000,
+                        "principalBalanceCent": 10000,
+                        "giftBalanceCent": 1000,
+                        "spentCent": 3600,
+                        "orderCount": 2,
+                        "status": "active",
+                        "version": 1,
+                        "createdAt": "2026-11-18T10:00:00+08:00"
+                      }
+                    }
+                  },
+                  "VALIDATION_ERROR": {
+                    "summary": "参数不合法",
+                    "value": {
+                      "code": 400,
+                      "msg": "参数不合法",
+                      "errorCode": "VALIDATION_ERROR",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "UNAUTHENTICATED": {
+                    "summary": "会话已过期",
+                    "value": {
+                      "code": 401,
+                      "msg": "会话已过期",
+                      "errorCode": "UNAUTHENTICATED",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "PERMISSION_DENIED": {
+                    "summary": "没有操作权限",
+                    "value": {
+                      "code": 403,
+                      "msg": "没有操作权限",
+                      "errorCode": "PERMISSION_DENIED",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "NOT_FOUND": {
+                    "summary": "资源不存在或不可见",
+                    "value": {
+                      "code": 404,
+                      "msg": "资源不存在或不可见",
+                      "errorCode": "NOT_FOUND",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "RATE_LIMITED": {
+                    "summary": "操作过于频繁",
+                    "value": {
+                      "code": 429,
+                      "msg": "操作过于频繁",
+                      "errorCode": "RATE_LIMITED",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "INTERNAL_ERROR": {
+                    "summary": "服务暂时不可用",
+                    "value": {
+                      "code": 500,
+                      "msg": "服务暂时不可用",
+                      "errorCode": "INTERNAL_ERROR",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "认证过滤器拒绝，兼容 HTTP 层认证失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 401,
+                  "msg": "会话已过期",
+                  "errorCode": "UNAUTHENTICATED",
+                  "traceId": "trace-cosen-example",
+                  "data": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "权限过滤器拒绝",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 403,
+                  "msg": "没有操作权限",
+                  "errorCode": "PERMISSION_DENIED",
+                  "traceId": "trace-cosen-example",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "x-permission": "cosen:member:edit",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
+        "x-data-authority": "system-db",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditMemberIdentityInput"
+              }
+            }
+          }
+        }
       }
     },
     "/admin/cosen/members/{memberId}/balance-flows": {
@@ -11954,6 +12347,22 @@
             "description": "ISO 8601，必须携带时区；展示按 Asia/Shanghai",
             "example": "2026-11-18T10:00:00+08:00",
             "format": "date-time"
+          },
+          "identityCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "claimStatus": {
+            "type": "string",
+            "enum": [
+              "unclaimed",
+              "guest",
+              "claimed"
+            ]
+          },
+          "realName": {
+            "type": "string",
+            "maxLength": 32
           }
         },
         "required": [
@@ -15070,6 +15479,54 @@
           },
           "msg": {
             "type": "string"
+          }
+        }
+      },
+      "PrecreateMemberInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "phone"
+        ],
+        "properties": {
+          "phone": {
+            "type": "string",
+            "maxLength": 11,
+            "pattern": "^1[3-9][0-9]{9}$"
+          },
+          "nickname": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "realName": {
+            "type": "string",
+            "maxLength": 32
+          }
+        }
+      },
+      "EditMemberIdentityInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "expectedVersion"
+        ],
+        "properties": {
+          "phone": {
+            "type": "string",
+            "maxLength": 11,
+            "pattern": "^1[3-9][0-9]{9}$"
+          },
+          "nickname": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "realName": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "minimum": 0
           }
         }
       }
