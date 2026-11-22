@@ -1,15 +1,17 @@
 openapi: 3.1.0
 info:
   title: cosen 业务接口
-  version: 1.5.0
+  version: 1.6.2
   description: 可森小程序后端第一切片 API 契约（ETL 后的 DDL/model 对齐版），供 Apifox 审阅。后台管理接口见「RuoYi
-    基础接口」模块。v1.1.0：按飞书多维表格口径对齐，Product.badge 改为多选数组（招牌/人气/限定/新品/可森特调），CouponUser.source 枚举补 redeem（积分或活动兑换发放）；接口路径、参数、错误码语义不变。v1.2.0：错误码响应示例对齐 error-codes.md v1.0.0（新增 40106/40002/42902/50002/50301 与券冲突 40908–40910 示例，修正 40002 与 40003、42901 与 42902 的误用），接口路径、参数与错误码语义不变。v1.3.0：充值纳入第一切片，新增 3 个接口（档位列表 / 创建充值单 / 状态查询）、RechargeTier/RechargeOrder/WxPayParams 模型、40407 充值单不存在或非本人，以及 40904/40905/40906/42904 示例；既有 16 个接口不变。v1.4.0：成功响应补齐 traceId（AppResult/PageResult required + 19 个 200 示例），RechargeOrder 增加可选 failCode/failMsg，充值创建 409 移除回调专属 40906，products 的 category 参数明确为分类 code（非分类 ID）；接口路径与参数不变。v1.4.1：修正 40921 挂载（pay 专属，HTTP 400），从 POST /app/orders 的 409 移除。v1.5.0：Product 增加 coverUrl（相册第一张，相对路径）与 gallery（相册图片数组，第一张即封面）；商品图片由 Base「商品相册」附件同步落地为静态资源；既有接口路径与参数不变。
+    基础接口」模块。v1.1.0：按飞书多维表格口径对齐，Product.badge 改为多选数组（招牌/人气/限定/新品/可森特调），CouponUser.source 枚举补 redeem（积分或活动兑换发放）；接口路径、参数、错误码语义不变。v1.2.0：错误码响应示例对齐 error-codes.md v1.0.0（新增 40106/40002/42902/50002/50301 与券冲突 40908–40910 示例，修正 40002 与 40003、42901 与 42902 的误用），接口路径、参数与错误码语义不变。v1.3.0：充值纳入第一切片，新增 3 个接口（档位列表 / 创建充值单 / 状态查询）、RechargeTier/RechargeOrder/WxPayParams 模型、40407 充值单不存在或非本人，以及 40904/40905/40906/42904 示例；既有 16 个接口不变。v1.4.0：成功响应补齐 traceId（AppResult/PageResult required + 19 个 200 示例），RechargeOrder 增加可选 failCode/failMsg，充值创建 409 移除回调专属 40906，products 的 category 参数明确为分类 code（非分类 ID）；接口路径与参数不变。v1.4.1：修正 40921 挂载（pay 专属，HTTP 400），从 POST /app/orders 的 409 移除。v1.5.0：Product 增加 coverUrl（相册第一张，相对路径）与 gallery（相册图片数组，第一张即封面）；商品图片由 Base「商品相册」附件同步落地为静态资源；既有接口路径与参数不变。v1.6.0：补齐 GET /app/store（含门店营业状态、squareEnabled 与分场景微信订阅消息模板 subscribeTemplateIds/subscribeTemplates）及 POST /app/orders/{orderNo}/subscribe（上报并落库微信一次性订阅消息 accept 授权结果，用于支付成功/取餐完成/退款结果推送）。v1.6.1：新增消费成功通知电子小票场景 orderReceipt（后台人工确认并携带最多 20 字自定义备注下发）。v1.6.2：新增 POST /app/member/subscribe 会员级微信订阅消息额度上报接口（用于「我的」页开启小票通知、充值提交及勾选「总是保持」后的零弹窗静默攒次数，供后台代客下单等场景发送电子小票）。
 servers:
 - url: http://127.0.0.1:8080
   description: macbook 本机
 tags:
 - name: app/认证
   description: 微信登录 / 联调登录 / 手机号绑定
+- name: app/门店
+  description: 门店公开信息 / 营业状态 / 微信订阅消息模板配置
 - name: app/会员
   description: 会员资料 / 储值余额 / 流水
 - name: app/商品
@@ -457,6 +459,77 @@ paths:
               examples:
                 serviceUnavailable:
                   $ref: '#/components/examples/serviceUnavailable'
+      security: *id001
+  /app/member/subscribe:
+    post:
+      operationId: subscribeMemberMessage
+      summary: 上报会员级微信订阅消息授权（累计额度）
+      description: 小程序在「我的 → 消费小票通知」、充值提交或已勾选「总是保持以上选择」后的高频点击静默补次数时调用；后端校验已配置模板并累加 cosen_member_subscribe_quota，供代客下单或跨订单发送消费成功通知（电子小票）使用。
+      tags:
+      - app/会员
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemberSubscribeReq'
+            examples:
+              memberCenter:
+                summary: 我的页开启或静默补次数上报
+                value:
+                  templateIds:
+                  - vthz1xPTdirSdCFKxFmNPraN-ZQ1FLMc2blSJdUDqHQ
+                  results:
+                    vthz1xPTdirSdCFKxFmNPraN-ZQ1FLMc2blSJdUDqHQ: accept
+                  scene: member_center
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                allOf:
+                - $ref: '#/components/schemas/AppResult'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/MemberSubscribeResp'
+              examples:
+                success:
+                  summary: 会员订阅额度累加成功
+                  value:
+                    traceId: m9a2c401
+                    code: 200
+                    msg: ok
+                    data:
+                      subscribed: true
+                      acceptedTemplateIds:
+                      - vthz1xPTdirSdCFKxFmNPraN-ZQ1FLMc2blSJdUDqHQ
+                      ignoredTemplateIds: []
+                      activeScenes:
+                      - order_receipt
+                      remainingCount: 3
+        '401':
+          description: 认证失败（401xx）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                tokenMissing:
+                  $ref: '#/components/examples/tokenMissing'
+                tokenRevoked:
+                  $ref: '#/components/examples/tokenRevoked'
+        '500':
+          description: 服务端错误（500xx）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                internalError:
+                  $ref: '#/components/examples/internalError'
       security: *id001
   /app/member/balance/flows:
     get:
@@ -2128,6 +2201,158 @@ paths:
           type: string
           pattern: '^\d{16}$'
       security: *id001
+  /app/orders/{orderNo}/subscribe:
+    post:
+      operationId: subscribeOrderMessage
+      summary: 上报订单微信订阅消息授权
+      description: 小程序在用户点击手势内调用 wx.requestSubscribeMessage 后，将各模板的真实授权结果（accept/reject/ban/filter）上报给后端；后端仅持久化已配置且用户 accept 的模板授权至 cosen_order_subscribe，后续在支付成功（order_paid）、制作完成/取餐（order_ready）、退款通过或驳回（order_refund）事务提交后自动通过微信 subscribe/send 下发。
+      tags:
+      - app/订单
+      parameters:
+      - name: orderNo
+        in: path
+        required: true
+        description: 16 位订单号
+        schema:
+          type: string
+          pattern: '^\d{16}$'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderSubscribeReq'
+            examples:
+              withResults:
+                summary: 上报各模板真实授权结果（推荐）
+                value:
+                  templateIds:
+                  - TPL_ORDER_READY_001
+                  results:
+                    TPL_ORDER_READY_001: accept
+                    TPL_ORDER_PAID_002: reject
+                  scene: order_pay
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                allOf:
+                - $ref: '#/components/schemas/AppResult'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/OrderSubscribeResp'
+              examples:
+                success:
+                  summary: 订阅落库成功
+                  value:
+                    traceId: c8f1e601
+                    code: 200
+                    msg: ok
+                    data:
+                      subscribed: true
+                      acceptedTemplateIds:
+                      - TPL_ORDER_READY_001
+                      ignoredTemplateIds:
+                      - TPL_ORDER_PAID_002
+                      activeScenes:
+                      - order_ready
+        '401':
+          description: 认证失败（401xx）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                tokenMissing:
+                  $ref: '#/components/examples/tokenMissing'
+                tokenRevoked:
+                  $ref: '#/components/examples/tokenRevoked'
+        '404':
+          description: 订单不存在或不在本人名下（40404）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                orderNotFound:
+                  $ref: '#/components/examples/orderNotFound'
+        '500':
+          description: 服务端错误（500xx）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                internalError:
+                  $ref: '#/components/examples/internalError'
+      security: *id001
+  /app/store:
+    get:
+      operationId: getStoreInfo
+      summary: 获取门店公开信息与订阅消息模板配置
+      description: 公开接口，无需鉴权。返回门店基础资料、实时营业状态、小程序广场开关（squareEnabled）以及当前已配置的微信订阅消息模板 ID（扁平列表 subscribeTemplateIds 与分场景映射 subscribeTemplates）。
+      tags:
+      - app/门店
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                allOf:
+                - $ref: '#/components/schemas/AppResult'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/StoreInfo'
+              examples:
+                success:
+                  summary: 门店信息与分场景订阅模板
+                  value:
+                    traceId: c8f1e600
+                    code: 200
+                    msg: ok
+                    data:
+                      storeId: '1'
+                      squareEnabled: false
+                      name: 可森 COSEN
+                      subtitle: 单店运营空间
+                      address: 湖山路733号领新科创园
+                      phone: 021-6333-0817
+                      status: 'on'
+                      openNow: true
+                      businessHours:
+                      - days: mon-sun
+                        open: '08:00'
+                        close: '21:30'
+                      closedDays: []
+                      announcements:
+                      - 本店支持小程序点单到店自取
+                      customerService:
+                        type: wechat
+                        value: cosen0817
+                      subscribeTemplateIds:
+                      - TPL_ORDER_READY_001
+                      - TPL_ORDER_PAID_002
+                      - TPL_ORDER_REFUND_003
+                      subscribeTemplates:
+                        orderReady: TPL_ORDER_READY_001
+                        orderPaid: TPL_ORDER_PAID_002
+                        orderRefund: TPL_ORDER_REFUND_003
+        '500':
+          description: 服务端错误（500xx）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                internalError:
+                  $ref: '#/components/examples/internalError'
   /app/recharge/tiers:
     get:
       operationId: listRechargeTiers
@@ -2484,6 +2709,181 @@ paths:
 
 components:
   schemas:
+    StoreSubscribeTemplates:
+      type: object
+      title: StoreSubscribeTemplates
+      description: 门店已配置的微信订阅消息分场景模板 ID 映射（未配置的场景不返回）
+      properties:
+        orderReceipt:
+          type: string
+          description: 消费成功通知（电子小票）模板 ID（后台人工确认并填写备注后手动发送）
+        orderReady:
+          type: string
+          description: 订单完成 / 取餐提醒模板 ID（商家点击完成订单时触发）
+        orderPaid:
+          type: string
+          description: 下单支付成功通知模板 ID（支付成功时触发）
+        orderRefund:
+          type: string
+          description: 退款结果通知模板 ID（退款完成或驳回时触发）
+    StoreInfo:
+      type: object
+      title: StoreInfo
+      description: 门店公开信息与小程序配置
+      properties:
+        storeId:
+          type: string
+          description: 门店 ID
+        squareEnabled:
+          type: boolean
+          description: 小程序广场页是否开启
+        name:
+          type: string
+          description: 门店名称
+        subtitle:
+          type: string
+          description: 门店副标题/空间说明
+        address:
+          type: string
+          description: 门店地址
+        phone:
+          type: string
+          description: 门店联系电话
+        status:
+          type: string
+          enum: ['on', 'off']
+          description: 营业开关
+        openNow:
+          type: boolean
+          description: 当前时刻是否营业中
+        businessHours:
+          type: array
+          items:
+            type: object
+            properties:
+              days: {type: string}
+              open: {type: string}
+              close: {type: string}
+        closedDays:
+          type: array
+          items: {type: string}
+        announcements:
+          type: array
+          items: {type: string}
+        customerService:
+          type: object
+          properties:
+            type: {type: string}
+            value: {type: string}
+        subscribeTemplateIds:
+          type: array
+          description: 去重后的已配置微信订阅消息模板 ID 列表
+          items: {type: string}
+        subscribeTemplates:
+          $ref: '#/components/schemas/StoreSubscribeTemplates'
+      required:
+      - name
+      - subscribeTemplateIds
+      - subscribeTemplates
+    OrderSubscribeReq:
+      type: object
+      title: OrderSubscribeReq
+      description: 订单微信订阅消息授权上报请求
+      properties:
+        templateIds:
+          type: array
+          description: 用户同意（accept）的模板 ID 列表（兼容旧版客户端仅传该字段）
+          maxItems: 3
+          items: {type: string}
+        results:
+          type: object
+          description: 微信 requestSubscribeMessage 返回的各模板真实结果（键为 templateId，值为 accept/reject/ban/filter）
+          additionalProperties:
+            type: string
+            enum: [accept, reject, ban, filter]
+        scene:
+          type: string
+          enum: [order_pay, order_refund, order_detail]
+          description: 小程序触发订阅的页面场景
+    OrderSubscribeResp:
+      type: object
+      title: OrderSubscribeResp
+      description: 订单微信订阅消息授权上报响应
+      properties:
+        subscribed:
+          type: boolean
+          description: 本次是否至少成功落库 1 条有效模板授权
+        acceptedTemplateIds:
+          type: array
+          description: 已校验配置并落库的模板 ID 列表
+          items: {type: string}
+        ignoredTemplateIds:
+          type: array
+          description: 被用户拒绝、未在后端配置或缺少 openid 而忽略的模板 ID 列表
+          items: {type: string}
+        activeScenes:
+          type: array
+          description: 本次生效的业务通知场景列表
+          items:
+            type: string
+            enum: [order_receipt, order_ready, order_paid, order_refund, general]
+      required:
+      - subscribed
+      - acceptedTemplateIds
+      - ignoredTemplateIds
+      - activeScenes
+    MemberSubscribeReq:
+      type: object
+      title: MemberSubscribeReq
+      description: 会员级微信订阅消息授权上报请求
+      properties:
+        templateIds:
+          type: array
+          description: 用户同意授权的模板 ID 列表（最多 3 个）
+          maxItems: 3
+          items: {type: string}
+        results:
+          type: object
+          description: 各模板真实授权决策（accept/reject/ban/filter）
+          additionalProperties:
+            type: string
+            enum: [accept, reject, ban, filter]
+        scene:
+          type: string
+          description: 触发场景
+          enum: [member_center, silent_refill, recharge]
+    MemberSubscribeResp:
+      type: object
+      title: MemberSubscribeResp
+      description: 会员级微信订阅消息授权上报响应
+      properties:
+        subscribed:
+          type: boolean
+          description: 本次是否至少成功累加 1 条有效模板额度
+        acceptedTemplateIds:
+          type: array
+          description: 已校验配置并累加额度的模板 ID 列表
+          items: {type: string}
+        ignoredTemplateIds:
+          type: array
+          description: 被拒绝、未配置或缺少 openid 而忽略的模板 ID 列表
+          items: {type: string}
+        activeScenes:
+          type: array
+          description: 本次生效的业务通知场景列表
+          items:
+            type: string
+            enum: [order_receipt, order_ready, order_paid, order_refund, general]
+        remainingCount:
+          type: integer
+          minimum: 0
+          description: 该会员当前记录的消费成功通知剩余估算次数
+      required:
+      - subscribed
+      - acceptedTemplateIds
+      - ignoredTemplateIds
+      - activeScenes
+      - remainingCount
     MemberProfile:
       type: object
       title: MemberProfile
@@ -2822,7 +3222,12 @@ components:
           format: double
           minimum: 0
           maximum: 10
-          description: 评分 0.0-9.9
+          multipleOf: 0.1
+          description: 商品星级 0.0–10.0
+        cornerText:
+          type: string
+          maxLength: 12
+          description: 商品右上角内凹角标，空串或缺省时隐藏
         soldCount:
           type: integer
           format: int32
@@ -2831,13 +3236,7 @@ components:
           type: array
           items:
             type: string
-            enum:
-            - 招牌
-            - 人气
-            - 限定
-            - 新品
-            - 可森特调
-          description: 角标（多选，来自 Base「推荐/新品标签」）：招牌/人气/限定/新品/可森特调；无角标时为空数组
+          description: 后台自定义标签
         ingredientsJson:
           type: array
           items:
@@ -2891,6 +3290,22 @@ components:
           format: int64
           description: 用户券ID（bigint ID，JSON 用字符串避免精度丢失）
           readOnly: true
+        scope:
+          type: object
+          nullable: true
+          description: 发布时选定的分类或单品；空值沿用历史券规则
+          properties:
+            kind:
+              type: string
+              enum: [category, product]
+            targets:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: {type: string}
+                  code: {type: string}
+                  name: {type: string}
         couponNo:
           type: string
           maxLength: 40

@@ -4,7 +4,7 @@
  *   GET /app/member/balance/flows  储值流水（分页）
  */
 import { request, requestPage } from './request'
-import type { MemberBalanceFlow, MemberProfile, PageData } from './types'
+import type { MemberBalanceFlow, MemberProfile, PageData, UpdateProfileReq } from './types'
 
 export interface BalanceFlowQuery {
   /** 从 1 开始，默认 1 */
@@ -16,6 +16,14 @@ export interface BalanceFlowQuery {
 /** 会员资料（脱敏，不含 openid/明文手机号） */
 export function getMemberProfile(): Promise<MemberProfile> {
   return request<MemberProfile>('/app/member/profile')
+}
+
+/** 修改当前会员昵称、头像 */
+export function updateMemberProfile(payload: UpdateProfileReq): Promise<MemberProfile> {
+  return request<MemberProfile>('/app/member/profile', {
+    method: 'PUT',
+    data: payload
+  })
 }
 
 /** 储值流水，倒序；金额单位分，正负由 direction/amountCent 表达 */

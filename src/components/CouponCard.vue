@@ -22,6 +22,7 @@
         <Icon name="gift" :size="24" :color="mode === 'available' ? '#87512E' : '#856951'" />
         <text class="issuer-t">{{ coupon.issuer }} 发放</text>
       </view>
+      <text v-if="coupon.scope" class="reason">适用{{ coupon.scope.kind === 'category' ? '分类' : '单品' }} · {{ coupon.scope.targets.map(t => t.name).join('、') }}</text>
       <text class="reason">{{ reason || coupon.reason }}</text>
       <view class="b-foot">
         <text class="until">{{ untilText }}</text>
@@ -74,8 +75,9 @@ const stampText = computed(() => {
 })
 const shortRule = computed(() => {
   const c = props.coupon
+  if (c.scope && c.type === 'gift') return '任选一件'
   if (c.type === 'gift') return `${c.value} 元内任选`
-  if (c.type === 'discount') return c.maxOff ? `最多减 ${c.maxOff}` : '全单可用'
+  if (c.type === 'discount') return c.maxOff ? `最多减 ${c.maxOff}` : (c.scope ? '适用商品可用' : '全单可用')
   return c.threshold ? `满 ${c.threshold} 可用` : '无门槛'
 })
 const untilText = computed(() => {

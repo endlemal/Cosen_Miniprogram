@@ -37,10 +37,10 @@
           </view>
         </view>
 
-        <view class="today" hover-class="tap-on" @tap="openToday">
+        <view v-if="today" class="today" hover-class="tap-on" @tap="openToday">
           <view class="today-art">
             <image v-if="todayCover" class="today-img" :src="todayCover" mode="aspectFill" />
-            <ProductImagePlaceholder v-else compact />
+            <ProductImagePlaceholder v-else :product-key="today.id" />
           </view>
           <view class="today-info">
             <text class="today-label">今日推荐</text>
@@ -104,7 +104,7 @@ import Icon from '@/components/Icon.vue'
 import CoverArt from '@/components/CoverArt.vue'
 import ProductImagePlaceholder from '@/components/ProductImagePlaceholder.vue'
 import { fetchPosts } from '@/mock/posts'
-import { getProduct } from '@/mock/products'
+import { getProduct, PRODUCTS } from '@/mock/products'
 import { mediaCover } from '@/utils/media'
 import { USER } from '@/mock/seed'
 import { state, newCouponCount, switchTab } from '@/store'
@@ -114,8 +114,8 @@ import { ago, greeting, md, weekday } from '@/utils/format'
 const L = getLayout()
 const hi = greeting()
 const dateText = `${md(Date.now())} ${weekday()}`
-const today = getProduct('s1')!
-const todayCover = mediaCover(today.coverUrl, today.gallery)
+const today = getProduct('s1') ?? PRODUCTS[0]
+const todayCover = mediaCover(today?.coverUrl, today?.gallery)
 
 const first = fetchPosts(0)
 const posts = ref(first.list)
@@ -157,6 +157,7 @@ function openPost(p: Post) {
   uni.navigateTo({ url: `/pages/post/index?id=${encodeURIComponent(p.id)}` })
 }
 function openToday() {
+  if (!today) return
   state.ui.pendingProductId = today.id
   switchTab('menu')
 }

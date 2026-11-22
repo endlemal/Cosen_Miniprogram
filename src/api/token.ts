@@ -9,10 +9,14 @@
 
 export const TOKEN_KEY = 'cosen:member-token'
 
+// 与 token 共用一个存储槽，退出标记与清除凭据一次写入。
+const SIGNED_OUT = '!signed-out'
 let cachedToken = ''
 let loaded = false
+// 让退出前发起的异步请求即使在下一次登录后返回，也无法影响新会话。
+export let logoutGeneration = 0
 
-export function getToken(): string {
+function readSession(): string {
   if (!loaded) {
     loaded = true
     try {
@@ -26,7 +30,15 @@ export function getToken(): string {
   return cachedToken
 }
 
-export function setToken(token: string): void {
+export function isSignedOut(): boolean {
+  return readSession() === SIGNED_OUT
+}
+
+export function getToken(): string {
+  return isSignedOut() ? '' : cachedToken
+}
+
+function writeSession(token: string): void {
   cachedToken = token || ''
   loaded = true
   try {
@@ -37,14 +49,17 @@ export function setToken(token: string): void {
   }
 }
 
+export function setToken(token: string): void {
+  writeSession(token)
+}
+
+export function markSignedOut(): void {
+  logoutGeneration++
+  writeSession(SIGNED_OUT)
+}
+
 export function clearToken(): void {
-  cachedToken = ''
-  loaded = true
-  try {
-    uni.removeStorageSync(TOKEN_KEY)
-  } catch (e) {
-    /* noop */
-  }
+  if (!isSignedOut()) writeSession('')
 }
 
 export function hasToken(): boolean {

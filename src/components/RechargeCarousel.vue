@@ -1,5 +1,5 @@
 <template>
-  <view class="tiers">
+  <view v-if="slides.length" class="tiers">
     <swiper class="carousel" circular next-margin="68rpx">
       <swiper-item v-for="(tier, index) in slides" :key="index">
         <view class="tier-card" :class="{ reserve: tier.hot }">
@@ -26,9 +26,9 @@
               </view>
             </view>
             <view class="card-foot">
-              <button class="add" hover-class="tap-on" @tap="add(tier.amount)">
+              <button class="add" hover-class="tap-on" @tap="add(tier.amount, tier.tierIndex)">
                 <Icon name="plus" :size="26" color="#462719" :stroke="2.5" />
-                <text>加入购物车</text>
+                <text>{{ useMock ? '加入购物车' : '立即储值' }}</text>
               </button>
             </view>
           </view>
@@ -39,15 +39,36 @@
 </template>
 
 <script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
+import { listRechargeTiers, toRechargeTiers } from '@/api/recharge'
 import Icon from './Icon.vue'
 import { STORE } from '@/mock/products'
 import { RECHARGE_TIERS } from '@/mock/seed'
 import { changeRechargeQty } from '@/store'
+import { useMock } from '@/config/env'
+
+const emit = defineEmits<{ (e: 'layout-change'): void }>()
 
 // 两档各渲染两次，让循环滑动时右侧始终有预览。
-const slides = [...RECHARGE_TIERS, ...RECHARGE_TIERS]
+const tiers = ref(useMock ? RECHARGE_TIERS.map((tier, tierIndex) => ({...tier, tierIndex})) : [])
+const slides = computed(() => tiers.value.length === 2 ? [...tiers.value, ...tiers.value] : tiers.value)
+onMounted(async () => {
+  if (useMock) return
+  try {
+    tiers.value = toRechargeTiers(await listRechargeTiers())
+      .map((tier, tierIndex) => ({ ...tier, tierIndex })).filter(tier => tier.available)
+    if (tiers.value.length) emit('layout-change')
+  } catch {
+    tiers.value = []
+  }
+})
 
-function add(amount: number) {
+function add(amount: number, tierIndex: number) {
+  if (!useMock) {
+    // 真实模式没有「储值购物车」：直接带档位去储值页，由后端档位与微信支付结算
+    uni.navigateTo({ url: `/pages/recharge/index?tier=${tierIndex}` })
+    return
+  }
   changeRechargeQty(amount, 1)
   uni.showToast({ title: '储值已加入购物车', icon: 'none', duration: 1000 })
 }

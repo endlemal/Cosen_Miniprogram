@@ -3,8 +3,9 @@
  * 所有数据都是 Mock，"重置演示数据" 会恢复初始状态。
  */
 import { reactive, computed, watch } from 'vue'
+import type { OrderStatus } from '@/api/types'
 import type { CartItem, Coupon, Order, Product, RechargeRecord, SpecGroup, TabKey } from '@/types'
-import { STORE } from '@/mock/products'
+import { STORE, PRODUCTS } from '@/mock/products'
 import { RECHARGE_TIERS, REDEEM_CODES, seedCoupons, seedOrders, seedRecharges } from '@/mock/seed'
 import { pad } from '@/utils/format'
 
@@ -23,6 +24,7 @@ interface Persisted {
   recharges: RechargeRecord[]
   likes: Record<string, boolean>
   mode: 'pickup' | 'delivery'
+  tableNo: string
   seq: number
 }
 
@@ -39,6 +41,7 @@ function initial(): Persisted {
     recharges: seedRecharges(),
     likes: {},
     mode: 'pickup',
+    tableNo: '',
     seq: 26
   }
 }
@@ -47,6 +50,7 @@ export const state = reactive({
   ...initial(),
   ui: {
     tab: 'square' as TabKey,
+    squareEnabled: true,
     /** 从其他页面跳回点单页时要打开的商品 */
     pendingProductId: '',
     /** 加购时让购物车按钮轻跳一下 */
@@ -61,12 +65,14 @@ export function hydrate() {
   try {
     const raw = uni.getStorageSync(KEY)
     if (raw) Object.assign(state, typeof raw === 'string' ? JSON.parse(raw) : raw)
+    // 桌号仅在本次到店期间有效，兼容清除旧版持久化的桌号。
+    state.tableNo = ''
   } catch (e) {
     /* 缓存损坏就用初始数据 */
   }
   watch(
     () => {
-      const { ui, ...rest } = state
+      const { ui, tableNo, ...rest } = state
       return JSON.stringify(rest)
     },
     (json) => {
@@ -86,13 +92,58 @@ export function resetDemo() {
 
 /* ---------------- 导航 ---------------- */
 
+export function setSquareEnabled(enabled: boolean) {
+  state.ui.squareEnabled = enabled
+  if (!enabled && state.ui.tab === 'square') switchTab('menu')
+}
+
 export function switchTab(tab: TabKey) {
-  state.ui.tab = tab
+  state.ui.tab = tab === 'square' && !state.ui.squareEnabled ? 'menu' : tab
+}
+
+export function bindTableNo(tableNo: string) {
+  const clean = String(tableNo || '').trim().toUpperCase()
+  state.tableNo = /^[A-Z0-9_-]{1,24}$/.test(clean) ? clean : ''
+}
+
+export function extractTableNo(query?: Record<string, any> | null): string {
+  if (!query || typeof query !== 'object') return ''
+  const normalize = (raw: unknown): string => {
+    const clean = String(raw || '').trim().toUpperCase()
+    return /^[A-Z0-9_-]{1,24}$/.test(clean) ? clean : ''
+  }
+  const direct = normalize(query.tableNo || query.table)
+  if (direct) return direct
+  if (query.scene) {
+    let scene = String(query.scene)
+    try {
+      scene = decodeURIComponent(scene)
+    } catch {
+      /* keep raw */
+    }
+    const prefixMatch = scene.match(/^(?:t_|table_)([A-Za-z0-9_-]{1,24})$/i)
+    if (prefixMatch) return normalize(prefixMatch[1])
+    const kvMatch = scene.match(/(?:^|[&;])(?:t|table|tableNo)=([A-Za-z0-9_-]{1,24})/i)
+    if (kvMatch) return normalize(kvMatch[1])
+  }
+  if (query.q) {
+    let url = String(query.q)
+    try {
+      url = decodeURIComponent(url)
+    } catch {
+      /* keep raw */
+    }
+    const paramMatch = url.match(/[?&](?:tableNo|table|t)=([A-Za-z0-9_-]{1,24})/i)
+    if (paramMatch) return normalize(paramMatch[1])
+    const pathMatch = url.match(/\/table\/([A-Za-z0-9_-]{1,24})(?:[/?#]|$)/i)
+    if (pathMatch) return normalize(pathMatch[1])
+  }
+  return ''
 }
 
 /** 从子页面回到首页某个 tab（可选：打开某个商品） */
 export function backToTab(tab: TabKey, productId = '') {
-  state.ui.tab = tab
+  switchTab(tab)
   state.ui.pendingProductId = productId
   const pages = getCurrentPages()
   if (pages.length > 1) {
@@ -122,7 +173,16 @@ export function describeSelection(groups: SpecGroup[], sel: Selection) {
   return { extra, text: labels.join(' / ') }
 }
 
-export function addToCart(p: Product, groups: SpecGroup[], sel: Selection, qty = 1) {
+/**
+ * 加入购物车。
+ * v1.6.0：售罄（soldOut）直接从数据层拦截，防止卡片快捷加购 / 规格面板漏判。
+ * @returns false = 未加入（售罄）
+ */
+export function addToCart(p: Product, groups: SpecGroup[], sel: Selection, qty = 1): boolean {
+  if (p.soldOut) {
+    uni.showToast({ title: '该商品已售罄', icon: 'none', duration: 1600 })
+    return false
+  }
   const { extra, text } = describeSelection(groups, sel)
   const key = `${p.id}|${text}`
   const hit = state.cart.find((c) => c.key === key)
@@ -141,6 +201,7 @@ export function addToCart(p: Product, groups: SpecGroup[], sel: Selection, qty =
       coverUrl: p.coverUrl || (p.gallery && p.gallery[0]) || ''
     })
   state.ui.cartPulse++
+  return true
 }
 
 export function changeQty(key: string, delta: number) {
@@ -201,12 +262,13 @@ export function couponState(c: Coupon, now = Date.now()): CouponState {
 export function couponFace(c: Coupon) {
   if (c.type === 'cash') return { value: String(c.value), unit: '元', prefix: '¥' }
   if (c.type === 'discount') return { value: String(Math.round(c.value * 100) / 10), unit: '折', prefix: '' }
-  return { value: '1', unit: '杯', prefix: '' }
+  return { value: '1', unit: c.scope ? '件' : '杯', prefix: '' }
 }
 
 export function couponRule(c: Coupon) {
+  if (c.scope && c.type === 'gift') return '范围内任选一件'
   if (c.type === 'cash') return c.threshold > 0 ? `满 ${c.threshold} 元可用` : '无门槛'
-  if (c.type === 'discount') return `全单${Math.round(c.value * 100) / 10}折${c.maxOff ? `，最多减 ${c.maxOff} 元` : ''}`
+  if (c.type === 'discount') return `${c.scope ? '适用商品' : '全单'}${Math.round(c.value * 100) / 10}折${c.maxOff ? `，最多减 ${c.maxOff} 元` : ''}`
   return `任意一杯 ${c.value} 元以内饮品免单`
 }
 
@@ -218,11 +280,28 @@ export function evalCoupon(c: Coupon, items: CartItem[], subtotal: number): { ok
   if (st === 'transferred') return { ok: false, off: 0, reason: '已转赠' }
   if (st === 'frozen') return { ok: false, off: 0, reason: '已冻结' }
   if (!items.length) return { ok: false, off: 0, reason: '购物车是空的' }
+  if (c.startAt > Date.now()) return { ok: false, off: 0, reason: '尚未生效' }
+  if (c.scope) {
+    const {kind, targets} = c.scope
+    const codes = new Set(targets.map(target => target.code))
+    items = items.filter(item => {
+      const product = PRODUCTS.find(p => p.id === item.productId)
+      return kind === 'product' ? codes.has(item.productId) : !!product && codes.has(product.cat)
+    })
+    if (!items.length) return { ok: false, off: 0, reason: '购物车中没有适用商品' }
+    // The order API prices eligible lines from the current catalog.
+    const prices = items.map(item => Math.round((PRODUCTS.find(p => p.id === item.productId)?.price ?? item.unitPrice) * 100))
+    subtotal = items.reduce((sum, item, index) => sum + prices[index]! * item.qty, 0) / 100
+    if (c.type === 'gift') return { ok: true, off: Math.max(...prices) / 100 }
+  }
   if (subtotal < c.threshold) return { ok: false, off: 0, reason: `还差 ${Math.ceil(c.threshold - subtotal)} 元可用` }
   let off = 0
   if (c.type === 'cash') off = Math.min(c.value, subtotal)
-  else if (c.type === 'discount') off = Math.min(subtotal * (1 - c.value), c.maxOff ?? Infinity)
-  else off = Math.min(Math.max(...items.map((i) => i.unitPrice)), c.value)
+  else if (c.type === 'discount') off = Math.min(Math.round(Math.round(subtotal * 100) * (100 - Math.round(c.value * 100)) / 100) / 100, c.maxOff ?? Infinity)
+  else {
+    if (!items.some(item => item.unitPrice <= c.value)) return { ok: false, off: 0, reason: '没有符合面额的商品' }
+    off = Math.min(Math.max(...items.map((i) => i.unitPrice)), c.value)
+  }
   return { ok: true, off: Math.round(off * 100) / 100 }
 }
 
@@ -324,21 +403,25 @@ export function placeOrder(input: PlaceOrderInput): Order {
   return order
 }
 
-/** Mock 制作进度：按下单后经过的时间推进 */
-export function orderStage(o: Order, now = Date.now()) {
-  const steps = ['已下单', '制作中', o.mode === 'pickup' ? '请取餐' : '配送中', '已完成']
-  const dt = (now - o.createdAt) / 1000
-  let step = 3
-  if (!o.archived) {
-    if (dt < 8) step = 0
-    else if (dt < 30) step = 1
-    else if (dt < 30 * 60) step = 2
+/**
+ * Mock 订单状态（契约 4 态）：mock 下单即支付完成，未归档 = 已支付，归档 = 已完成。
+ * v1.6.0：制作中 / 待取餐已下线，不再有进度推进。
+ */
+export function mockOrderStatus(o: Order): OrderStatus {
+  return o.archived ? 'completed' : 'paid'
+}
+
+/**
+ * 注销 / 退出登录：清本地缓存与内存里的演示数据（token 由 api/token 清理）。
+ * 清完直接 reLaunch 登录页，上下文里不再残留上一账号的余额、券与订单。
+ */
+export function clearLocalCache() {
+  try {
+    uni.removeStorageSync(KEY)
+  } catch (e) {
+    /* storage 不可用时忽略 */
   }
-  const hint = [
-    '门店已收到订单',
-    `咖啡师正在制作，大约 ${Math.max(1, Math.ceil((30 - dt) / 6))} 分钟`,
-    o.mode === 'pickup' ? '到吧台报取餐号即可' : '骑手正在路上',
-    '感谢光临，期待下次见'
-  ][step]
-  return { step, steps, label: steps[step], hint }
+  Object.assign(state, initial())
+  switchTab('square')
+  state.ui.pendingProductId = ''
 }

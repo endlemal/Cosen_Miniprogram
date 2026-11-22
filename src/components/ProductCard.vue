@@ -1,9 +1,9 @@
-<!-- 商品卡：饮品插画叠在焦糖色底座和咖啡色信息面板上 -->
+<!-- 商品卡：饮品插画叠在焦糖色底座和咖啡色信息面板上；v1.6.0 售罄置灰 -->
 <template>
-  <view class="pcard" @tap="emit('open')">
-    <view class="panel">
-      <Notch v-if="badges.length" bg="#F8F0E3" :r="24" pad="6rpx 18rpx 10rpx 22rpx">
-        <text class="badge">{{ badgeLabel }}</text>
+  <view class="pcard" :class="{ soldout: soldOut }" @tap="emit('open')">
+    <view class="panel" :class="{ marked: product.cornerText }">
+      <Notch v-if="product.cornerText" bg="#F8F0E3" :r="24" pad="6rpx 18rpx 10rpx 22rpx">
+        <text class="badge">{{ product.cornerText }}</text>
       </Notch>
       <text class="name">{{ product.name }}</text>
       <text class="en">{{ product.en }}</text>
@@ -17,18 +17,22 @@
       </view>
     </view>
     <view class="tile" :style="{ background: tileBg }" />
-    <!-- 契约 v1.5.0：有封面图时显示图片；无图 / 加载失败显示空占位（等待图片上传） -->
+    <!-- 正方形封面居中裁切，无图时按商品编码选猫。 -->
+    <view v-if="!coverSrc || coverBroken" class="art"><ProductImagePlaceholder :product-key="product.id" /></view>
     <view v-if="coverSrc && !coverBroken" class="cover">
-      <image class="cover-img" :src="coverSrc" mode="aspectFill" @error="onCoverError" />
+      <image :key="coverSrc" class="cover-img" :class="{ ready: coverReady }" @load="coverReady = true" :src="coverSrc" mode="aspectFill" @error="onCoverError" />
     </view>
-    <view v-else class="art">
-      <ProductImagePlaceholder />
+    <view v-if="soldOut" class="soldout-mask">
+      <text class="soldout-t">售罄</text>
     </view>
-    <view class="plus" hover-class="tap-on" @tap.stop="emit('add')">
-      <Icon name="plus" :size="38" color="#462719" :stroke="3" />
-      <view v-if="qty > 0" class="qty">
-        <text class="qty-n">{{ qty }}</text>
-      </view>
+    <view class="plus" :class="{ sold: soldOut }" hover-class="tap-on" @tap.stop="onAdd">
+      <text v-if="soldOut" class="plus-t-sold">售罄</text>
+      <template v-else>
+        <Icon name="plus" :size="38" color="#462719" :stroke="3" />
+        <view v-if="qty > 0" class="qty">
+          <text class="qty-n">{{ qty }}</text>
+        </view>
+      </template>
     </view>
   </view>
 </template>
@@ -39,23 +43,34 @@ import type { Product } from '@/types'
 import Icon from './Icon.vue'
 import Notch from './Notch.vue'
 import ProductImagePlaceholder from './ProductImagePlaceholder.vue'
-import { badgeText, normalizeBadges } from '@/utils/badge'
-import { mediaCover } from '@/utils/media'
+import { mediaCover, productThumbnail } from '@/utils/media'
 
 const props = withDefaults(defineProps<{ product: Product; qty?: number }>(), { qty: 0 })
 const emit = defineEmits<{ (e: 'open'): void; (e: 'add'): void }>()
+/** 契约 v1.6.0：soldOut 时置灰，禁止快捷加购（仍可打开详情查看） */
+const soldOut = computed(() => props.product.soldOut === true)
 const tileBg = computed(() => `linear-gradient(165deg, ${props.product.tile[0]} 0%, ${props.product.tile[1]} 100%)`)
-// 契约 badge 是数组；兼容旧 mock 字符串，多个角标显示「首个 +N」
-const badges = computed(() => normalizeBadges(props.product.badge))
-const badgeLabel = computed(() => badgeText(badges.value))
-// 契约 v1.5.0 封面：mock 模式恒为 ''（外观走空占位），真实模式拼 API base
-const coverSrc = computed(() => mediaCover(props.product.coverUrl, props.product.gallery))
+const originalCover = computed(() => mediaCover(props.product.coverUrl, props.product.gallery))
+const useOriginal = ref(false)
+const coverSrc = computed(() => useOriginal.value ? originalCover.value : productThumbnail(originalCover.value))
 const coverBroken = ref(false)
-watch(coverSrc, () => {
+const coverReady = ref(false)
+watch(originalCover, () => {
+  useOriginal.value = false
+  coverReady.value = false
   coverBroken.value = false
 })
 function onCoverError() {
-  coverBroken.value = true
+  coverReady.value = false
+  if (coverSrc.value !== originalCover.value) useOriginal.value = true
+  else coverBroken.value = true
+}
+function onAdd() {
+  if (soldOut.value) {
+    uni.showToast({ title: '该商品已售罄', icon: 'none', duration: 1600 })
+    return
+  }
+  emit('add')
 }
 </script>
 
@@ -78,7 +93,11 @@ function onCoverError() {
   display: flex;
   flex-direction: column;
 }
+.panel.marked { padding-top: 42rpx; }
 .badge {
+  display: block;
+  max-width: 240rpx;
+  @include ellipsis(1);
   font-size: 20rpx;
   font-weight: 700;
   color: $espresso;
@@ -89,14 +108,15 @@ function onCoverError() {
   line-height: 1.32;
   font-weight: 700;
   color: $paper;
-  padding-right: 54rpx;
+  padding-right: 8rpx;
   @include ellipsis(2);
 }
 .en {
   margin-top: 4rpx;
   font-size: 20rpx;
   color: rgba($cream, 0.85);
-  font-family: $font-latin;
+  font-family: $font-product-en;
+  line-height: 1.3;
   @include ellipsis(1);
 }
 .price {
@@ -140,6 +160,42 @@ function onCoverError() {
   border: 1rpx solid rgba($paper, 0.55);
   box-shadow: $shadow-coffee;
 }
+/* v1.6.0 售罄：整卡降饱和 + 蒙层标签 + 加购按钮置灰 */
+.pcard.soldout {
+  opacity: 0.66;
+}
+.soldout-mask {
+  position: absolute;
+  left: 3rpx;
+  top: 47rpx;
+  width: 208rpx;
+  height: 250rpx;
+  border-radius: 37rpx;
+  background: rgba(70, 39, 25, 0.32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+.soldout-t {
+  padding: 8rpx 22rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 249, 240, 0.92);
+  color: $roast;
+  font-size: 24rpx;
+  font-weight: 800;
+  letter-spacing: 2rpx;
+}
+.plus.sold {
+  background: $line;
+  box-shadow: none;
+}
+.plus-t-sold {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: $ink-3;
+}
+
 /* 封面图：占住原插画所在的焦糖底座位置（内缩 3rpx 露出纸边），圆角裁切 */
 .cover {
   position: absolute;
@@ -150,7 +206,10 @@ function onCoverError() {
   border-radius: 37rpx;
   overflow: hidden;
 }
+.cover-img.ready { opacity: 1; }
 .cover-img {
+  opacity: 0;
+  transition: opacity 160ms ease-out;
   display: block;
   width: 100%;
   height: 100%;

@@ -38,6 +38,7 @@ export function toCoupon(dto: CouponUserDto): Coupon {
     id: dto.couponNo,
     couponNo: dto.couponNo,
     title: dto.title,
+    scope: dto.scope,
     type: dto.type,
     // discount 券用折扣率；cash/gift 用面额（分 → 元）
     value: dto.type === 'discount' ? dto.discountRate ?? 1 : centToYuan(dto.valueCent ?? 0),

@@ -18,16 +18,13 @@
             </swiper-item>
           </swiper>
           <view v-if="!visibleShots.length" class="empty">
-            <ProductImagePlaceholder />
+            <ProductImagePlaceholder :product-key="product.id" />
           </view>
-          <Notch bg="#FFF9F0" :r="36" pad="12rpx 30rpx 20rpx 34rpx">
-            <view class="tag">
-              <text class="tag-c">¥</text>
-              <text class="tag-n">{{ money(unitPrice) }}</text>
-            </view>
+          <Notch v-if="product.cornerText" bg="#FFF9F0" :r="28" pad="10rpx 24rpx 14rpx 26rpx">
+            <text class="corner-text">{{ product.cornerText }}</text>
           </Notch>
-          <view class="band">
-            <text class="band-t">储值余额可直接支付</text>
+          <view class="band" :class="{ sold: soldOut }">
+            <text class="band-t">{{ soldOut ? '该商品今日已售罄' : '储值余额可直接支付' }}</text>
           </view>
         </view>
 
@@ -43,7 +40,7 @@
         </view>
         <text class="desc">{{ product.desc }}</text>
         <view class="chips">
-          <text v-for="t in product.ingredients" :key="t" class="chip">{{ t }}</text>
+          <text v-for="t in chips" :key="t" class="chip">{{ t }}</text>
         </view>
 
         <view v-for="g in groups" :key="g.key" class="group">
@@ -56,7 +53,7 @@
               v-for="(o, i) in g.options"
               :key="o.label"
               class="opt"
-              :class="{ on: isOn(g.key, i) }"
+              :class="{ on: isOn(g.key, i), off: soldOut }"
               hover-class="tap-on"
               @tap="pick(g.key, i, !!g.multi)"
             >
@@ -76,9 +73,9 @@
             <text class="sum-n">{{ money(unitPrice * qty) }}</text>
           </view>
         </view>
-        <Stepper :value="qty" @change="(d) => (qty = Math.max(1, qty + d))" />
-        <view class="cta" hover-class="tap-on" @tap="add">
-          <text class="cta-t">加入购物车</text>
+        <Stepper v-if="!soldOut" :value="qty" @change="(d) => (qty = Math.max(1, qty + d))" />
+        <view class="cta" :class="{ disabled: soldOut }" hover-class="tap-on" @tap="add">
+          <text class="cta-t">{{ soldOut ? '已售罄' : '加入购物车' }}</text>
         </view>
       </view>
     </template>
@@ -106,7 +103,10 @@ const sel = ref<Selection>({})
 const qty = ref(1)
 
 const groups = computed(() => (props.product ? specGroupsOf(props.product) : []))
+/** 契约 v1.6.0：售罄时禁用规格选择与加购 */
+const soldOut = computed(() => props.product?.soldOut === true)
 const summary = computed(() => describeSelection(groups.value, sel.value))
+const chips = computed(() => [...new Set([...(props.product?.badge ?? []), ...(props.product?.ingredients ?? [])])])
 const unitPrice = computed(() => (props.product ? props.product.price + summary.value.extra : 0))
 const heroBg = computed(() =>
   props.product ? `linear-gradient(160deg, ${props.product.tile[0]} 0%, ${props.product.tile[1]} 100%)` : ''
@@ -146,6 +146,10 @@ function isOn(key: string, i: number) {
 }
 
 function pick(key: string, i: number, multi: boolean) {
+  if (soldOut.value) {
+    uni.showToast({ title: '该商品已售罄', icon: 'none', duration: 1600 })
+    return
+  }
   const next = { ...sel.value }
   if (multi) {
     const arr = [...((next[key] as number[]) || [])]
@@ -159,7 +163,11 @@ function pick(key: string, i: number, multi: boolean) {
 
 function add() {
   if (!props.product) return
-  addToCart(props.product, groups.value, sel.value, qty.value)
+  if (props.product.soldOut) {
+    uni.showToast({ title: '该商品已售罄', icon: 'none', duration: 1600 })
+    return
+  }
+  if (!addToCart(props.product, groups.value, sel.value, qty.value)) return
   emit('added')
   emit('update:show', false)
   uni.showToast({ title: '已加入购物车', icon: 'none', duration: 1200 })
@@ -173,17 +181,17 @@ function add() {
 .hero {
   position: relative;
   margin: 24rpx 28rpx 0;
-  height: 500rpx;
+  aspect-ratio: 1;
   border-radius: 44rpx;
   overflow: hidden;
 }
-/* 相册轮播：铺满原插画区（500rpx），圆角由 .hero 的 overflow 裁切 */
+/* 相册轮播：铺满原插画区，圆角由 .hero 的 overflow 裁切 */
 .shots {
   position: absolute;
   left: 0;
   top: 0;
   width: 100%;
-  height: 500rpx;
+  height: 100%;
 }
 .shot {
   display: block;
@@ -199,22 +207,12 @@ function add() {
   left: 0;
   top: 0;
   width: 100%;
-  height: 500rpx;
+  height: 100%;
 }
-.tag {
-  display: flex;
-  align-items: baseline;
-  color: $ink;
-}
-.tag-c {
-  font-size: 26rpx;
-  font-weight: 700;
-  margin-right: 2rpx;
-}
-.tag-n {
-  font-size: 52rpx;
-  font-weight: 700;
-  @include num;
+.corner-text {
+  color: $espresso;
+  font-size: 24rpx;
+  font-weight: 600;
 }
 .band {
   position: absolute;
@@ -231,6 +229,9 @@ function add() {
   color: $paper;
   font-size: 23rpx;
   letter-spacing: 1rpx;
+}
+.band.sold {
+  background: rgba(133, 105, 81, 0.9);
 }
 .title-row {
   display: flex;
@@ -252,7 +253,8 @@ function add() {
   margin-top: 6rpx;
   font-size: 24rpx;
   color: $ink-3;
-  font-family: $font-latin;
+  font-family: $font-product-en;
+  line-height: 1.35;
 }
 .rate {
   display: flex;
@@ -338,6 +340,13 @@ function add() {
 .opt.on .o-sub {
   color: $cream;
 }
+/* v1.6.0 售罄：规格不可选 */
+.opt.off {
+  opacity: 0.5;
+}
+.opt.off.on {
+  background: $latte;
+}
 .spacer {
   height: 40rpx;
 }
@@ -388,5 +397,12 @@ function add() {
   color: $paper;
   font-size: 28rpx;
   font-weight: 700;
+}
+.cta.disabled {
+  background: $line;
+  box-shadow: none;
+}
+.cta.disabled .cta-t {
+  color: $ink-3;
 }
 </style>

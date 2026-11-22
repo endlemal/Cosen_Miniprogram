@@ -48,3 +48,13 @@ export function mediaCover(
   if (cover) return cover
   return Array.isArray(gallery) && gallery.length ? mediaUrl(gallery[0]) : ''
 }
+
+/** 商品列表使用 400px 缩略图。外部图片继续使用原地址。 */
+export function productThumbnail(original: string): string {
+  const prefix = mediaUrl('/images/products/')
+  if (!prefix || !original.startsWith(prefix)) return original
+  const name = original.slice(prefix.length)
+  return /^[a-zA-Z0-9_-][a-zA-Z0-9._-]*\.(png|jpe?g|webp|gif)$/i.test(name)
+    ? prefix + 'thumbs/' + name + '.webp'
+    : original
+}

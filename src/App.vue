@@ -1,9 +1,21 @@
 <script setup lang="ts">
-import { onLaunch } from '@dcloudio/uni-app'
-import { hydrate } from '@/store'
+import { onLaunch, onShow } from '@dcloudio/uni-app'
+import { bindTableNo, extractTableNo, hydrate } from '@/store'
 
-onLaunch(() => {
+function handleEntryQuery(options?: { query?: Record<string, any> }) {
+  const tableNo = extractTableNo(options?.query)
+  if (tableNo) {
+    bindTableNo(tableNo)
+  }
+}
+
+onLaunch((options) => {
   hydrate()
+  handleEntryQuery(options as any)
+})
+
+onShow((options?: { query?: Record<string, any> }) => {
+  handleEntryQuery(options)
 })
 </script>
 

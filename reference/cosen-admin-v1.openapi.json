@@ -701,7 +701,12 @@
                             "eventId": "1001",
                             "status": "pending",
                             "updatedAt": "2026-11-18T10:00:00+08:00"
-                          }
+                          },
+                          "subscribeStatus": "none",
+                          "subscribeNote": "",
+                          "subscribeSentAt": "2026-11-18T10:00:00+08:00",
+                          "subscribeError": "",
+                          "subscribeQuotaCount": 0
                         }
                       ],
                       "total": 1,
@@ -1100,7 +1105,12 @@
                           "eventId": "1001",
                           "status": "pending",
                           "updatedAt": "2026-11-18T10:00:00+08:00"
-                        }
+                        },
+                        "subscribeStatus": "none",
+                        "subscribeNote": "",
+                        "subscribeSentAt": "2026-11-18T10:00:00+08:00",
+                        "subscribeError": "",
+                        "subscribeQuotaCount": 0
                       }
                     }
                   },
@@ -1313,7 +1323,12 @@
                           "eventId": "1001",
                           "status": "pending",
                           "updatedAt": "2026-11-18T10:00:00+08:00"
-                        }
+                        },
+                        "subscribeStatus": "none",
+                        "subscribeNote": "",
+                        "subscribeSentAt": "2026-11-18T10:00:00+08:00",
+                        "subscribeError": "",
+                        "subscribeQuotaCount": 0
                       }
                     }
                   },
@@ -1579,7 +1594,12 @@
                           "eventId": "1001",
                           "status": "pending",
                           "updatedAt": "2026-11-18T10:00:00+08:00"
-                        }
+                        },
+                        "subscribeStatus": "none",
+                        "subscribeNote": "",
+                        "subscribeSentAt": "2026-11-18T10:00:00+08:00",
+                        "subscribeError": "",
+                        "subscribeQuotaCount": 0
                       }
                     }
                   },
@@ -1856,7 +1876,12 @@
                           "eventId": "1001",
                           "status": "pending",
                           "updatedAt": "2026-11-18T10:00:00+08:00"
-                        }
+                        },
+                        "subscribeStatus": "none",
+                        "subscribeNote": "",
+                        "subscribeSentAt": "2026-11-18T10:00:00+08:00",
+                        "subscribeError": "",
+                        "subscribeQuotaCount": 0
                       }
                     }
                   },
@@ -2023,10 +2048,252 @@
         }
       }
     },
+    "/admin/cosen/orders/{orderNo}/subscribe-notify": {
+      "post": {
+        "summary": "人工确认发送消费通知（电子小票）",
+        "operationId": "AdminOrderSubscribeNotifyResult9",
+        "tags": [
+          "订单工作台"
+        ],
+        "description": "权限：`cosen:order:complete`。单门店；服务端校验角色、按钮权限及资源范围。\n\n后台人工审核确认后，携带自定义备注（最多 20 字，写入微信模板温馨提示 thing9）向顾客发送消费成功通知（消费详情、消费金额、含优惠券抵扣明细的扣款类型、当前余额、温馨提示）。支持代客下单与跨订单复用会员在小程序累计的订阅额度（发送成功扣减 1 次，微信 43101 时归零并给出中文引导）；已发送订单重复调用幂等返回。\n\n写操作须 @Log 审计。幂等以用户 ID+HTTP 方法+规范化路径+Idempotency-Key 为键，记录请求体摘要；同键同参返回首次结果，同键异参冲突。幂等记录与业务事务原子落库，处理中不重复执行；先鉴权，再查幂等，再查版本。DB 与镜像 outbox 同事务，Base 失败仅标记同步失败。",
+        "parameters": [
+          {
+            "name": "orderNo",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "16 位订单号；详情路径使用订单号",
+              "example": "2026111800000001",
+              "pattern": "^\\d{16}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "每次用户意图生成 UUID；同一请求重试复用，保留至少 24 小时",
+              "example": "2378ab45-fc03-45d0-9971-cfa251df7417",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "必须检查 code；成功 200，业务失败非 200。成功和失败为互斥信封。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminOrderSubscribeNotifyResult9Response"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
+                },
+                "examples": {
+                  "success": {
+                    "summary": "成功示例（设计数据）",
+                    "value": {
+                      "code": 200,
+                      "msg": "操作成功",
+                      "traceId": "trace-cosen-example",
+                      "data": {
+                        "orderNo": "2026111800000001",
+                        "status": "sent",
+                        "sent": false,
+                        "alreadySent": false,
+                        "errcode": 0,
+                        "errmsg": "ok",
+                        "customNote": "感谢光临，欢迎下次再来",
+                        "sentAt": "2026-11-18T10:00:00+08:00"
+                      }
+                    }
+                  },
+                  "VALIDATION_ERROR": {
+                    "summary": "参数不合法",
+                    "value": {
+                      "code": 400,
+                      "msg": "参数不合法",
+                      "errorCode": "VALIDATION_ERROR",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "UNAUTHENTICATED": {
+                    "summary": "会话已过期",
+                    "value": {
+                      "code": 401,
+                      "msg": "会话已过期",
+                      "errorCode": "UNAUTHENTICATED",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "PERMISSION_DENIED": {
+                    "summary": "没有操作权限",
+                    "value": {
+                      "code": 403,
+                      "msg": "没有操作权限",
+                      "errorCode": "PERMISSION_DENIED",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "NOT_FOUND": {
+                    "summary": "资源不存在或不可见",
+                    "value": {
+                      "code": 404,
+                      "msg": "资源不存在或不可见",
+                      "errorCode": "NOT_FOUND",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "RATE_LIMITED": {
+                    "summary": "操作过于频繁",
+                    "value": {
+                      "code": 429,
+                      "msg": "操作过于频繁",
+                      "errorCode": "RATE_LIMITED",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "INTERNAL_ERROR": {
+                    "summary": "服务暂时不可用",
+                    "value": {
+                      "code": 500,
+                      "msg": "服务暂时不可用",
+                      "errorCode": "INTERNAL_ERROR",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "VERSION_CONFLICT": {
+                    "summary": "资源已变化，请刷新后重试",
+                    "value": {
+                      "code": 409,
+                      "msg": "资源已变化，请刷新后重试",
+                      "errorCode": "VERSION_CONFLICT",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "IDEMPOTENCY_CONFLICT": {
+                    "summary": "同一幂等键不能用于不同请求",
+                    "value": {
+                      "code": 409,
+                      "msg": "同一幂等键不能用于不同请求",
+                      "errorCode": "IDEMPOTENCY_CONFLICT",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "IDEMPOTENCY_IN_PROGRESS": {
+                    "summary": "相同请求正在处理中，请稍后查询",
+                    "value": {
+                      "code": 409,
+                      "msg": "相同请求正在处理中，请稍后查询",
+                      "errorCode": "IDEMPOTENCY_IN_PROGRESS",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "INVALID_ORDER_STATE": {
+                    "summary": "当前订单状态不允许此操作",
+                    "value": {
+                      "code": 409,
+                      "msg": "当前订单状态不允许此操作",
+                      "errorCode": "INVALID_ORDER_STATE",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "认证过滤器拒绝，兼容 HTTP 层认证失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 401,
+                  "msg": "会话已过期",
+                  "errorCode": "UNAUTHENTICATED",
+                  "traceId": "trace-cosen-example",
+                  "data": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "权限过滤器拒绝",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 403,
+                  "msg": "没有操作权限",
+                  "errorCode": "PERMISSION_DENIED",
+                  "traceId": "trace-cosen-example",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "x-permission": "cosen:order:complete",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
+        "x-data-authority": "system-db",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderSubscribeNotifyInput"
+              },
+              "example": {
+                "note": "感谢光临，欢迎下次再来"
+              }
+            }
+          }
+        }
+      }
+    },
     "/admin/cosen/products": {
       "get": {
         "summary": "商品列表",
-        "operationId": "AdminProduct9",
+        "operationId": "AdminProduct10",
         "tags": [
           "商品与分类"
         ],
@@ -2098,7 +2365,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminProduct9Response"
+                      "$ref": "#/components/schemas/AdminProduct10Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -2148,7 +2415,24 @@
                             "eventId": "1001",
                             "status": "pending",
                             "updatedAt": "2026-11-18T10:00:00+08:00"
-                          }
+                          },
+                          "rating": "example",
+                          "cornerText": "example",
+                          "specGroups": [
+                            {
+                              "groupName": "可森拿铁",
+                              "multi": false,
+                              "required": false,
+                              "options": [
+                                {
+                                  "name": "可森拿铁",
+                                  "note": "",
+                                  "priceDeltaCent": 300,
+                                  "isDefault": false
+                                }
+                              ]
+                            }
+                          ]
                         }
                       ],
                       "total": 1,
@@ -2276,11 +2560,11 @@
       },
       "post": {
         "summary": "添加商品",
-        "operationId": "AdminProduct40",
+        "operationId": "AdminProduct41",
         "tags": [
           "商品与分类"
         ],
-        "description": "权限：`cosen:product:add`。单门店；服务端校验角色、按钮权限及资源范围。\n\n创建商品及异步镜像事件，幂等键重试不会创建重复商品。编码由系统生成，规格初始为空。\n\n写操作须 @Log 审计。幂等以用户 ID+HTTP 方法+规范化路径+Idempotency-Key 为键，记录请求体摘要；同键同参返回首次结果，同键异参冲突。幂等记录与业务事务原子落库，处理中不重复执行；先鉴权，再查幂等，再查版本。DB 与镜像 outbox 同事务，Base 失败仅标记同步失败。",
+        "description": "权限：`cosen:product:add`。单门店；服务端校验角色、按钮权限及资源范围。\n\n创建商品及异步镜像事件，幂等键重试不会创建重复商品。编码由系统生成，可携带规格配置。\n\n写操作须 @Log 审计。幂等以用户 ID+HTTP 方法+规范化路径+Idempotency-Key 为键，记录请求体摘要；同键同参返回首次结果，同键异参冲突。幂等记录与业务事务原子落库，处理中不重复执行；先鉴权，再查幂等，再查版本。DB 与镜像 outbox 同事务，Base 失败仅标记同步失败。",
         "parameters": [
           {
             "name": "Idempotency-Key",
@@ -2303,7 +2587,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminProduct40Response"
+                      "$ref": "#/components/schemas/AdminProduct41Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -2352,7 +2636,24 @@
                           "eventId": "1001",
                           "status": "pending",
                           "updatedAt": "2026-11-18T10:00:00+08:00"
-                        }
+                        },
+                        "rating": "example",
+                        "cornerText": "example",
+                        "specGroups": [
+                          {
+                            "groupName": "可森拿铁",
+                            "multi": false,
+                            "required": false,
+                            "options": [
+                              {
+                                "name": "可森拿铁",
+                                "note": "",
+                                "priceDeltaCent": 300,
+                                "isDefault": false
+                              }
+                            ]
+                          }
+                        ]
                       }
                     }
                   },
@@ -2521,7 +2822,24 @@
                 "tags": [
                   "招牌"
                 ],
-                "status": "on"
+                "status": "on",
+                "rating": "example",
+                "cornerText": "example",
+                "specGroups": [
+                  {
+                    "groupName": "可森拿铁",
+                    "multi": false,
+                    "required": false,
+                    "options": [
+                      {
+                        "name": "可森拿铁",
+                        "note": "",
+                        "priceDeltaCent": 300,
+                        "isDefault": false
+                      }
+                    ]
+                  }
+                ]
               }
             }
           }
@@ -2531,7 +2849,7 @@
     "/admin/cosen/products/{productCode}": {
       "get": {
         "summary": "商品详情",
-        "operationId": "AdminProduct10",
+        "operationId": "AdminProduct11",
         "tags": [
           "商品与分类"
         ],
@@ -2559,7 +2877,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminProduct10Response"
+                      "$ref": "#/components/schemas/AdminProduct11Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -2608,7 +2926,24 @@
                           "eventId": "1001",
                           "status": "pending",
                           "updatedAt": "2026-11-18T10:00:00+08:00"
-                        }
+                        },
+                        "rating": "example",
+                        "cornerText": "example",
+                        "specGroups": [
+                          {
+                            "groupName": "可森拿铁",
+                            "multi": false,
+                            "required": false,
+                            "options": [
+                              {
+                                "name": "可森拿铁",
+                                "note": "",
+                                "priceDeltaCent": 300,
+                                "isDefault": false
+                              }
+                            ]
+                          }
+                        ]
                       }
                     }
                   },
@@ -2732,7 +3067,7 @@
       },
       "put": {
         "summary": "编辑商品",
-        "operationId": "AdminProduct11",
+        "operationId": "AdminProduct12",
         "tags": [
           "商品与分类"
         ],
@@ -2772,7 +3107,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminProduct11Response"
+                      "$ref": "#/components/schemas/AdminProduct12Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -2821,7 +3156,24 @@
                           "eventId": "1001",
                           "status": "pending",
                           "updatedAt": "2026-11-18T10:00:00+08:00"
-                        }
+                        },
+                        "rating": "example",
+                        "cornerText": "example",
+                        "specGroups": [
+                          {
+                            "groupName": "可森拿铁",
+                            "multi": false,
+                            "required": false,
+                            "options": [
+                              {
+                                "name": "可森拿铁",
+                                "note": "",
+                                "priceDeltaCent": 300,
+                                "isDefault": false
+                              }
+                            ]
+                          }
+                        ]
                       }
                     }
                   },
@@ -2990,7 +3342,24 @@
                 "tags": [
                   "招牌"
                 ],
-                "expectedVersion": 1
+                "expectedVersion": 1,
+                "rating": "example",
+                "cornerText": "example",
+                "specGroups": [
+                  {
+                    "groupName": "可森拿铁",
+                    "multi": false,
+                    "required": false,
+                    "options": [
+                      {
+                        "name": "可森拿铁",
+                        "note": "",
+                        "priceDeltaCent": 300,
+                        "isDefault": false
+                      }
+                    ]
+                  }
+                ]
               }
             }
           }
@@ -2998,7 +3367,7 @@
       },
       "delete": {
         "summary": "删除商品",
-        "operationId": "AdminProductDeletion39",
+        "operationId": "AdminProductDeletion40",
         "tags": [
           "商品与分类"
         ],
@@ -3038,7 +3407,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminProductDeletion39Response"
+                      "$ref": "#/components/schemas/AdminProductDeletion40Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -3233,7 +3602,7 @@
     "/admin/cosen/products/{productCode}/status": {
       "post": {
         "summary": "上下架商品",
-        "operationId": "AdminProduct12",
+        "operationId": "AdminProduct13",
         "tags": [
           "商品与分类"
         ],
@@ -3273,7 +3642,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminProduct12Response"
+                      "$ref": "#/components/schemas/AdminProduct13Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -3322,7 +3691,24 @@
                           "eventId": "1001",
                           "status": "pending",
                           "updatedAt": "2026-11-18T10:00:00+08:00"
-                        }
+                        },
+                        "rating": "example",
+                        "cornerText": "example",
+                        "specGroups": [
+                          {
+                            "groupName": "可森拿铁",
+                            "multi": false,
+                            "required": false,
+                            "options": [
+                              {
+                                "name": "可森拿铁",
+                                "note": "",
+                                "priceDeltaCent": 300,
+                                "isDefault": false
+                              }
+                            ]
+                          }
+                        ]
                       }
                     }
                   },
@@ -3492,7 +3878,7 @@
     "/admin/cosen/products/{productCode}/stock": {
       "post": {
         "summary": "设置商品库存",
-        "operationId": "AdminProduct13",
+        "operationId": "AdminProduct14",
         "tags": [
           "商品与分类"
         ],
@@ -3532,7 +3918,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminProduct13Response"
+                      "$ref": "#/components/schemas/AdminProduct14Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -3581,7 +3967,24 @@
                           "eventId": "1001",
                           "status": "pending",
                           "updatedAt": "2026-11-18T10:00:00+08:00"
-                        }
+                        },
+                        "rating": "example",
+                        "cornerText": "example",
+                        "specGroups": [
+                          {
+                            "groupName": "可森拿铁",
+                            "multi": false,
+                            "required": false,
+                            "options": [
+                              {
+                                "name": "可森拿铁",
+                                "note": "",
+                                "priceDeltaCent": 300,
+                                "isDefault": false
+                              }
+                            ]
+                          }
+                        ]
                       }
                     }
                   },
@@ -3751,7 +4154,7 @@
     "/admin/cosen/products/{productCode}/sort": {
       "post": {
         "summary": "设置商品排序",
-        "operationId": "AdminProduct14",
+        "operationId": "AdminProduct15",
         "tags": [
           "商品与分类"
         ],
@@ -3791,7 +4194,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminProduct14Response"
+                      "$ref": "#/components/schemas/AdminProduct15Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -3840,7 +4243,24 @@
                           "eventId": "1001",
                           "status": "pending",
                           "updatedAt": "2026-11-18T10:00:00+08:00"
-                        }
+                        },
+                        "rating": "example",
+                        "cornerText": "example",
+                        "specGroups": [
+                          {
+                            "groupName": "可森拿铁",
+                            "multi": false,
+                            "required": false,
+                            "options": [
+                              {
+                                "name": "可森拿铁",
+                                "note": "",
+                                "priceDeltaCent": 300,
+                                "isDefault": false
+                              }
+                            ]
+                          }
+                        ]
                       }
                     }
                   },
@@ -4010,7 +4430,7 @@
     "/admin/cosen/products/{productCode}/images/upload": {
       "post": {
         "summary": "上传商品暂存图片",
-        "operationId": "AdminProductImage15",
+        "operationId": "AdminProductImage16",
         "tags": [
           "商品与分类"
         ],
@@ -4050,7 +4470,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminProductImage15Response"
+                      "$ref": "#/components/schemas/AdminProductImage16Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -4258,7 +4678,7 @@
     "/admin/cosen/products/{productCode}/images": {
       "put": {
         "summary": "保存商品相册顺序",
-        "operationId": "AdminProduct16",
+        "operationId": "AdminProduct17",
         "tags": [
           "商品与分类"
         ],
@@ -4298,7 +4718,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminProduct16Response"
+                      "$ref": "#/components/schemas/AdminProduct17Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -4347,7 +4767,24 @@
                           "eventId": "1001",
                           "status": "pending",
                           "updatedAt": "2026-11-18T10:00:00+08:00"
-                        }
+                        },
+                        "rating": "example",
+                        "cornerText": "example",
+                        "specGroups": [
+                          {
+                            "groupName": "可森拿铁",
+                            "multi": false,
+                            "required": false,
+                            "options": [
+                              {
+                                "name": "可森拿铁",
+                                "note": "",
+                                "priceDeltaCent": 300,
+                                "isDefault": false
+                              }
+                            ]
+                          }
+                        ]
                       }
                     }
                   },
@@ -4529,7 +4966,7 @@
     "/admin/cosen/categories": {
       "get": {
         "summary": "分类列表",
-        "operationId": "AdminCategory17",
+        "operationId": "AdminCategory18",
         "tags": [
           "商品与分类"
         ],
@@ -4577,7 +5014,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminCategory17Response"
+                      "$ref": "#/components/schemas/AdminCategory18Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -4738,7 +5175,7 @@
       },
       "post": {
         "summary": "新建分类",
-        "operationId": "AdminCategory18",
+        "operationId": "AdminCategory19",
         "tags": [
           "商品与分类"
         ],
@@ -4765,7 +5202,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminCategory18Response"
+                      "$ref": "#/components/schemas/AdminCategory19Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -4982,7 +5419,7 @@
     "/admin/cosen/categories/{categoryCode}": {
       "put": {
         "summary": "编辑分类",
-        "operationId": "AdminCategory19",
+        "operationId": "AdminCategory20",
         "tags": [
           "商品与分类"
         ],
@@ -5022,7 +5459,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminCategory19Response"
+                      "$ref": "#/components/schemas/AdminCategory20Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -5229,7 +5666,7 @@
     "/admin/cosen/members": {
       "get": {
         "summary": "会员列表",
-        "operationId": "AdminMember20",
+        "operationId": "AdminMember21",
         "tags": [
           "会员与储值"
         ],
@@ -5278,6 +5715,15 @@
               ]
             },
             "description": "会员状态"
+          },
+          {
+            "name": "includePhone",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "会员管理页展示完整登记手机号"
           }
         ],
         "responses": {
@@ -5288,7 +5734,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminMember20Response"
+                      "$ref": "#/components/schemas/AdminMember21Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -5640,7 +6086,7 @@
     "/admin/cosen/members/{memberId}": {
       "get": {
         "summary": "会员详情",
-        "operationId": "AdminMember21",
+        "operationId": "AdminMember22",
         "tags": [
           "会员与储值"
         ],
@@ -5656,6 +6102,15 @@
               "example": "1001",
               "pattern": "^[1-9]\\d{0,18}$"
             }
+          },
+          {
+            "name": "includePhone",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "会员管理页展示完整登记手机号"
           }
         ],
         "responses": {
@@ -5666,7 +6121,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminMember21Response"
+                      "$ref": "#/components/schemas/AdminMember22Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -5817,6 +6272,230 @@
         "x-apifox-status": "released",
         "x-backend-status": "implemented",
         "x-data-authority": "system-db"
+      },
+      "delete": {
+        "summary": "删除会员",
+        "operationId": "AdminMemberDeletion47",
+        "tags": [
+          "会员与储值"
+        ],
+        "description": "权限：`cosen:member:remove`。单门店；服务端校验角色、按钮权限及资源范围。\n\n软删除会员并解除微信关联，自动作废名下未使用优惠券，保留历史订单和储值流水；不再要求结清余额、有效券或未结交易。\n\n写操作须 @Log 审计。幂等以用户 ID+HTTP 方法+规范化路径+Idempotency-Key 为键，记录请求体摘要；同键同参返回首次结果，同键异参冲突。幂等记录与业务事务原子落库，处理中不重复执行；先鉴权，再查幂等，再查版本。DB 与镜像 outbox 同事务，Base 失败仅标记同步失败。",
+        "parameters": [
+          {
+            "name": "memberId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "数据库 bigint ID；以十进制字符串传输，禁止转为 JS Number",
+              "example": "1001",
+              "pattern": "^[1-9]\\d{0,18}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "每次用户意图生成 UUID；同一请求重试复用，保留至少 24 小时",
+              "example": "2378ab45-fc03-45d0-9971-cfa251df7417",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "必须检查 code；成功 200，业务失败非 200。成功和失败为互斥信封。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminMemberDeletion47Response"
+                    },
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
+                },
+                "examples": {
+                  "success": {
+                    "summary": "成功示例（设计数据）",
+                    "value": {
+                      "code": 200,
+                      "msg": "操作成功",
+                      "traceId": "trace-cosen-example",
+                      "data": {
+                        "id": "1001",
+                        "deleted": true
+                      }
+                    }
+                  },
+                  "VALIDATION_ERROR": {
+                    "summary": "参数不合法",
+                    "value": {
+                      "code": 400,
+                      "msg": "参数不合法",
+                      "errorCode": "VALIDATION_ERROR",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "UNAUTHENTICATED": {
+                    "summary": "会话已过期",
+                    "value": {
+                      "code": 401,
+                      "msg": "会话已过期",
+                      "errorCode": "UNAUTHENTICATED",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "PERMISSION_DENIED": {
+                    "summary": "没有操作权限",
+                    "value": {
+                      "code": 403,
+                      "msg": "没有操作权限",
+                      "errorCode": "PERMISSION_DENIED",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "NOT_FOUND": {
+                    "summary": "资源不存在或不可见",
+                    "value": {
+                      "code": 404,
+                      "msg": "资源不存在或不可见",
+                      "errorCode": "NOT_FOUND",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "RATE_LIMITED": {
+                    "summary": "操作过于频繁",
+                    "value": {
+                      "code": 429,
+                      "msg": "操作过于频繁",
+                      "errorCode": "RATE_LIMITED",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "INTERNAL_ERROR": {
+                    "summary": "服务暂时不可用",
+                    "value": {
+                      "code": 500,
+                      "msg": "服务暂时不可用",
+                      "errorCode": "INTERNAL_ERROR",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "VERSION_CONFLICT": {
+                    "summary": "资源已变化，请刷新后重试",
+                    "value": {
+                      "code": 409,
+                      "msg": "资源已变化，请刷新后重试",
+                      "errorCode": "VERSION_CONFLICT",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "IDEMPOTENCY_CONFLICT": {
+                    "summary": "同一幂等键不能用于不同请求",
+                    "value": {
+                      "code": 409,
+                      "msg": "同一幂等键不能用于不同请求",
+                      "errorCode": "IDEMPOTENCY_CONFLICT",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  },
+                  "IDEMPOTENCY_IN_PROGRESS": {
+                    "summary": "相同请求正在处理中，请稍后查询",
+                    "value": {
+                      "code": 409,
+                      "msg": "相同请求正在处理中，请稍后查询",
+                      "errorCode": "IDEMPOTENCY_IN_PROGRESS",
+                      "traceId": "trace-cosen-example",
+                      "data": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "认证过滤器拒绝，兼容 HTTP 层认证失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 401,
+                  "msg": "会话已过期",
+                  "errorCode": "UNAUTHENTICATED",
+                  "traceId": "trace-cosen-example",
+                  "data": null
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "权限过滤器拒绝",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdminError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/RuoYiAuthError"
+                    }
+                  ]
+                },
+                "example": {
+                  "code": 403,
+                  "msg": "没有操作权限",
+                  "errorCode": "PERMISSION_DENIED",
+                  "traceId": "trace-cosen-example",
+                  "data": null
+                }
+              }
+            }
+          }
+        },
+        "x-permission": "cosen:member:remove",
+        "x-apifox-status": "released",
+        "x-backend-status": "implemented",
+        "x-data-authority": "system-db",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberDeleteInput"
+              },
+              "example": {
+                "expectedVersion": 1
+              }
+            }
+          }
+        }
       },
       "put": {
         "summary": "编辑会员共享资料与认领手机号",
@@ -6024,7 +6703,7 @@
     "/admin/cosen/members/{memberId}/balance-flows": {
       "get": {
         "summary": "会员余额流水",
-        "operationId": "AdminBalanceFlow22",
+        "operationId": "AdminBalanceFlow23",
         "tags": [
           "会员与储值"
         ],
@@ -6107,7 +6786,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminBalanceFlow22Response"
+                      "$ref": "#/components/schemas/AdminBalanceFlow23Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -6268,7 +6947,7 @@
     "/admin/cosen/members/{memberId}/balance-adjust": {
       "post": {
         "summary": "人工调整会员余额",
-        "operationId": "AdminBalanceAdjustment23",
+        "operationId": "AdminBalanceAdjustment24",
         "tags": [
           "会员与储值"
         ],
@@ -6306,7 +6985,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminBalanceAdjustment23Response"
+                      "$ref": "#/components/schemas/AdminBalanceAdjustment24Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -6528,7 +7207,7 @@
               },
               "example": {
                 "expectedVersion": 1,
-                "bucket": "principal",
+                "bucket": "mixed",
                 "amountCent": 1000,
                 "reason": "门店人工核对"
               }
@@ -6540,7 +7219,7 @@
     "/admin/cosen/coupons": {
       "get": {
         "summary": "券实例列表",
-        "operationId": "AdminCoupon24",
+        "operationId": "AdminCoupon25",
         "tags": [
           "礼品券管理"
         ],
@@ -6622,7 +7301,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminCoupon24Response"
+                      "$ref": "#/components/schemas/AdminCoupon25Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -6787,7 +7466,7 @@
     "/admin/cosen/coupons/{couponId}": {
       "get": {
         "summary": "券实例详情",
-        "operationId": "AdminCoupon25",
+        "operationId": "AdminCoupon26",
         "tags": [
           "礼品券管理"
         ],
@@ -6813,7 +7492,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminCoupon25Response"
+                      "$ref": "#/components/schemas/AdminCoupon26Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -6973,7 +7652,7 @@
     "/admin/cosen/coupon-templates": {
       "get": {
         "summary": "只读券模板列表",
-        "operationId": "AdminCouponTemplate26",
+        "operationId": "AdminCouponTemplate27",
         "tags": [
           "礼品券管理"
         ],
@@ -7036,7 +7715,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminCouponTemplate26Response"
+                      "$ref": "#/components/schemas/AdminCouponTemplate27Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -7188,12 +7867,136 @@
         "x-apifox-status": "released",
         "x-backend-status": "implemented",
         "x-data-authority": "system-db"
+      },
+      "post": {
+        "summary": "发布券模板",
+        "operationId": "PublishCouponTemplate",
+        "tags": [
+          "礼品券管理"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "每次用户意图生成 UUID；同一请求重试复用，保留至少 24 小时",
+              "example": "2378ab45-fc03-45d0-9971-cfa251df7417",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "成功固定 200",
+                      "example": 200,
+                      "enum": [
+                        200
+                      ]
+                    },
+                    "msg": {
+                      "type": "string",
+                      "description": "结果说明",
+                      "example": "操作成功"
+                    },
+                    "traceId": {
+                      "type": "string",
+                      "description": "追踪号",
+                      "example": "trace-cosen-example"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CouponTemplate"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "msg",
+                    "traceId",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求无效、会话或权限异常、资源不存在或库存不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "请求无效、会话或权限异常、资源不存在或库存不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "请求无效、会话或权限异常、资源不存在或库存不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "请求无效、会话或权限异常、资源不存在或库存不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "请求无效、会话或权限异常、资源不存在或库存不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminError"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": "cosen:coupon:issue",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoucherPublishInput"
+              }
+            }
+          }
+        }
       }
     },
     "/admin/cosen/coupons/issue": {
       "post": {
         "summary": "发放一张礼品券",
-        "operationId": "AdminCoupon27",
+        "operationId": "AdminCoupon28",
         "tags": [
           "礼品券管理"
         ],
@@ -7220,7 +8023,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminCoupon27Response"
+                      "$ref": "#/components/schemas/AdminCoupon28Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -7437,7 +8240,7 @@
     "/admin/cosen/coupons/{couponId}/void": {
       "post": {
         "summary": "作废未使用券",
-        "operationId": "AdminCoupon28",
+        "operationId": "AdminCoupon29",
         "tags": [
           "礼品券管理"
         ],
@@ -7475,7 +8278,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminCoupon28Response"
+                      "$ref": "#/components/schemas/AdminCoupon29Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -7689,7 +8492,7 @@
     "/admin/cosen/recharges": {
       "get": {
         "summary": "充值单列表",
-        "operationId": "AdminRecharge29",
+        "operationId": "AdminRecharge30",
         "tags": [
           "充值记录"
         ],
@@ -7782,7 +8585,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminRecharge29Response"
+                      "$ref": "#/components/schemas/AdminRecharge30Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -7943,7 +8746,7 @@
     "/admin/cosen/recharges/{rechargeNo}": {
       "get": {
         "summary": "充值单详情与状态",
-        "operationId": "AdminRecharge30",
+        "operationId": "AdminRecharge31",
         "tags": [
           "充值记录"
         ],
@@ -7968,7 +8771,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminRecharge30Response"
+                      "$ref": "#/components/schemas/AdminRecharge31Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -8124,7 +8927,7 @@
     "/admin/cosen/settings/store": {
       "get": {
         "summary": "读取门店资料",
-        "operationId": "AdminStoreSettings31",
+        "operationId": "AdminStoreSettings32",
         "tags": [
           "门店设置"
         ],
@@ -8138,7 +8941,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminStoreSettings31Response"
+                      "$ref": "#/components/schemas/AdminStoreSettings32Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -8164,7 +8967,8 @@
                         "notice": "",
                         "status": "on",
                         "version": 1,
-                        "updatedAt": "2026-11-18T10:00:00+08:00"
+                        "updatedAt": "2026-11-18T10:00:00+08:00",
+                        "subtitle": "单店运营空间"
                       }
                     }
                   },
@@ -8288,7 +9092,7 @@
       },
       "put": {
         "summary": "保存门店资料",
-        "operationId": "AdminStoreSettings32",
+        "operationId": "AdminStoreSettings33",
         "tags": [
           "门店设置"
         ],
@@ -8315,7 +9119,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminStoreSettings32Response"
+                      "$ref": "#/components/schemas/AdminStoreSettings33Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -8341,7 +9145,8 @@
                         "notice": "",
                         "status": "on",
                         "version": 1,
-                        "updatedAt": "2026-11-18T10:00:00+08:00"
+                        "updatedAt": "2026-11-18T10:00:00+08:00",
+                        "subtitle": "单店运营空间"
                       }
                     }
                   },
@@ -8507,7 +9312,8 @@
                 "closeTime": "21:00",
                 "notice": "",
                 "status": "on",
-                "expectedVersion": 1
+                "expectedVersion": 1,
+                "subtitle": "单店运营空间"
               }
             }
           }
@@ -8517,7 +9323,7 @@
     "/admin/cosen/settings/recharge-tiers": {
       "get": {
         "summary": "读取充值档位",
-        "operationId": "AdminRechargeTiers33",
+        "operationId": "AdminRechargeTiers34",
         "tags": [
           "门店设置"
         ],
@@ -8531,7 +9337,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminRechargeTiers33Response"
+                      "$ref": "#/components/schemas/AdminRechargeTiers34Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -8684,7 +9490,7 @@
       },
       "put": {
         "summary": "保存充值档位",
-        "operationId": "AdminRechargeTiers34",
+        "operationId": "AdminRechargeTiers35",
         "tags": [
           "门店设置"
         ],
@@ -8711,7 +9517,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminRechargeTiers34Response"
+                      "$ref": "#/components/schemas/AdminRechargeTiers35Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -8919,7 +9725,7 @@
     "/system/bitable/deadletters": {
       "get": {
         "summary": "同步死信列表",
-        "operationId": "AdminDeadLetter35",
+        "operationId": "AdminDeadLetter36",
         "tags": [
           "Base 同步补充"
         ],
@@ -8987,7 +9793,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminDeadLetter35Response"
+                      "$ref": "#/components/schemas/AdminDeadLetter36Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -9145,7 +9951,7 @@
     "/system/bitable/conflicts/{taskId}/retry": {
       "post": {
         "summary": "重推冲突对应的 DB 快照",
-        "operationId": "AdminSyncJob36",
+        "operationId": "AdminSyncJob37",
         "tags": [
           "Base 同步补充"
         ],
@@ -9183,7 +9989,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminSyncJob36Response"
+                      "$ref": "#/components/schemas/AdminSyncJob37Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -9388,7 +10194,7 @@
     "/system/bitable/deadletters/{taskId}/retry": {
       "post": {
         "summary": "重推死信对应的 DB 快照",
-        "operationId": "AdminSyncJob37",
+        "operationId": "AdminSyncJob38",
         "tags": [
           "Base 同步补充"
         ],
@@ -9426,7 +10232,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminSyncJob37Response"
+                      "$ref": "#/components/schemas/AdminSyncJob38Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -9631,7 +10437,7 @@
     "/system/bitable/jobs/{jobId}": {
       "get": {
         "summary": "同步重试任务结果",
-        "operationId": "AdminSyncJob38",
+        "operationId": "AdminSyncJob39",
         "tags": [
           "Base 同步补充"
         ],
@@ -9657,7 +10463,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminSyncJob38Response"
+                      "$ref": "#/components/schemas/AdminSyncJob39Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -9808,7 +10614,7 @@
     "/admin/cosen/categories/reorder": {
       "post": {
         "summary": "保存分类排序",
-        "operationId": "AdminCategoryCollection41",
+        "operationId": "AdminCategoryCollection42",
         "tags": [
           "商品与分类"
         ],
@@ -9835,7 +10641,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminCategoryCollection41Response"
+                      "$ref": "#/components/schemas/AdminCategoryCollection42Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -10045,7 +10851,7 @@
     "/admin/cosen/categories/batch-delete": {
       "post": {
         "summary": "批量删除空分类",
-        "operationId": "AdminCategoryCollection42",
+        "operationId": "AdminCategoryCollection43",
         "tags": [
           "商品与分类"
         ],
@@ -10072,7 +10878,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminCategoryCollection42Response"
+                      "$ref": "#/components/schemas/AdminCategoryCollection43Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -10292,7 +11098,7 @@
     "/admin/cosen/settings/mini-pages": {
       "get": {
         "summary": "读取小程序页面设置",
-        "operationId": "AdminMiniPageSettings43",
+        "operationId": "AdminMiniPageSettings44",
         "tags": [
           "小程序页面管理"
         ],
@@ -10306,7 +11112,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminMiniPageSettings43Response"
+                      "$ref": "#/components/schemas/AdminMiniPageSettings44Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -10450,7 +11256,7 @@
       },
       "put": {
         "summary": "保存小程序页面设置",
-        "operationId": "AdminMiniPageSettings44",
+        "operationId": "AdminMiniPageSettings45",
         "tags": [
           "小程序页面管理"
         ],
@@ -10477,7 +11283,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminMiniPageSettings44Response"
+                      "$ref": "#/components/schemas/AdminMiniPageSettings45Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -10666,8 +11472,8 @@
     },
     "/admin/cosen/dashboard/monthly": {
       "get": {
-        "summary": "月度商品分类及每日营业额",
-        "operationId": "AdminMonthlyRevenue45",
+        "summary": "月度商品分类及每日营业额与现金流",
+        "operationId": "AdminMonthlyRevenue46",
         "tags": [
           "经营看板"
         ],
@@ -10693,7 +11499,7 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/AdminMonthlyRevenue45Response"
+                      "$ref": "#/components/schemas/AdminMonthlyRevenue46Response"
                     },
                     {
                       "$ref": "#/components/schemas/AdminError"
@@ -10718,13 +11524,20 @@
                             "code": "coffee",
                             "name": "可森拿铁",
                             "color": "sage",
-                            "salesCent": 1800
+                            "salesCent": 1800,
+                            "topItems": [
+                              {
+                                "name": "可森拿铁",
+                                "quantity": 1
+                              }
+                            ]
                           }
                         ],
                         "days": [
                           {
                             "date": "2026-11-18",
-                            "salesCent": 1800
+                            "salesCent": 1800,
+                            "cashInCent": 1800
                           }
                         ]
                       }
@@ -10847,6 +11660,399 @@
         "x-apifox-status": "released",
         "x-backend-status": "implemented",
         "x-data-authority": "system-db"
+      }
+    },
+    "/admin/cosen/coupon-templates/{id}/stock": {
+      "post": {
+        "summary": "按模板生成独立券号",
+        "operationId": "CreateCouponStock",
+        "tags": [
+          "礼品券管理"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "每次用户意图生成 UUID；同一请求重试复用，保留至少 24 小时",
+              "example": "2378ab45-fc03-45d0-9971-cfa251df7417",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "成功固定 200",
+                      "example": 200,
+                      "enum": [
+                        200
+                      ]
+                    },
+                    "msg": {
+                      "type": "string",
+                      "description": "结果说明",
+                      "example": "操作成功"
+                    },
+                    "traceId": {
+                      "type": "string",
+                      "description": "追踪号",
+                      "example": "trace-cosen-example"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/VoucherStockResult"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "msg",
+                    "traceId",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求无效、会话或权限异常、资源不存在或库存不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "请求无效、会话或权限异常、资源不存在或库存不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "请求无效、会话或权限异常、资源不存在或库存不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "请求无效、会话或权限异常、资源不存在或库存不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "请求无效、会话或权限异常、资源不存在或库存不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminError"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": "cosen:coupon:issue",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoucherStockInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/cosen/coupon-templates/{id}/grant": {
+      "post": {
+        "summary": "从库存发券给会员",
+        "operationId": "GrantCouponStock",
+        "tags": [
+          "礼品券管理"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "每次用户意图生成 UUID；同一请求重试复用，保留至少 24 小时",
+              "example": "2378ab45-fc03-45d0-9971-cfa251df7417",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "成功固定 200",
+                      "example": 200,
+                      "enum": [
+                        200
+                      ]
+                    },
+                    "msg": {
+                      "type": "string",
+                      "description": "结果说明",
+                      "example": "操作成功"
+                    },
+                    "traceId": {
+                      "type": "string",
+                      "description": "追踪号",
+                      "example": "trace-cosen-example"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/VoucherGrantResult"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "msg",
+                    "traceId",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求无效、会话或权限异常、资源不存在或库存不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "请求无效、会话或权限异常、资源不存在或库存不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "请求无效、会话或权限异常、资源不存在或库存不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "请求无效、会话或权限异常、资源不存在或库存不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "请求无效、会话或权限异常、资源不存在或库存不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminError"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": "cosen:coupon:issue",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoucherGrantInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/cosen/coupon-templates/{id}/units": {
+      "get": {
+        "summary": "分页查询逐张券库存及发放状态",
+        "operationId": "ListCouponUnits",
+        "tags": [
+          "礼品券管理"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "pageNum",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2147483647,
+              "default": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "成功固定 200",
+                      "example": 200,
+                      "enum": [
+                        200
+                      ]
+                    },
+                    "msg": {
+                      "type": "string",
+                      "description": "结果说明",
+                      "example": "操作成功"
+                    },
+                    "traceId": {
+                      "type": "string",
+                      "description": "追踪号",
+                      "example": "trace-cosen-example"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/VoucherUnits"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "msg",
+                    "traceId",
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求无效、会话或权限异常、资源不存在或库存不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "请求无效、会话或权限异常、资源不存在或库存不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "请求无效、会话或权限异常、资源不存在或库存不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "请求无效、会话或权限异常、资源不存在或库存不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "请求无效、会话或权限异常、资源不存在或库存不足",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminError"
+                }
+              }
+            }
+          }
+        },
+        "x-permission": "cosen:coupon:list"
       }
     }
   },
@@ -11145,6 +12351,44 @@
           },
           "sync": {
             "$ref": "#/components/schemas/SyncReceipt"
+          },
+          "subscribeStatus": {
+            "type": "string",
+            "description": "消费成功通知（电子小票）推送状态；quota 表示可消耗会员累计额度，wechat_bound 表示会员已绑微信可尝试发送",
+            "example": "none",
+            "enum": [
+              "pending",
+              "quota",
+              "wechat_bound",
+              "sent",
+              "failed",
+              "none"
+            ]
+          },
+          "subscribeNote": {
+            "type": "string",
+            "description": "已发送的消费通知自定义备注（最多 20 字）",
+            "example": "",
+            "maxLength": 20
+          },
+          "subscribeSentAt": {
+            "type": "string",
+            "description": "ISO 8601，必须携带时区；展示按 Asia/Shanghai",
+            "example": "2026-11-18T10:00:00+08:00",
+            "format": "date-time",
+            "nullable": true
+          },
+          "subscribeError": {
+            "type": "string",
+            "description": "描述文本；空字符串表示清空",
+            "example": "",
+            "maxLength": 500
+          },
+          "subscribeQuotaCount": {
+            "type": "integer",
+            "description": "该会员当前可用消费通知估算额度次数",
+            "example": 0,
+            "minimum": 0
           }
         },
         "required": [
@@ -11237,6 +12481,86 @@
         "additionalProperties": false,
         "title": "OrderRemarkInput",
         "description": "仅修改运营备注，不影响订单快照或支付"
+      },
+      "OrderSubscribeNotifyInput": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "description": "发送给顾客的备注内容（最多 20 字）",
+            "example": "感谢光临，欢迎下次再来",
+            "maxLength": 20,
+            "minLength": 0
+          }
+        },
+        "required": [],
+        "additionalProperties": false,
+        "title": "OrderSubscribeNotifyInput",
+        "description": "后台人工确认并发送订单消费成功通知（电子小票）；note 对应微信模板温馨提示（thing9），最多 20 字，留空默认填消费时间"
+      },
+      "OrderSubscribeNotifyResult": {
+        "type": "object",
+        "properties": {
+          "orderNo": {
+            "type": "string",
+            "description": "16 位订单号",
+            "example": "2026111800000001",
+            "pattern": "^\\d{16}$"
+          },
+          "status": {
+            "type": "string",
+            "description": "订阅消息发送状态",
+            "example": "sent",
+            "enum": [
+              "sent",
+              "failed"
+            ]
+          },
+          "sent": {
+            "type": "boolean",
+            "example": false
+          },
+          "alreadySent": {
+            "type": "boolean",
+            "example": false
+          },
+          "errcode": {
+            "type": "integer",
+            "description": "微信返回错误码（0 表示成功）",
+            "example": 0
+          },
+          "errmsg": {
+            "type": "string",
+            "description": "微信返回信息",
+            "example": "ok"
+          },
+          "customNote": {
+            "type": "string",
+            "description": "本次随消息发送的备注内容",
+            "example": "感谢光临，欢迎下次再来",
+            "maxLength": 20
+          },
+          "sentAt": {
+            "type": "string",
+            "description": "ISO 8601，必须携带时区；展示按 Asia/Shanghai",
+            "example": "2026-11-18T10:00:00+08:00",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "orderNo",
+          "status",
+          "sent",
+          "alreadySent",
+          "errcode",
+          "errmsg",
+          "customNote",
+          "sentAt"
+        ],
+        "additionalProperties": false,
+        "title": "OrderSubscribeNotifyResult",
+        "description": "订单消费成功通知发送结果"
       },
       "OrderChanges": {
         "type": "object",
@@ -11467,6 +12791,81 @@
         "title": "ProductImage",
         "description": "系统存储的图片元数据，不接受任意远程 URL 作为写入参数"
       },
+      "ProductSpecOption": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "显示名称",
+            "example": "可森拿铁",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "note": {
+            "type": "string",
+            "description": "描述文本；空字符串表示清空",
+            "example": "",
+            "maxLength": 100
+          },
+          "priceDeltaCent": {
+            "type": "integer",
+            "description": "选项加价（分）",
+            "example": 300,
+            "minimum": 0,
+            "maximum": 10000000
+          },
+          "isDefault": {
+            "type": "boolean",
+            "example": false
+          }
+        },
+        "required": [
+          "name",
+          "note",
+          "priceDeltaCent",
+          "isDefault"
+        ],
+        "additionalProperties": false,
+        "title": "ProductSpecOption",
+        "description": "商品卡的规格选项"
+      },
+      "ProductSpecGroup": {
+        "type": "object",
+        "properties": {
+          "groupName": {
+            "type": "string",
+            "description": "显示名称",
+            "example": "可森拿铁",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "multi": {
+            "type": "boolean",
+            "example": false
+          },
+          "required": {
+            "type": "boolean",
+            "example": false
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductSpecOption"
+            },
+            "minItems": 1,
+            "maxItems": 32
+          }
+        },
+        "required": [
+          "groupName",
+          "multi",
+          "required",
+          "options"
+        ],
+        "additionalProperties": false,
+        "title": "ProductSpecGroup",
+        "description": "商品卡的规格组"
+      },
       "Product": {
         "type": "object",
         "properties": {
@@ -11544,7 +12943,7 @@
             "type": "array",
             "items": {
               "type": "string",
-              "description": "商品标签；允许保留已有自定义标签，新标签须来自既有选项",
+              "description": "商品标签；可自定义，合计不超过 64 字",
               "example": "招牌",
               "minLength": 1,
               "maxLength": 64
@@ -11582,6 +12981,26 @@
           "sync": {
             "$ref": "#/components/schemas/SyncReceipt"
           },
+          "rating": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10,
+            "multipleOf": 0.1,
+            "description": "商品星级，保留一位小数"
+          },
+          "cornerText": {
+            "type": "string",
+            "maxLength": 12,
+            "description": "右上角角标文案，空串隐藏"
+          },
+          "specGroups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductSpecGroup"
+            },
+            "maxItems": 12,
+            "description": "商品卡结构化规格。旧客户端编辑时省略此字段可保留配置。"
+          },
           "coverUrl": {
             "type": "string",
             "description": "当前封面的图片地址，无封面时为空",
@@ -11608,7 +13027,7 @@
         ],
         "additionalProperties": false,
         "title": "Product",
-        "description": "商品由系统 DB 主导，Base 只读镜像。规格只读；支持创建、编辑和逻辑删除商品；删除后下架并从列表隐藏，保留历史订单。"
+        "description": "商品由系统 DB 主导，Base 只读镜像。支持创建、编辑和逻辑删除商品；删除后下架并从列表隐藏，保留历史订单。"
       },
       "ProductCreateInput": {
         "type": "object",
@@ -11664,7 +13083,7 @@
             "type": "array",
             "items": {
               "type": "string",
-              "description": "商品标签；允许保留已有自定义标签，新标签须来自既有选项",
+              "description": "商品标签；可自定义，合计不超过 64 字",
               "example": "招牌",
               "minLength": 1,
               "maxLength": 64
@@ -11680,6 +13099,26 @@
               "on",
               "off"
             ]
+          },
+          "rating": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10,
+            "multipleOf": 0.1,
+            "description": "商品星级，保留一位小数"
+          },
+          "cornerText": {
+            "type": "string",
+            "maxLength": 12,
+            "description": "右上角角标文案，空串隐藏"
+          },
+          "specGroups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductSpecGroup"
+            },
+            "maxItems": 12,
+            "description": "商品卡结构化规格。旧客户端编辑时省略此字段可保留配置。"
           }
         },
         "required": [
@@ -11751,7 +13190,7 @@
             "type": "array",
             "items": {
               "type": "string",
-              "description": "商品标签；允许保留已有自定义标签，新标签须来自既有选项",
+              "description": "商品标签；可自定义，合计不超过 64 字",
               "example": "招牌",
               "minLength": 1,
               "maxLength": 64
@@ -11764,6 +13203,26 @@
             "description": "乐观锁版本；写入成功递增，旧版本返回 VERSION_CONFLICT",
             "example": 1,
             "minimum": 0
+          },
+          "rating": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10,
+            "multipleOf": 0.1,
+            "description": "商品星级，保留一位小数"
+          },
+          "cornerText": {
+            "type": "string",
+            "maxLength": 12,
+            "description": "右上角角标文案，空串隐藏"
+          },
+          "specGroups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductSpecGroup"
+            },
+            "maxItems": 12,
+            "description": "商品卡结构化规格。旧客户端编辑时省略此字段可保留配置。"
           }
         },
         "required": [
@@ -11779,7 +13238,7 @@
         ],
         "additionalProperties": false,
         "title": "ProductEditInput",
-        "description": "完整编辑可编辑字段；不接受规格、订单金额或 Base 记录 ID。库存版本必须与下单扣减共用。"
+        "description": "完整编辑可编辑字段；支持结构化规格配置。库存版本必须与下单扣减共用。"
       },
       "ProductStatusInput": {
         "type": "object",
@@ -12348,6 +13807,10 @@
             "example": "2026-11-18T10:00:00+08:00",
             "format": "date-time"
           },
+          "realName": {
+            "type": "string",
+            "maxLength": 32
+          },
           "identityCount": {
             "type": "integer",
             "minimum": 0
@@ -12360,9 +13823,9 @@
               "claimed"
             ]
           },
-          "realName": {
+          "phone": {
             "type": "string",
-            "maxLength": 32
+            "description": "会员管理页请求 includePhone=true 时返回登记的完整手机号，未登记为空字符串"
           }
         },
         "required": [
@@ -12511,9 +13974,10 @@
           },
           "bucket": {
             "type": "string",
-            "description": "调整充值余额还是赠送余额",
-            "example": "principal",
+            "description": "调整账户：mixed 总余额（先扣本金再扣赠送）、principal 仅充值余额、gift 仅赠送余额",
+            "example": "mixed",
             "enum": [
+              "mixed",
               "principal",
               "gift"
             ]
@@ -12547,7 +14011,7 @@
         ],
         "additionalProperties": false,
         "title": "BalanceAdjustInput",
-        "description": "只调整指定桶；amountCent 不为零。事务锁会员、校验版本及桶余额不为负、插入唯一流水/审计/outbox；不得借此伪造充值支付成功。"
+        "description": "支持按总余额自动调账（mixed：扣减时先扣本金再扣赠送，增加时记入本金）或指定单一桶（principal/gift）；amountCent 不为零。事务锁会员、校验版本及桶余额不为负、插入唯一流水/审计/outbox；不得借此伪造充值支付成功。"
       },
       "BalanceAdjustment": {
         "type": "object",
@@ -12642,6 +14106,25 @@
             "description": "乐观锁版本；写入成功递增，旧版本返回 VERSION_CONFLICT",
             "example": 1,
             "minimum": 0
+          },
+          "scope": {
+            "$ref": "#/components/schemas/VoucherScope"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 255
+          },
+          "stock": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "maxOffCent": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000000,
+            "nullable": true
           }
         },
         "required": [
@@ -12657,7 +14140,7 @@
         ],
         "additionalProperties": false,
         "title": "CouponTemplate",
-        "description": "模板只读；本版本人工发放只开放 gift 模板。面额固定，不能覆盖模板权益。"
+        "description": "已发布的模板。范围是发布时选中的分类或单品，库存按未发放券实例统计。"
       },
       "Coupon": {
         "type": "object",
@@ -12782,6 +14265,9 @@
             "description": "ISO 8601，必须携带时区；展示按 Asia/Shanghai",
             "example": "2026-11-18T10:00:00+08:00",
             "format": "date-time"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/VoucherScope"
           }
         },
         "required": [
@@ -13049,6 +14535,12 @@
             "description": "ISO 8601，必须携带时区；展示按 Asia/Shanghai",
             "example": "2026-11-18T10:00:00+08:00",
             "format": "date-time"
+          },
+          "subtitle": {
+            "type": "string",
+            "description": "门店副标题 / 工作台空间说明；空串隐藏",
+            "example": "单店运营空间",
+            "maxLength": 60
           }
         },
         "required": [
@@ -13122,6 +14614,12 @@
             "description": "乐观锁版本；写入成功递增，旧版本返回 VERSION_CONFLICT",
             "example": 1,
             "minimum": 0
+          },
+          "subtitle": {
+            "type": "string",
+            "description": "门店副标题 / 工作台空间说明；空串隐藏，省略时保留原值",
+            "example": "单店运营空间",
+            "maxLength": 60
           }
         },
         "required": [
@@ -13810,7 +15308,42 @@
         "title": "AdminOrder8Response",
         "description": "保存订单备注成功响应"
       },
-      "AdminProduct9Response": {
+      "AdminOrderSubscribeNotifyResult9Response": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "成功固定 200",
+            "example": 200,
+            "enum": [
+              200
+            ]
+          },
+          "msg": {
+            "type": "string",
+            "description": "结果说明",
+            "example": "操作成功"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "追踪号",
+            "example": "trace-cosen-example"
+          },
+          "data": {
+            "$ref": "#/components/schemas/OrderSubscribeNotifyResult"
+          }
+        },
+        "required": [
+          "code",
+          "msg",
+          "traceId",
+          "data"
+        ],
+        "additionalProperties": false,
+        "title": "AdminOrderSubscribeNotifyResult9Response",
+        "description": "人工确认发送消费通知（电子小票）成功响应"
+      },
+      "AdminProduct10Response": {
         "type": "object",
         "properties": {
           "code": {
@@ -13867,43 +15400,8 @@
           "pageSize"
         ],
         "additionalProperties": false,
-        "title": "AdminProduct9Response",
-        "description": "商品列表成功响应"
-      },
-      "AdminProduct10Response": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "integer",
-            "description": "成功固定 200",
-            "example": 200,
-            "enum": [
-              200
-            ]
-          },
-          "msg": {
-            "type": "string",
-            "description": "结果说明",
-            "example": "操作成功"
-          },
-          "traceId": {
-            "type": "string",
-            "description": "追踪号",
-            "example": "trace-cosen-example"
-          },
-          "data": {
-            "$ref": "#/components/schemas/Product"
-          }
-        },
-        "required": [
-          "code",
-          "msg",
-          "traceId",
-          "data"
-        ],
-        "additionalProperties": false,
         "title": "AdminProduct10Response",
-        "description": "商品详情成功响应"
+        "description": "商品列表成功响应"
       },
       "AdminProduct11Response": {
         "type": "object",
@@ -13938,7 +15436,7 @@
         ],
         "additionalProperties": false,
         "title": "AdminProduct11Response",
-        "description": "编辑商品成功响应"
+        "description": "商品详情成功响应"
       },
       "AdminProduct12Response": {
         "type": "object",
@@ -13973,7 +15471,7 @@
         ],
         "additionalProperties": false,
         "title": "AdminProduct12Response",
-        "description": "上下架商品成功响应"
+        "description": "编辑商品成功响应"
       },
       "AdminProduct13Response": {
         "type": "object",
@@ -14008,7 +15506,7 @@
         ],
         "additionalProperties": false,
         "title": "AdminProduct13Response",
-        "description": "设置商品库存成功响应"
+        "description": "上下架商品成功响应"
       },
       "AdminProduct14Response": {
         "type": "object",
@@ -14043,44 +15541,9 @@
         ],
         "additionalProperties": false,
         "title": "AdminProduct14Response",
-        "description": "设置商品排序成功响应"
+        "description": "设置商品库存成功响应"
       },
-      "AdminProductImage15Response": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "integer",
-            "description": "成功固定 200",
-            "example": 200,
-            "enum": [
-              200
-            ]
-          },
-          "msg": {
-            "type": "string",
-            "description": "结果说明",
-            "example": "操作成功"
-          },
-          "traceId": {
-            "type": "string",
-            "description": "追踪号",
-            "example": "trace-cosen-example"
-          },
-          "data": {
-            "$ref": "#/components/schemas/ProductImage"
-          }
-        },
-        "required": [
-          "code",
-          "msg",
-          "traceId",
-          "data"
-        ],
-        "additionalProperties": false,
-        "title": "AdminProductImage15Response",
-        "description": "上传商品暂存图片成功响应"
-      },
-      "AdminProduct16Response": {
+      "AdminProduct15Response": {
         "type": "object",
         "properties": {
           "code": {
@@ -14112,10 +15575,80 @@
           "data"
         ],
         "additionalProperties": false,
-        "title": "AdminProduct16Response",
+        "title": "AdminProduct15Response",
+        "description": "设置商品排序成功响应"
+      },
+      "AdminProductImage16Response": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "成功固定 200",
+            "example": 200,
+            "enum": [
+              200
+            ]
+          },
+          "msg": {
+            "type": "string",
+            "description": "结果说明",
+            "example": "操作成功"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "追踪号",
+            "example": "trace-cosen-example"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ProductImage"
+          }
+        },
+        "required": [
+          "code",
+          "msg",
+          "traceId",
+          "data"
+        ],
+        "additionalProperties": false,
+        "title": "AdminProductImage16Response",
+        "description": "上传商品暂存图片成功响应"
+      },
+      "AdminProduct17Response": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "成功固定 200",
+            "example": 200,
+            "enum": [
+              200
+            ]
+          },
+          "msg": {
+            "type": "string",
+            "description": "结果说明",
+            "example": "操作成功"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "追踪号",
+            "example": "trace-cosen-example"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Product"
+          }
+        },
+        "required": [
+          "code",
+          "msg",
+          "traceId",
+          "data"
+        ],
+        "additionalProperties": false,
+        "title": "AdminProduct17Response",
         "description": "保存商品相册顺序成功响应"
       },
-      "AdminCategory17Response": {
+      "AdminCategory18Response": {
         "type": "object",
         "properties": {
           "code": {
@@ -14172,43 +15705,8 @@
           "pageSize"
         ],
         "additionalProperties": false,
-        "title": "AdminCategory17Response",
-        "description": "分类列表成功响应"
-      },
-      "AdminCategory18Response": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "integer",
-            "description": "成功固定 200",
-            "example": 200,
-            "enum": [
-              200
-            ]
-          },
-          "msg": {
-            "type": "string",
-            "description": "结果说明",
-            "example": "操作成功"
-          },
-          "traceId": {
-            "type": "string",
-            "description": "追踪号",
-            "example": "trace-cosen-example"
-          },
-          "data": {
-            "$ref": "#/components/schemas/Category"
-          }
-        },
-        "required": [
-          "code",
-          "msg",
-          "traceId",
-          "data"
-        ],
-        "additionalProperties": false,
         "title": "AdminCategory18Response",
-        "description": "新建分类成功响应"
+        "description": "分类列表成功响应"
       },
       "AdminCategory19Response": {
         "type": "object",
@@ -14243,9 +15741,44 @@
         ],
         "additionalProperties": false,
         "title": "AdminCategory19Response",
+        "description": "新建分类成功响应"
+      },
+      "AdminCategory20Response": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "成功固定 200",
+            "example": 200,
+            "enum": [
+              200
+            ]
+          },
+          "msg": {
+            "type": "string",
+            "description": "结果说明",
+            "example": "操作成功"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "追踪号",
+            "example": "trace-cosen-example"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Category"
+          }
+        },
+        "required": [
+          "code",
+          "msg",
+          "traceId",
+          "data"
+        ],
+        "additionalProperties": false,
+        "title": "AdminCategory20Response",
         "description": "编辑分类成功响应"
       },
-      "AdminMember20Response": {
+      "AdminMember21Response": {
         "type": "object",
         "properties": {
           "code": {
@@ -14302,10 +15835,10 @@
           "pageSize"
         ],
         "additionalProperties": false,
-        "title": "AdminMember20Response",
+        "title": "AdminMember21Response",
         "description": "会员列表成功响应"
       },
-      "AdminMember21Response": {
+      "AdminMember22Response": {
         "type": "object",
         "properties": {
           "code": {
@@ -14337,10 +15870,10 @@
           "data"
         ],
         "additionalProperties": false,
-        "title": "AdminMember21Response",
+        "title": "AdminMember22Response",
         "description": "会员详情成功响应"
       },
-      "AdminBalanceFlow22Response": {
+      "AdminBalanceFlow23Response": {
         "type": "object",
         "properties": {
           "code": {
@@ -14397,10 +15930,10 @@
           "pageSize"
         ],
         "additionalProperties": false,
-        "title": "AdminBalanceFlow22Response",
+        "title": "AdminBalanceFlow23Response",
         "description": "会员余额流水成功响应"
       },
-      "AdminBalanceAdjustment23Response": {
+      "AdminBalanceAdjustment24Response": {
         "type": "object",
         "properties": {
           "code": {
@@ -14432,10 +15965,10 @@
           "data"
         ],
         "additionalProperties": false,
-        "title": "AdminBalanceAdjustment23Response",
+        "title": "AdminBalanceAdjustment24Response",
         "description": "人工调整会员余额成功响应"
       },
-      "AdminCoupon24Response": {
+      "AdminCoupon25Response": {
         "type": "object",
         "properties": {
           "code": {
@@ -14492,10 +16025,10 @@
           "pageSize"
         ],
         "additionalProperties": false,
-        "title": "AdminCoupon24Response",
+        "title": "AdminCoupon25Response",
         "description": "券实例列表成功响应"
       },
-      "AdminCoupon25Response": {
+      "AdminCoupon26Response": {
         "type": "object",
         "properties": {
           "code": {
@@ -14527,10 +16060,10 @@
           "data"
         ],
         "additionalProperties": false,
-        "title": "AdminCoupon25Response",
+        "title": "AdminCoupon26Response",
         "description": "券实例详情成功响应"
       },
-      "AdminCouponTemplate26Response": {
+      "AdminCouponTemplate27Response": {
         "type": "object",
         "properties": {
           "code": {
@@ -14587,43 +16120,8 @@
           "pageSize"
         ],
         "additionalProperties": false,
-        "title": "AdminCouponTemplate26Response",
+        "title": "AdminCouponTemplate27Response",
         "description": "只读券模板列表成功响应"
-      },
-      "AdminCoupon27Response": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "integer",
-            "description": "成功固定 200",
-            "example": 200,
-            "enum": [
-              200
-            ]
-          },
-          "msg": {
-            "type": "string",
-            "description": "结果说明",
-            "example": "操作成功"
-          },
-          "traceId": {
-            "type": "string",
-            "description": "追踪号",
-            "example": "trace-cosen-example"
-          },
-          "data": {
-            "$ref": "#/components/schemas/Coupon"
-          }
-        },
-        "required": [
-          "code",
-          "msg",
-          "traceId",
-          "data"
-        ],
-        "additionalProperties": false,
-        "title": "AdminCoupon27Response",
-        "description": "发放一张礼品券成功响应"
       },
       "AdminCoupon28Response": {
         "type": "object",
@@ -14658,9 +16156,44 @@
         ],
         "additionalProperties": false,
         "title": "AdminCoupon28Response",
+        "description": "发放一张礼品券成功响应"
+      },
+      "AdminCoupon29Response": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "成功固定 200",
+            "example": 200,
+            "enum": [
+              200
+            ]
+          },
+          "msg": {
+            "type": "string",
+            "description": "结果说明",
+            "example": "操作成功"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "追踪号",
+            "example": "trace-cosen-example"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Coupon"
+          }
+        },
+        "required": [
+          "code",
+          "msg",
+          "traceId",
+          "data"
+        ],
+        "additionalProperties": false,
+        "title": "AdminCoupon29Response",
         "description": "作废未使用券成功响应"
       },
-      "AdminRecharge29Response": {
+      "AdminRecharge30Response": {
         "type": "object",
         "properties": {
           "code": {
@@ -14717,10 +16250,10 @@
           "pageSize"
         ],
         "additionalProperties": false,
-        "title": "AdminRecharge29Response",
+        "title": "AdminRecharge30Response",
         "description": "充值单列表成功响应"
       },
-      "AdminRecharge30Response": {
+      "AdminRecharge31Response": {
         "type": "object",
         "properties": {
           "code": {
@@ -14752,43 +16285,8 @@
           "data"
         ],
         "additionalProperties": false,
-        "title": "AdminRecharge30Response",
+        "title": "AdminRecharge31Response",
         "description": "充值单详情与状态成功响应"
-      },
-      "AdminStoreSettings31Response": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "integer",
-            "description": "成功固定 200",
-            "example": 200,
-            "enum": [
-              200
-            ]
-          },
-          "msg": {
-            "type": "string",
-            "description": "结果说明",
-            "example": "操作成功"
-          },
-          "traceId": {
-            "type": "string",
-            "description": "追踪号",
-            "example": "trace-cosen-example"
-          },
-          "data": {
-            "$ref": "#/components/schemas/StoreSettings"
-          }
-        },
-        "required": [
-          "code",
-          "msg",
-          "traceId",
-          "data"
-        ],
-        "additionalProperties": false,
-        "title": "AdminStoreSettings31Response",
-        "description": "读取门店资料成功响应"
       },
       "AdminStoreSettings32Response": {
         "type": "object",
@@ -14823,9 +16321,9 @@
         ],
         "additionalProperties": false,
         "title": "AdminStoreSettings32Response",
-        "description": "保存门店资料成功响应"
+        "description": "读取门店资料成功响应"
       },
-      "AdminRechargeTiers33Response": {
+      "AdminStoreSettings33Response": {
         "type": "object",
         "properties": {
           "code": {
@@ -14847,7 +16345,7 @@
             "example": "trace-cosen-example"
           },
           "data": {
-            "$ref": "#/components/schemas/RechargeTiers"
+            "$ref": "#/components/schemas/StoreSettings"
           }
         },
         "required": [
@@ -14857,8 +16355,8 @@
           "data"
         ],
         "additionalProperties": false,
-        "title": "AdminRechargeTiers33Response",
-        "description": "读取充值档位成功响应"
+        "title": "AdminStoreSettings33Response",
+        "description": "保存门店资料成功响应"
       },
       "AdminRechargeTiers34Response": {
         "type": "object",
@@ -14893,9 +16391,44 @@
         ],
         "additionalProperties": false,
         "title": "AdminRechargeTiers34Response",
+        "description": "读取充值档位成功响应"
+      },
+      "AdminRechargeTiers35Response": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "成功固定 200",
+            "example": 200,
+            "enum": [
+              200
+            ]
+          },
+          "msg": {
+            "type": "string",
+            "description": "结果说明",
+            "example": "操作成功"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "追踪号",
+            "example": "trace-cosen-example"
+          },
+          "data": {
+            "$ref": "#/components/schemas/RechargeTiers"
+          }
+        },
+        "required": [
+          "code",
+          "msg",
+          "traceId",
+          "data"
+        ],
+        "additionalProperties": false,
+        "title": "AdminRechargeTiers35Response",
         "description": "保存充值档位成功响应"
       },
-      "AdminDeadLetter35Response": {
+      "AdminDeadLetter36Response": {
         "type": "object",
         "properties": {
           "code": {
@@ -14952,43 +16485,8 @@
           "pageSize"
         ],
         "additionalProperties": false,
-        "title": "AdminDeadLetter35Response",
+        "title": "AdminDeadLetter36Response",
         "description": "同步死信列表成功响应"
-      },
-      "AdminSyncJob36Response": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "integer",
-            "description": "成功固定 200",
-            "example": 200,
-            "enum": [
-              200
-            ]
-          },
-          "msg": {
-            "type": "string",
-            "description": "结果说明",
-            "example": "操作成功"
-          },
-          "traceId": {
-            "type": "string",
-            "description": "追踪号",
-            "example": "trace-cosen-example"
-          },
-          "data": {
-            "$ref": "#/components/schemas/SyncJob"
-          }
-        },
-        "required": [
-          "code",
-          "msg",
-          "traceId",
-          "data"
-        ],
-        "additionalProperties": false,
-        "title": "AdminSyncJob36Response",
-        "description": "重推冲突对应的 DB 快照成功响应"
       },
       "AdminSyncJob37Response": {
         "type": "object",
@@ -15023,7 +16521,7 @@
         ],
         "additionalProperties": false,
         "title": "AdminSyncJob37Response",
-        "description": "重推死信对应的 DB 快照成功响应"
+        "description": "重推冲突对应的 DB 快照成功响应"
       },
       "AdminSyncJob38Response": {
         "type": "object",
@@ -15058,9 +16556,44 @@
         ],
         "additionalProperties": false,
         "title": "AdminSyncJob38Response",
+        "description": "重推死信对应的 DB 快照成功响应"
+      },
+      "AdminSyncJob39Response": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "成功固定 200",
+            "example": 200,
+            "enum": [
+              200
+            ]
+          },
+          "msg": {
+            "type": "string",
+            "description": "结果说明",
+            "example": "操作成功"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "追踪号",
+            "example": "trace-cosen-example"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SyncJob"
+          }
+        },
+        "required": [
+          "code",
+          "msg",
+          "traceId",
+          "data"
+        ],
+        "additionalProperties": false,
+        "title": "AdminSyncJob39Response",
         "description": "同步重试任务结果成功响应"
       },
-      "AdminProductDeletion39Response": {
+      "AdminProductDeletion40Response": {
         "type": "object",
         "properties": {
           "code": {
@@ -15092,10 +16625,10 @@
           "data"
         ],
         "additionalProperties": false,
-        "title": "AdminProductDeletion39Response",
+        "title": "AdminProductDeletion40Response",
         "description": "删除商品成功响应"
       },
-      "AdminProduct40Response": {
+      "AdminProduct41Response": {
         "type": "object",
         "properties": {
           "code": {
@@ -15127,43 +16660,8 @@
           "data"
         ],
         "additionalProperties": false,
-        "title": "AdminProduct40Response",
+        "title": "AdminProduct41Response",
         "description": "添加商品成功响应"
-      },
-      "AdminCategoryCollection41Response": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "integer",
-            "description": "成功固定 200",
-            "example": 200,
-            "enum": [
-              200
-            ]
-          },
-          "msg": {
-            "type": "string",
-            "description": "结果说明",
-            "example": "操作成功"
-          },
-          "traceId": {
-            "type": "string",
-            "description": "追踪号",
-            "example": "trace-cosen-example"
-          },
-          "data": {
-            "$ref": "#/components/schemas/CategoryCollection"
-          }
-        },
-        "required": [
-          "code",
-          "msg",
-          "traceId",
-          "data"
-        ],
-        "additionalProperties": false,
-        "title": "AdminCategoryCollection41Response",
-        "description": "保存分类排序成功响应"
       },
       "AdminCategoryCollection42Response": {
         "type": "object",
@@ -15198,6 +16696,41 @@
         ],
         "additionalProperties": false,
         "title": "AdminCategoryCollection42Response",
+        "description": "保存分类排序成功响应"
+      },
+      "AdminCategoryCollection43Response": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "成功固定 200",
+            "example": 200,
+            "enum": [
+              200
+            ]
+          },
+          "msg": {
+            "type": "string",
+            "description": "结果说明",
+            "example": "操作成功"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "追踪号",
+            "example": "trace-cosen-example"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CategoryCollection"
+          }
+        },
+        "required": [
+          "code",
+          "msg",
+          "traceId",
+          "data"
+        ],
+        "additionalProperties": false,
+        "title": "AdminCategoryCollection43Response",
         "description": "批量删除空分类成功响应"
       },
       "MiniPageSettings": {
@@ -15253,41 +16786,6 @@
         "title": "MiniPageSettingsInput",
         "description": "切换广场可见性"
       },
-      "AdminMiniPageSettings43Response": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "integer",
-            "description": "成功固定 200",
-            "example": 200,
-            "enum": [
-              200
-            ]
-          },
-          "msg": {
-            "type": "string",
-            "description": "结果说明",
-            "example": "操作成功"
-          },
-          "traceId": {
-            "type": "string",
-            "description": "追踪号",
-            "example": "trace-cosen-example"
-          },
-          "data": {
-            "$ref": "#/components/schemas/MiniPageSettings"
-          }
-        },
-        "required": [
-          "code",
-          "msg",
-          "traceId",
-          "data"
-        ],
-        "additionalProperties": false,
-        "title": "AdminMiniPageSettings43Response",
-        "description": "读取小程序页面设置成功响应"
-      },
       "AdminMiniPageSettings44Response": {
         "type": "object",
         "properties": {
@@ -15321,7 +16819,67 @@
         ],
         "additionalProperties": false,
         "title": "AdminMiniPageSettings44Response",
+        "description": "读取小程序页面设置成功响应"
+      },
+      "AdminMiniPageSettings45Response": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "成功固定 200",
+            "example": 200,
+            "enum": [
+              200
+            ]
+          },
+          "msg": {
+            "type": "string",
+            "description": "结果说明",
+            "example": "操作成功"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "追踪号",
+            "example": "trace-cosen-example"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MiniPageSettings"
+          }
+        },
+        "required": [
+          "code",
+          "msg",
+          "traceId",
+          "data"
+        ],
+        "additionalProperties": false,
+        "title": "AdminMiniPageSettings45Response",
         "description": "保存小程序页面设置成功响应"
+      },
+      "CategoryTopItem": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "显示名称",
+            "example": "可森拿铁",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "quantity": {
+            "type": "integer",
+            "description": "卖出数量",
+            "example": 1,
+            "minimum": 1
+          }
+        },
+        "required": [
+          "name",
+          "quantity"
+        ],
+        "additionalProperties": false,
+        "title": "CategoryTopItem",
+        "description": "分类内按销量排序的畅销单品，最多 5 个"
       },
       "CategoryRevenue": {
         "type": "object",
@@ -15350,17 +16908,24 @@
             "minimum": 0,
             "maximum": 9007199254740991,
             "format": "int64"
+          },
+          "topItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CategoryTopItem"
+            }
           }
         },
         "required": [
           "code",
           "name",
           "color",
-          "salesCent"
+          "salesCent",
+          "topItems"
         ],
         "additionalProperties": false,
         "title": "CategoryRevenue",
-        "description": "按当前商品分类分摊券后实付"
+        "description": "按当前商品分类分摊券后实付，并附该分类销量前 5 的单品"
       },
       "DayRevenue": {
         "type": "object",
@@ -15378,15 +16943,24 @@
             "minimum": 0,
             "maximum": 9007199254740991,
             "format": "int64"
+          },
+          "cashInCent": {
+            "type": "integer",
+            "description": "当日实际现金流入：微信订单收款 + 微信充值实收 + 收款码实收",
+            "example": 1800,
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "format": "int64"
           }
         },
         "required": [
           "date",
-          "salesCent"
+          "salesCent",
+          "cashInCent"
         ],
         "additionalProperties": false,
         "title": "DayRevenue",
-        "description": "每日订单营业额"
+        "description": "每日订单营业额与实际现金流入"
       },
       "MonthlyRevenue": {
         "type": "object",
@@ -15425,9 +16999,9 @@
         ],
         "additionalProperties": false,
         "title": "MonthlyRevenue",
-        "description": "上海自然月订单收入分布，空日期补零，优惠按金额分摊到分"
+        "description": "上海自然月订单收入分布，空日期补零，优惠按金额分摊到分；每日同时给出营业额与现金流入"
       },
-      "AdminMonthlyRevenue45Response": {
+      "AdminMonthlyRevenue46Response": {
         "type": "object",
         "properties": {
           "code": {
@@ -15459,8 +17033,82 @@
           "data"
         ],
         "additionalProperties": false,
-        "title": "AdminMonthlyRevenue45Response",
-        "description": "月度商品分类及每日营业额成功响应"
+        "title": "AdminMonthlyRevenue46Response",
+        "description": "月度商品分类及每日营业额与现金流成功响应"
+      },
+      "MemberDeleteInput": {
+        "type": "object",
+        "properties": {
+          "expectedVersion": {
+            "type": "integer",
+            "description": "乐观锁版本；写入成功递增，旧版本返回 VERSION_CONFLICT",
+            "example": 1,
+            "minimum": 0
+          }
+        },
+        "required": [
+          "expectedVersion"
+        ],
+        "additionalProperties": false,
+        "title": "MemberDeleteInput",
+        "description": "删除会员前核对资料版本"
+      },
+      "MemberDeletion": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "数据库 bigint ID；以十进制字符串传输，禁止转为 JS Number",
+            "example": "1001",
+            "pattern": "^[1-9]\\d{0,18}$"
+          },
+          "deleted": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "id",
+          "deleted"
+        ],
+        "additionalProperties": false,
+        "title": "MemberDeletion",
+        "description": "会员删除回执"
+      },
+      "AdminMemberDeletion47Response": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "成功固定 200",
+            "example": 200,
+            "enum": [
+              200
+            ]
+          },
+          "msg": {
+            "type": "string",
+            "description": "结果说明",
+            "example": "操作成功"
+          },
+          "traceId": {
+            "type": "string",
+            "description": "追踪号",
+            "example": "trace-cosen-example"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MemberDeletion"
+          }
+        },
+        "required": [
+          "code",
+          "msg",
+          "traceId",
+          "data"
+        ],
+        "additionalProperties": false,
+        "title": "AdminMemberDeletion47Response",
+        "description": "删除会员成功响应"
       },
       "RuoYiAuthError": {
         "type": "object",
@@ -15481,6 +17129,254 @@
             "type": "string"
           }
         }
+      },
+      "VoucherScope": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "category",
+              "product"
+            ]
+          },
+          "targets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 19
+                },
+                "code": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                }
+              },
+              "required": [
+                "id",
+                "code",
+                "name"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "kind",
+          "targets"
+        ],
+        "additionalProperties": false,
+        "nullable": true
+      },
+      "VoucherPublishInput": {
+        "type": "object",
+        "properties": {
+          "scopeKind": {
+            "type": "string",
+            "enum": [
+              "category",
+              "product"
+            ]
+          },
+          "codes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "minItems": 1,
+            "maxItems": 200,
+            "uniqueItems": true
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "gift",
+              "cash",
+              "discount"
+            ]
+          },
+          "validDays": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3650
+          },
+          "valueCent": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000000
+          },
+          "discountPercent": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 99
+          },
+          "minSpendCent": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000000
+          },
+          "maxOffCent": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000000,
+            "nullable": true
+          }
+        },
+        "required": [
+          "scopeKind",
+          "codes",
+          "title",
+          "description",
+          "type",
+          "validDays"
+        ],
+        "additionalProperties": false
+      },
+      "VoucherStockInput": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          }
+        },
+        "required": [
+          "quantity"
+        ],
+        "additionalProperties": false
+      },
+      "VoucherGrantInput": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "memberId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 19,
+            "pattern": "^[1-9][0-9]{0,18}$"
+          },
+          "couponNo": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          }
+        },
+        "required": [
+          "quantity",
+          "memberId"
+        ],
+        "additionalProperties": false
+      },
+      "VoucherStockResult": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          }
+        },
+        "required": [
+          "quantity"
+        ],
+        "additionalProperties": false
+      },
+      "VoucherGrantResult": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "couponNos": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          }
+        },
+        "required": [
+          "quantity",
+          "couponNos"
+        ],
+        "additionalProperties": false
+      },
+      "VoucherUnits": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "couponNo": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 40
+                },
+                "memberId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 19,
+                  "nullable": true
+                },
+                "memberName": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "status": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "couponNo",
+                "memberId",
+                "memberName",
+                "status"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "total",
+          "rows"
+        ],
+        "additionalProperties": false
       },
       "PrecreateMemberInput": {
         "type": "object",
