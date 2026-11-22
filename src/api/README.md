@@ -50,13 +50,14 @@ VITE_COSEN_USE_MOCK=false
 VITE_COSEN_API_BASE_URL=http://127.0.0.1:8080
 ```
 
-H5 联调也可运行 `scripts/dev-real.sh start`，通过 Vite proxy 同源访问后端，避免 CORS。
-`VITE_COSEN_API_BASE_URL` 不含 `/app` 前缀；显式空串表示同源访问 `/app/**`。
+H5 联调推荐运行 `scripts/dev-real.sh start`，通过 Vite proxy 同源访问后端，避免 CORS。
+脚本支持 `start` / `stop` / `restart` / `status`，只管理 H5 开发服务，不会启动后端；已有服务时需 `restart` 才会应用新环境变量（会重启 5173 上的 H5 服务）。
+`VITE_COSEN_API_BASE_URL` 不含 `/app` 前缀；显式空串表示同源访问 `/app/**`。**Vite 代理仅对 H5 开发服务有效，小程序请求不会经过它**，小程序必须设置可直接访问的后端地址（见 §2.3）。
 本地开发切回 mock：删掉 `.env.local`，或把 `VITE_COSEN_USE_MOCK` 改回 `true`；修改后需重启开发服务。
 
 ### 2.2 线上真实环境（已纳入仓库）
 
-仓库根目录 `.env.production` 仅包含公开客户端配置：
+仓库根目录 [`.env.production`](../../.env.production) 仅包含公开客户端配置（返回[项目说明](../../README.md)）：
 
 ```bash
 VITE_COSEN_USE_MOCK=false
@@ -70,11 +71,21 @@ npm run build:h5
 npm run build:mp-weixin
 ```
 
-如需在本地 H5 开发时连接线上环境，可显式使用相同模式：
+**本地 H5 联调线上 API 推荐走同源代理**，避免线上鉴权接口的 CORS 预检限制：
 
 ```bash
-npm run dev:h5 -- --mode production
+# 未启动 H5 时
+COSEN_PREVIEW_API_TARGET=https://cosen.tablejoker.com scripts/dev-real.sh start
+
+# 已有 H5 服务时，重启后应用新代理目标
+COSEN_PREVIEW_API_TARGET=https://cosen.tablejoker.com scripts/dev-real.sh restart
 ```
+
+脚本将 `VITE_COSEN_API_BASE_URL` 设为空串，浏览器请求本地 `/app/**`，Vite 再转发至线上；`/images`、`/profile/cosen` 也配置了代理。这里只避免浏览器跨域，**不绕过后端鉴权，写操作仍会影响真实线上数据**。
+
+`npm run dev:h5 -- --mode production` 虽能加载线上地址，但属于浏览器跨域直连，**目前不适合作为完整登录态联调方式**。2026-11-22 UTC 从 `http://localhost:5173` 发起 OPTIONS 预检实测：分类、微信登录接口返回 200 并带 CORS 头；会员资料、优惠券、下单、绑定手机号接口返回 401 且不带 CORS 头。浏览器跨域请求带 `Authorization` 等非简单请求头时会触发预检，因此受保护接口无法正常调用，不能把公开菜单能加载当成完整联调成功。
+
+后端修复方向：让 CORS 在鉴权过滤器前处理预检，并对合法来源的 OPTIONS 请求放行；Spring Security 通常需配置 `.cors()`、OPTIONS `permitAll` 及正确的过滤器顺序，实际实现还应核对自定义过滤器。仅放行 OPTIONS 不会替代实际业务请求鉴权，实际响应（包括 401/403）也应带正确 CORS 头。本轮仅验证外部响应，未修改或部署后端。
 
 **覆盖优先级（从高到低）**：命令行进程环境变量 → `.env.production.local` → `.env.production` → `.env.local` → `.env`。
 开发模式对应 `.env.development.local` / `.env.development`，不会自动读取 `.env.production`。
@@ -87,7 +98,29 @@ VITE_COSEN_USE_MOCK=true npm run build:h5
 VITE_COSEN_USE_MOCK=true npm run build:mp-weixin
 ```
 
-注意：微信开发者工具里的 `http://127.0.0.1` 是开发者工具所在机器，不是手机；真机联调需换成局域网 IP 或域名，并在小程序后台配置 request 合法域名。线上 H5 跨域访问仍需后端允许 CORS，Vite 开发代理不随生产构建发布。
+### 2.3 微信小程序联调
+
+以下命令在项目根目录运行，小程序直接请求指定后端，不使用 Vite 代理：
+
+```bash
+# 微信开发者工具连接本机后端（先启动 8080 后端）
+VITE_COSEN_USE_MOCK=false VITE_COSEN_API_BASE_URL=http://127.0.0.1:8080 npm run dev:mp-weixin
+
+# 微信开发者工具连接线上真实 API（加载 .env.production）
+npm run dev:mp-weixin -- --mode production
+```
+
+将 `dist/dev/mp-weixin` 导入微信开发者工具。本机 HTTP 联调需在工具内启用「不校验合法域名、web-view（业务域名）、TLS 版本以及 HTTPS 证书」等开发选项；开发者工具里的 `127.0.0.1` 是运行工具的电脑，不是手机，也不是远端开发服务器。
+
+手机真机联调本地后端时，需把地址换成**后端所在电脑的局域网 IP**，例如：
+
+```bash
+VITE_COSEN_USE_MOCK=false VITE_COSEN_API_BASE_URL=http://192.168.1.100:8080 npm run dev:mp-weixin
+```
+
+将示例 IP 替换为实际地址，确保手机与电脑网络可达、后端监听局域网接口且防火墙允许访问。手机端需开启调试模式以跳过开发阶段的域名校验；仅在开发者工具中勾选不校验并不足以证明真机可用。调试选项只用于开发，不能替代正式版要求：生产使用 HTTPS 域名，并在小程序后台配置 request 合法域名。
+
+小程序原生网络请求不受浏览器 CORS 限制，但仍受后端鉴权与微信域名/HTTPS 规则约束。Vite 开发代理不随 H5 生产构建发布；H5 部署需单独配置同源反向代理或由后端正确支持 CORS。
 
 ## 3. token 存在哪
 
