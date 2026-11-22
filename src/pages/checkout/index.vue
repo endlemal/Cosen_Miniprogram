@@ -24,6 +24,10 @@
       <view class="box where">
         <text class="w-t">{{ STORE.name }}</text>
         <text class="w-s">{{ STORE.address }}，距你 {{ STORE.distance }}</text>
+        <view v-if="state.tableNo" class="w-table">
+          <Icon name="pin" :size="26" color="#663A24" />
+          <text class="w-table-t">扫码桌位：{{ state.tableNo }} 号桌（下单自动关联桌号）</text>
+        </view>
         <view class="w-eta">
           <Icon name="clock" :size="26" color="#87512E" />
           <text class="w-eta-t">现在下单，约 8 分钟后可取</text>
@@ -35,7 +39,7 @@
         <view v-for="it in items" :key="it.key" class="item">
           <view class="thumb">
             <image v-if="mediaUrl(it.coverUrl)" class="thumb-img" :src="mediaUrl(it.coverUrl)" mode="aspectFill" />
-            <ProductImagePlaceholder v-else compact />
+            <ProductImagePlaceholder v-else :product-key="it.productId" />
           </view>
           <view class="it-info">
             <text class="it-name">{{ it.name }}</text>
@@ -50,7 +54,7 @@
 
       <!-- 优惠与费用 -->
       <view class="box">
-        <view class="row" hover-class="tap-on" @tap="couponOpen = true">
+        <view v-if="canUseMember" class="row" hover-class="tap-on" @tap="couponOpen = true">
           <view class="row-l">
             <Icon name="ticket" :size="32" color="#663A24" />
             <text class="row-t">礼品券</text>
@@ -75,14 +79,14 @@
       <!-- 支付方式 -->
       <view class="box">
         <text class="box-t">支付方式</text>
-        <view class="pay" :class="{ on: pay === 'balance', off: !balanceEnough }" @tap="pickBalance">
+        <view v-if="canUseMember" class="pay" :class="{ on: pay === 'balance', off: !balanceEnough }" @tap="pickBalance">
           <view class="pay-ic forest">
             <Icon name="wallet" :size="34" color="#FFF9F0" />
           </view>
           <view class="pay-info">
             <text class="pay-t">会员余额</text>
             <text class="pay-s" :class="{ warn: !balanceEnough }">
-              {{ balanceEnough ? '可用 ¥' + money2(state.balance) : '余额 ¥' + money2(state.balance) + '，不够支付本单' }}
+              {{ !balanceSynced ? '余额加载中…' : balanceEnough ? '可用 ¥' + money2(state.balance) : '余额 ¥' + money2(state.balance) + '，不够支付本单' }}
             </text>
           </view>
           <view v-if="!balanceEnough" class="pay-topup" hover-class="tap-on" @tap.stop="toRecharge">
@@ -98,7 +102,7 @@
           </view>
           <view class="pay-info">
             <text class="pay-t">微信支付</text>
-            <text class="pay-s">演示环境，不会真实扣款</text>
+            <text class="pay-s">{{ useMock ? '演示环境，不会真实扣款' : '微信安全支付，实时到账' }}</text>
           </view>
           <view class="radio" :class="{ on: pay === 'wechat' }">
             <Icon v-if="pay === 'wechat'" name="check" :size="24" color="#FFF9F0" :stroke="3" />
@@ -150,6 +154,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import NavBar from '@/components/NavBar.vue'
 import Icon from '@/components/Icon.vue'
 import Sheet from '@/components/Sheet.vue'
@@ -157,8 +162,20 @@ import ProductImagePlaceholder from '@/components/ProductImagePlaceholder.vue'
 import CouponCard from '@/components/CouponCard.vue'
 import { STORE } from '@/mock/products'
 import { useMock } from '@/config/env'
-import { ApiError, createOrder, genIdempotencyKey, listMyCoupons, toCoupons, type CreateOrderReq } from '@/api'
+import {
+  ApiError,
+  createOrder,
+  genIdempotencyKey,
+  listMyCoupons,
+  payOrderFlow,
+  promptOrderSubscribe,
+  reportOrderSubscribe,
+  toCoupons,
+  type CreateOrderReq,
+  type SubscribePromptResult
+} from '@/api'
 import { state, cartTotal, evalCoupon, couponState, placeOrder, backToTab } from '@/store'
+import { memberProfile, balanceSynced, syncMemberProfile } from '@/store/member'
 import type { Coupon } from '@/types'
 import { money, money2 } from '@/utils/format'
 import { mediaUrl } from '@/utils/media'
@@ -171,6 +188,7 @@ state.mode = 'pickup'
 const fee = computed(() => 0)
 
 /* ---- 礼品券：mock 读本地；真实模式读 GET /app/coupons，默认自动选优惠最大的一张 ---- */
+const canUseMember = computed(() => useMock || !!memberProfile.value?.phoneBound)
 const couponId = ref('')
 const couponOpen = ref(false)
 const realCoupons = ref<Coupon[]>([])
@@ -201,6 +219,7 @@ if (useMock) pickBestCoupon()
 onMounted(async () => {
   if (useMock) return
   try {
+    if (!(await syncMemberProfile())?.phoneBound) return
     realCoupons.value = toCoupons(await listMyCoupons())
   } catch {
     // 40101/40104/40106 请求层已清 token 跳登录；其余错误请求层已 toast
@@ -221,15 +240,28 @@ const total = computed(() => Math.max(0, Math.round((subtotal.value - discount.v
 // 本轮只接订单创建，结算页余额仍沿用 mock state，服务端最终校验（40903）。
 // TODO(mixed): 契约 payMode 含 mixed（balancePayCent + wechatPayCent = payableCent），
 // 本轮不做组合支付 UI；接订单接口时需处理 40920（拆分不平）/ 40921（支付方式不支持）。
-const balanceEnough = computed(() => state.balance >= total.value)
-const pay = ref<'balance' | 'wechat'>(state.balance >= cartTotal.value ? 'balance' : 'wechat')
+// 真实模式：余额来自 GET /app/member/profile（syncMemberProfile 写回 state.balance），
+// 同步完成前不判断「够不够」，避免用 mock 的演示余额误导用户。
+const balanceEnough = computed(() => canUseMember.value && balanceSynced.value && state.balance >= total.value)
+const pay = ref<'balance' | 'wechat'>(canUseMember.value && balanceSynced.value && state.balance >= cartTotal.value ? 'balance' : 'wechat')
 watch(balanceEnough, (ok) => {
   if (!ok && pay.value === 'balance') pay.value = 'wechat'
+})
+let payTouched = false
+onMounted(async () => {
+  if (useMock) return
+  await syncMemberProfile()
+  if (!payTouched && balanceEnough.value) pay.value = 'balance'
+})
+onShow(() => {
+  // 从充值页返回时刷新余额
+  if (!useMock) void syncMemberProfile()
 })
 const remark = ref('')
 const busy = ref(false)
 
 function pickBalance() {
+  payTouched = true
   if (balanceEnough.value) pay.value = 'balance'
   else uni.showToast({ title: '余额不足，可先充值或改用微信支付', icon: 'none' })
 }
@@ -259,11 +291,12 @@ function realOrderPayload(): CreateOrderReq {
     // 契约 CreateOrderReq.couponId 是券实例号 couponNo（不是本地 id）
     couponId: chosen.value?.couponNo || undefined,
     payMode: pay.value,
+    tableNo: state.tableNo || undefined,
     remark: remark.value.trim()
   }
 }
 
-async function submitReal() {
+async function submitReal(subscribeResult?: SubscribePromptResult) {
   const payload = realOrderPayload()
   const signature = JSON.stringify(payload)
   const detail = await createOrder({ ...payload, idempotencyKey: idempotencyKeyFor(signature) })
@@ -271,9 +304,33 @@ async function submitReal() {
   state.cart.splice(0, state.cart.length)
   pendingIdempotencyKey = ''
   pendingPayloadSignature = ''
-  uni.hideLoading()
-  busy.value = false
-  uni.redirectTo({ url: `/pages/order/index?no=${detail.orderNo}&fresh=1` })
+  if (subscribeResult && Object.keys(subscribeResult.results).length) {
+    // 在支付前先落库订阅授权，确保支付回调到达时即可触发 order_paid 通知
+    await reportOrderSubscribe(detail.orderNo, subscribeResult, 'order_pay')
+  }
+  // v1.6.0：订单创建成功后立即按结算页选的支付方式走 POST /app/orders/{orderNo}/pay；
+  // wechat 会拉起 wx.requestPayment 并轮询订单至 paid，失败/取消保留待支付订单
+  let fresh = 'created'
+  try {
+    uni.hideLoading()
+    uni.showLoading({ title: pay.value === 'wechat' ? '正在拉起支付' : '余额支付中', mask: true })
+    const outcome = await payOrderFlow(detail.orderNo, pay.value)
+    if (outcome.status === 'paid') {
+      fresh = 'paid'
+    }
+    else if (outcome.status === 'cancelled') fresh = 'cancelled'
+    else if (outcome.status === 'closed') fresh = 'closed'
+    else fresh = 'failed'
+  } catch {
+    // 40903 余额不足 / 40916 状态变化 / 40922 / 50305 等由请求层按映射表提示
+    fresh = 'failed'
+  } finally {
+    uni.hideLoading()
+    busy.value = false
+    // 余额支付 / 组合支付 / 取消退款都会改余额，支付流程结束后刷新
+    void syncMemberProfile()
+  }
+  uni.redirectTo({ url: `/pages/order/index?no=${detail.orderNo}&fresh=${fresh}` })
 }
 
 function submitMock() {
@@ -298,24 +355,27 @@ function submit() {
   if (busy.value || !items.value.length) return
   if (pay.value === 'balance' && !balanceEnough.value) return pickBalance()
   busy.value = true
-  const loadingTitle = useMock
-    ? pay.value === 'wechat' ? '正在调起支付' : '余额支付中'
-    : '正在提交订单'
-  uni.showLoading({ title: loadingTitle, mask: true })
   if (useMock) {
+    uni.showLoading({ title: pay.value === 'wechat' ? '正在调起支付' : '余额支付中', mask: true })
     submitMock()
     return
   }
-  submitReal().catch((e) => {
-    uni.hideLoading()
-    busy.value = false
-    // 40007 = 同 key 不同 payload，丢弃旧 key，下次提交重新生成；
-    // 其它错误保留 key，同 payload 重试仍走幂等。
-    if (e instanceof ApiError && e.code === 40007) {
-      pendingIdempotencyKey = ''
-      pendingPayloadSignature = ''
-    }
-  })
+  // 必须在用户点击手势内同步触发 wx.requestSubscribeMessage，避免异步后丢失手势上下文
+  promptOrderSubscribe('order_pay')
+    .then((subResult) => {
+      uni.showLoading({ title: '正在提交订单', mask: true })
+      return submitReal(subResult)
+    })
+    .catch((e) => {
+      uni.hideLoading()
+      busy.value = false
+      // 40007 = 同 key 不同 payload，丢弃旧 key，下次提交重新生成；
+      // 其它错误保留 key，同 payload 重试仍走幂等。
+      if (e instanceof ApiError && e.code === 40007) {
+        pendingIdempotencyKey = ''
+        pendingPayloadSignature = ''
+      }
+    })
 }
 </script>
 
@@ -416,6 +476,21 @@ function submit() {
   margin-left: 8rpx;
   font-size: 23rpx;
   color: $toffee;
+  font-weight: 600;
+}
+.w-table {
+  margin-top: 14rpx;
+  display: flex;
+  align-items: center;
+  align-self: flex-start;
+  padding: 10rpx 18rpx;
+  border-radius: 18rpx;
+  background: #F4E9D8;
+}
+.w-table-t {
+  margin-left: 8rpx;
+  font-size: 23rpx;
+  color: $espresso;
   font-weight: 600;
 }
 .item {

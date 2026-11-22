@@ -91,6 +91,16 @@
           <text class="rec-v">+{{ r.amount + r.bonus }}</text>
         </view>
       </view>
+      <view v-if="!useMock && realFlows.length" class="records">
+        <text class="rules-t">储值流水</text>
+        <view v-for="f in realFlows" :key="f.flowNo" class="rec">
+          <view class="rec-l">
+            <text class="rec-t">{{ FLOW_TEXT[f.bizType] || f.bizType }}{{ f.remark ? '：' + f.remark : '' }}</text>
+            <text class="rec-s">{{ flowTime(f.createTime) }}</text>
+          </view>
+          <text class="rec-v">{{ f.amountCent >= 0 ? '+' : '-' }}{{ money2(centToYuan(Math.abs(f.amountCent))) }}</text>
+        </view>
+      </view>
       <view class="tail" />
     </view>
 
@@ -141,20 +151,25 @@ import Icon from '@/components/Icon.vue'
 import Notch from '@/components/Notch.vue'
 import { RECHARGE_TIERS } from '@/mock/seed'
 import { useMock } from '@/config/env'
+import { requestWechatPayment, WechatPayError } from '@/api/payment'
 import {
   ApiError,
   centToYuan,
   createRecharge,
-  getMemberProfile,
   getRecharge,
+  listBalanceFlows,
   listRechargeTiers,
   newRechargeIdempotencyKey,
+  promptOrderSubscribe,
+  reportMemberSubscribe,
   toRechargeTiers,
+  type MemberBalanceFlow,
   type MemberProfile,
   type RechargeOrderDto,
   type RechargeTierView
 } from '@/api'
 import { state, memberLevel, recharge, backToTab, rechargeCart, rechargeCartTotal, changeRechargeQty } from '@/store'
+import { syncMemberProfile } from '@/store/member'
 import { hm, money2, ymd } from '@/utils/format'
 
 const LEVEL_NAMES: Record<number, string> = { 1: '可森会员', 2: '醇香会员', 3: '深焙会员' }
@@ -194,14 +209,20 @@ const levelName = computed(() => {
 onLoad((q) => {
   // 真实模式暂不支持购物车多档位结算，按单档位选择处理（MenuView 本轮仍 mock）
   fromCart.value = (q?.cart as string) === '1' && useMock
-  if (useMock) {
-    const i = Number(q?.tier)
-    if (i === 0 || i === 1) pick.value = i
+  const i = Number(q?.tier)
+  if (q?.tier !== undefined && Number.isInteger(i) && i >= 0) {
+    if (useMock) {
+      if (i === 0 || i === 1) pick.value = i
+    } else {
+      requestedTier = i
+    }
   }
 })
 
 onMounted(async () => {
   if (useMock) return
+  const member = await syncMemberProfile()
+  if (!member?.phoneBound) { uni.redirectTo({url: "/pages/login/index"}); return }
   await Promise.all([loadTiers(), loadProfile()])
 })
 
@@ -216,15 +237,46 @@ async function loadTiers() {
 }
 
 async function loadProfile() {
-  try {
-    userProfile.value = await getMemberProfile()
-    realBalance.value = centToYuan(userProfile.value.balanceCent ?? 0)
-  } catch {
-    // 余额展示失败不阻断充值，成功后会按充值单的 balanceAfterCent 刷新
+  // 余额展示失败不阻断充值，成功后会按充值单的 balanceAfterCent 刷新
+  const profile = await syncMemberProfile()
+  if (profile) {
+    userProfile.value = profile
+    realBalance.value = centToYuan(profile.balanceCent ?? 0)
   }
+  void loadFlows()
 }
 
+/* 真实储值流水（GET /app/member/balance/flows） */
+const realFlows = ref<MemberBalanceFlow[]>([])
+const FLOW_TEXT: Record<string, string> = {
+  RECHARGE: '储值到账',
+  REWARD: '储值赠送',
+  CONSUME: '余额消费',
+  REFUND: '余额退回',
+  ADJUST: '余额调整',
+  TRANSFER_IN: '转入',
+  TRANSFER_OUT: '转出'
+}
+async function loadFlows() {
+  try {
+    realFlows.value = (await listBalanceFlows({ pageNum: 1, pageSize: 10 })).rows
+  } catch {
+    realFlows.value = []
+  }
+}
+function flowTime(iso?: string) {
+  const ts = iso ? new Date(iso).getTime() : NaN
+  return Number.isFinite(ts) ? ymd(ts) + ' ' + hm(ts) : ''
+}
+
+let requestedTier = -1
 function pickFirstAvailable() {
+  // 从点单页储值卡跳来时优先选中对应档位（真实档位列表加载完才能判断可用）
+  if (requestedTier >= 0 && tiers.value[requestedTier]?.available) {
+    pick.value = requestedTier
+    requestedTier = -1
+    return
+  }
   const hot = tiers.value.findIndex((tier) => tier.available && tier.hot)
   const any = tiers.value.findIndex((tier) => tier.available)
   pick.value = hot >= 0 ? hot : any >= 0 ? any : 0
@@ -325,12 +377,11 @@ async function applyPaid(order: RechargeOrderDto) {
   if (order.balanceAfterCent != null) {
     realBalance.value = centToYuan(order.balanceAfterCent)
   } else {
-    try {
-      const profile = await getMemberProfile()
+    // 忽略失败，成功弹层仍可展示本次到账金额
+    const profile = await syncMemberProfile()
+    if (profile) {
       userProfile.value = profile
       realBalance.value = centToYuan(profile.balanceCent ?? 0)
-    } catch {
-      // 忽略，成功弹层仍可展示本次到账金额
     }
   }
   uni.hideLoading()
@@ -363,8 +414,19 @@ async function submitReal() {
       finishFailed(order)
       return
     }
-    // TODO(wxpay): pending 时真实微信需先 uni.requestPayment(order.wx)；
-    // 当前 dev mock 渠道通常直接返回 paid，这里先按契约轮询兜底。
+    // 真实微信：pending 且带 wx 参数时先拉起 JSAPI 支付，再轮询充值单（到账以回调/查单为准）
+    if (order.status === 'pending' && order.wx) {
+      try {
+        uni.hideLoading()
+        await requestWechatPayment({ ...order.wx, appId: order.wx.appId ?? '' })
+        uni.showLoading({ title: '正在确认到账', mask: true })
+      } catch (e) {
+        busy.value = false
+        const cancelled = e instanceof WechatPayError && e.cancelled
+        uni.showToast({ title: cancelled ? '已取消支付' : '支付失败，请重试', icon: 'none', duration: 2400 })
+        return
+      }
+    }
     const settled = await pollRecharge(order)
     if (pollCancelled) return
     if (!settled) {
@@ -395,7 +457,15 @@ function submit() {
     submitMock()
     return
   }
-  void submitReal()
+  // 充值提交点击时同步拉起消费小票订阅（已勾选「总是保持」时零弹窗自动 +1 次），不阻塞后续支付
+  const subPromise = promptOrderSubscribe('order_pay')
+    .then((subResult) => {
+      if (Object.keys(subResult.results).length) {
+        void reportMemberSubscribe(subResult, 'recharge')
+      }
+    })
+    .catch(() => {})
+  void subPromise.then(() => submitReal())
 }
 
 onUnload(() => {

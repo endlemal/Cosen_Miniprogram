@@ -60,6 +60,7 @@
 </template>
 
 <script setup lang="ts">
+import { syncMemberProfile } from '@/store/member'
 import { computed, onMounted, ref } from 'vue'
 import { onUnload } from '@dcloudio/uni-app'
 import NavBar from '@/components/NavBar.vue'
@@ -101,6 +102,7 @@ const newCount = computed(() => source.value.filter((c) => c.isNew && couponStat
 
 onMounted(async () => {
   if (useMock) return
+  if (!(await syncMemberProfile())?.phoneBound) { uni.redirectTo({url: "/pages/login/index"}); return }
   loading.value = true
   try {
     realCoupons.value = toCoupons(await listMyCoupons())

@@ -10,7 +10,7 @@
       <view v-for="it in state.cart" :key="it.key" class="row">
         <view class="thumb">
           <image v-if="coverOf(it)" class="thumb-img" :src="coverOf(it)" mode="aspectFill" />
-          <ProductImagePlaceholder v-else compact />
+          <ProductImagePlaceholder v-else :product-key="it.productId" />
         </view>
         <view class="info">
           <text class="name">{{ it.name }}</text>

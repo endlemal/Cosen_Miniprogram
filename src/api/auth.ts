@@ -7,8 +7,9 @@
  *
  * 登录成功会顺手把 token 写进 storage，页面不需要自己 setToken。
  */
+import { useMock } from '@/config/env'
 import { request } from './request'
-import { clearToken, setToken } from './token'
+import { getToken, markSignedOut, setToken } from './token'
 import type { BindPhoneReq, LoginMockReq, LoginResp, LoginWechatReq, MemberProfile } from './types'
 
 /** 微信静默登录；成功返回 token + 会员资料 */
@@ -46,6 +47,6 @@ export function bindPhone(payload: BindPhoneReq): Promise<MemberProfile> {
  * 成功后清本地 token；失败时保留，避免「注销失败却丢失登录态」。
  */
 export async function logout(): Promise<void> {
-  await request<void>('/app/auth/logout', { method: 'POST' })
-  clearToken()
+  if (getToken() && !useMock) await request<void>('/app/auth/logout', { method: 'POST' })
+  markSignedOut()
 }

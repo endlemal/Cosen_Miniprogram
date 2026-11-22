@@ -4,14 +4,23 @@
     <scroll-view
       scroll-y
       class="menu-scroll"
-      :scroll-into-view="menuAnchor"
+      :scroll-top="menuTarget"
       @scroll="onScroll"
     >
       <view @touchstart="startMenuGesture" @wheel="startMenuGesture">
-        <RechargeCarousel />
+        <RechargeCarousel @layout-change="scheduleMeasure" />
       </view>
 
-      <view class="body">
+      <view v-if="state.tableNo" class="table-bar">
+        <view class="tb-left">
+          <Icon name="pin" :size="26" color="#663A24" />
+          <text class="tb-t">当前桌号：{{ state.tableNo }} 号桌 · 扫码已自动绑定</text>
+        </view>
+        <text class="tb-clear" hover-class="tap-on" @tap="bindTableNo('')">改回自取</text>
+      </view>
+
+      <view v-if="!CATEGORIES.length" class="empty-menu">暂无上架商品</view>
+      <view v-else class="body">
         <view
           class="rail-slot"
           :class="{ 'rail-pinned': railPinned }"
@@ -21,14 +30,14 @@
           <scroll-view
             id="menu-rail"
             class="rail"
-            :style="{ height: railHeight }"
+            :style="{ height: railViewportHeight + 'px' }"
             :scroll-y="railPinned || railPosition > 0"
             :scroll-top="railTarget"
             :show-scrollbar="false"
-            @scroll="onRailScroll"
+            @scroll.stop="onRailScroll"
             enhanced
           >
-            <view class="rail-track">
+            <view class="rail-track" :style="{ minHeight: railViewportHeight + 'px' }">
               <view
                 v-for="category in CATEGORIES"
                 :key="category.id"
@@ -42,8 +51,12 @@
                   </view>
                   <text class="rail-en">{{ category.en }}</text>
                 </view>
-                <view class="rail-bar" :class="{ show: active === category.id }" />
               </view>
+              <view
+                class="rail-bar"
+                :class="{ show: indicatorReady }"
+                :style="{ transform: `translate3d(0, ${indicatorY}px, 0)` }"
+              />
             </view>
           </scroll-view>
         </view>
@@ -104,7 +117,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, getCurrentInstance, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, getCurrentInstance, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import type { Product } from '@/types'
 import Icon from '@/components/Icon.vue'
 import ProductCard from '@/components/ProductCard.vue'
@@ -112,45 +125,87 @@ import ProductSheet from '@/components/ProductSheet.vue'
 import CartSheet from '@/components/CartSheet.vue'
 import RechargeCarousel from '@/components/RechargeCarousel.vue'
 import { CATEGORIES, PRODUCTS, getProduct, specGroupsOf } from '@/mock/products'
-import { state, cartCount, cartTotal, addToCart, qtyOfProduct, rechargeCart, rechargeCartTotal, type Selection } from '@/store'
+import { bindTableNo, state, cartCount, cartTotal, addToCart, qtyOfProduct, rechargeCart, rechargeCartTotal, type Selection } from '@/store'
 import { getLayout } from '@/utils/layout'
 import { money } from '@/utils/format'
 
 const layout = getLayout()
 const topInset = layout.statusBar + layout.topGap
 const usableHeight = `100vh - ${topInset}px - env(safe-area-inset-bottom)`
-const railHeight = `calc(100vh - ${topInset}px)`
 const dockReserve = 144
 const cartReserve = 300
 const lastSectionHeight = computed(() => `calc(${usableHeight} - ${cartCount.value ? cartReserve : dockReserve}rpx)`)
-const lastCat = CATEGORIES[CATEGORIES.length - 1].id
+const railViewportHeight = ref(layout.windowHeight - topInset)
+const lastCat = CATEGORIES[CATEGORIES.length - 1]?.id
 
 const byCat: Record<string, Product[]> = {}
 CATEGORIES.forEach((c) => (byCat[c.id] = PRODUCTS.filter((p) => p.cat === c.id)))
 
-const active = ref(CATEGORIES[0].id)
-const menuAnchor = ref('')
+const active = ref(CATEGORIES[0]?.id || '')
+const menuTarget = ref(0)
 const railTarget = ref(0)
 const railPinned = ref(false)
 const railPosition = ref(0)
+const indicatorY = ref(0)
+const indicatorReady = ref(false)
 let railHasGesture = false
 let offsets: { id: string; top: number; titleTop: number }[] = []
 let railBounds: Record<string, { top: number; bottom: number }> = {}
-let railViewportHeight = 0
-let railScrollLimit = 0
+let menuViewportHeight = railViewportHeight.value
+let railContentHeight = 0
+let menuScrollLimit = 0
+let readingLine = 0
 let scrollTop = 0
 let railStart = Infinity
-let dockTop = 0
-let cartTop = 0
+let measuredRpx = layout.rpx
+let railDestination = -1
+let jumpId = ''
+let stopMenuMotion = () => {}
+let stopRailMotion = () => {}
+let unlockTimer: ReturnType<typeof setTimeout> | undefined
+let measureTimer: ReturnType<typeof setTimeout> | undefined
+let pendingProductTimer: ReturnType<typeof setTimeout> | undefined
+let disposed = false
+let reducedMotion = false
+// #ifdef H5
+reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+// #endif
 
 const instance = getCurrentInstance()
 
+// Animate the actual scroll offset, including on H5 where the native animated
+// scroll-view translates its entire content (which also moves the sticky rail).
+// Each motion has one cancellation handle; a new tap or gesture owns the scroll.
+function animateOffset(from: number, to: number, duration: number, write: (value: number) => void, done = () => {}) {
+  let cancelled = false
+  let timer: ReturnType<typeof setTimeout> | undefined
+  let frame: number | undefined
+  const start = Date.now()
+  const tick = () => {
+    if (cancelled) return
+    const progress = reducedMotion ? 1 : Math.min(1, (Date.now() - start) / duration)
+    write(from + (to - from) * (1 - Math.pow(1 - progress, 3)))
+    if (progress < 1) {
+      if (typeof requestAnimationFrame === 'function') frame = requestAnimationFrame(tick)
+      else timer = setTimeout(tick, 16)
+    } else done()
+  }
+  tick()
+  return () => {
+    cancelled = true
+    if (frame !== undefined) cancelAnimationFrame(frame)
+    if (timer !== undefined) clearTimeout(timer)
+  }
+}
+
 function measure() {
+  if (!CATEGORIES.length) return
+  if (disposed || state.ui.tab !== 'menu') return
   uni
     .createSelectorQuery()
     .in(instance?.proxy)
     .select('.menu-scroll')
-    .fields({ rect: true, scrollOffset: true }, () => {})
+    .fields({ rect: true, size: true, scrollOffset: true }, () => {})
     .select('.body')
     .boundingClientRect()
     .selectAll('.sec')
@@ -159,42 +214,66 @@ function measure() {
     .boundingClientRect()
     .select('.list-tail')
     .boundingClientRect()
-    .select('.cartbar')
-    .boundingClientRect()
     .select('.rail')
     .boundingClientRect()
     .select('.rail-track')
     .boundingClientRect()
     .selectAll('.rail-card')
     .boundingClientRect()
-    .exec(([viewport, body, sections, titles, tail, cart, rail, track, cards]) => {
-      if (!viewport || !body || !sections?.length) return
-      const origin = (viewport.scrollTop ?? scrollTop) - viewport.top
+    .exec(([viewport, body, sections, titles, tail, rail, track, cards]) => {
+      if (disposed || state.ui.tab !== 'menu' || !viewport?.height || !body || !sections?.length) return
+      scrollTop = viewport.scrollTop ?? scrollTop
+      const origin = scrollTop - viewport.top
+      menuViewportHeight = viewport.height
       railStart = body.top + origin
-      railPinned.value = scrollTop >= railStart - 1
-      const rpx = rail ? rail.width / 116 : layout.rpx
-      const tailHeight = tail?.height ?? (cartCount.value > 0 ? cartReserve : dockReserve) * rpx
-      const dockHeight = tailHeight - (cartCount.value > 0 ? (cartReserve - dockReserve) * rpx : 0)
-      dockTop = Math.max(0, viewport.bottom - viewport.top - dockHeight)
-      cartTop = cart ? Math.max(0, cart.top - viewport.top) : dockTop
+      updateRailViewport()
+      measuredRpx = rail ? rail.width / 116 : layout.rpx
+      const tailHeight = tail?.height ?? (cartCount.value > 0 ? cartReserve : dockReserve) * measuredRpx
+      // Use the upper quarter of the unobscured reading area, not the bottom edge.
+      readingLine = Math.max(24, Math.min(140, (viewport.height - tailHeight) * 0.24))
+      menuScrollLimit = Math.max(0, (tail?.bottom ?? body.bottom) + origin - viewport.height)
       offsets = sections.map((section: { id: string; top: number }, index: number) => ({
         id: section.id.replace('sec-', ''),
         top: section.top + origin,
         titleTop: (titles?.[index]?.top ?? section.top) + origin
       }))
       if (rail && track && cards?.length === CATEGORIES.length) {
-        railViewportHeight = rail.height
-        railScrollLimit = Math.max(0, track.height - rail.height)
+        railContentHeight = cards[cards.length - 1].bottom - track.top
         railBounds = Object.fromEntries(CATEGORIES.map((category, index) => {
           const card = cards[index]
           return [category.id, { top: card.top - track.top, bottom: card.bottom - track.top }]
         }))
       }
+      syncCategory()
       consumePending()
     })
 }
 
-onMounted(() => nextTick(measure))
+function scheduleMeasure() {
+  clearTimeout(measureTimer)
+  measureTimer = setTimeout(() => nextTick(measure), 80)
+}
+
+onMounted(() => {
+  nextTick(measure)
+  uni.onWindowResize(scheduleMeasure)
+})
+onUnmounted(() => {
+  disposed = true
+  cancelJump()
+  stopRailMotion()
+  clearTimeout(measureTimer)
+  clearTimeout(pendingProductTimer)
+  uni.offWindowResize(scheduleMeasure)
+})
+watch(() => cartCount.value > 0, scheduleMeasure)
+watch(() => state.tableNo, scheduleMeasure)
+watch(() => state.ui.tab, (tab) => {
+  cancelJump()
+  stopRailMotion()
+  railDestination = -1
+  if (tab === 'menu') nextTick(measure)
+})
 
 function categoryAt(y: number) {
   let category = offsets[0].id
@@ -205,23 +284,28 @@ function categoryAt(y: number) {
   return category
 }
 
-function onScroll(e: { target?: { id?: string }; detail: { scrollTop: number } }) {
-  if (e.target?.id === 'menu-rail') return
-  const previousTop = scrollTop
-  scrollTop = e.detail.scrollTop
-  // 定位只由点击触发，滚动回调只读取位置并撤销已使用的锚点。
-  const fromCategoryTap = Boolean(menuAnchor.value)
-  if (fromCategoryTap) menuAnchor.value = ''
+function syncCategory() {
   if (!offsets.length) return
-  railPinned.value = scrollTop >= railStart - 1
-  if (!fromCategoryTap) {
-    const visibleBottom = cartCount.value > 0 ? cartTop : dockTop
-    const previousCategory = categoryAt(previousTop + visibleBottom)
-    const visibleCategory = categoryAt(scrollTop + visibleBottom)
-    // 标题越过商品可视区下缘时才切换，点击定位后保留用户点中的分类。
-    if (visibleCategory !== previousCategory) active.value = visibleCategory
+  if (!jumpId) {
+    active.value = scrollTop >= menuScrollLimit - 1 && menuScrollLimit > 0
+      ? lastCat : categoryAt(scrollTop + readingLine)
   }
   revealRailCard(active.value)
+}
+
+// The unpinned rail starts below the visible portion of the header.
+function updateRailViewport() {
+  if (!Number.isFinite(railStart)) return
+  const headerRemaining = Math.max(0, railStart - scrollTop)
+  railPinned.value = headerRemaining <= 1
+  railViewportHeight.value = Math.max(0, menuViewportHeight - headerRemaining)
+}
+
+function onScroll(e: { target?: { id?: string }; detail: { scrollTop: number } }) {
+  if (e.target?.id === 'menu-rail') return
+  scrollTop = Math.max(0, e.detail.scrollTop)
+  updateRailViewport()
+  syncCategory()
 }
 
 function onRailScroll(e: { detail: { scrollTop: number } }) {
@@ -229,47 +313,63 @@ function onRailScroll(e: { detail: { scrollTop: number } }) {
 }
 
 function pauseRailFollow() {
-  // 分栏可滚动时，用户自己滑动的期间不自动跟随
-  if (railPinned.value || railPosition.value > 0) railHasGesture = true
+  if (railPinned.value || railPosition.value > 0) {
+    railHasGesture = true
+    stopRailMotion()
+    railDestination = -1
+  }
+}
+
+function cancelJump() {
+  stopMenuMotion()
+  clearTimeout(unlockTimer)
+  jumpId = ''
 }
 
 function startMenuGesture() {
-  menuAnchor.value = ''
+  cancelJump()
   railHasGesture = false
+  syncCategory()
 }
 
-async function revealRailCard(id: string) {
+function revealRailCard(id: string) {
   const card = railBounds[id]
-  if (!card || railHasGesture) return
-
-  const position = railPosition.value
-  let target = 0
-  if (railPinned.value) {
-    target = position
-    if (card.top < position) target = Math.floor(card.top)
-    else if (card.bottom > position + railViewportHeight) target = Math.ceil(card.bottom - railViewportHeight)
-  }
-  target = Math.max(0, Math.min(railScrollLimit, target))
-  if (Math.abs(target - position) < 1) return
-  // 手动滑开后，仍可再次发出相同的定位指令。
-  if (railTarget.value === target) {
-    railTarget.value = position
-    await nextTick()
-    if (active.value !== id || railHasGesture) return
-  }
-  railTarget.value = target
+  if (!card) return
+  // Preserve SABE-9's 10px dot / 6px bottom inset on the 390px design canvas.
+  indicatorY.value = card.bottom - (11.538462 + 19.230769) * measuredRpx
+  indicatorReady.value = true
+  if (railHasGesture) return
+  const centered = (card.top + card.bottom - railViewportHeight.value) / 2
+  const railScrollLimit = Math.max(0, railContentHeight - railViewportHeight.value)
+  const target = railPinned.value ? Math.min(railScrollLimit, Math.max(0, centered)) : 0
+  if (Math.abs(target - railDestination) < 1) return
+  stopRailMotion()
+  railDestination = target
+  stopRailMotion = animateOffset(railPosition.value, target, 320, (value) => {
+    railTarget.value = value
+  })
 }
 
 function jump(id: string) {
-  const target = offsets.find((section) => section.id === id)
-  if (!target) return
+  const section = offsets.find((section) => section.id === id)
+  if (!section) return
+  cancelJump()
   railHasGesture = false
+  jumpId = id
   active.value = id
-  if (Math.abs(target.top - scrollTop) < 1) {
-    revealRailCard(id)
-    return
-  }
-  menuAnchor.value = 'sec-' + id
+  revealRailCard(id)
+  const target = Math.min(menuScrollLimit, section.top)
+  // Rebase the bound value after manual scrolling so repeated taps still work.
+  menuTarget.value = scrollTop
+  stopMenuMotion = animateOffset(scrollTop, target, 420, (value) => {
+    menuTarget.value = value
+  }, () => {
+    // Let the final native scroll event arrive before releasing the selected tab.
+    unlockTimer = setTimeout(() => {
+      jumpId = ''
+      syncCategory()
+    }, 100)
+  })
 }
 
 /* ---- 规格弹层 ---- */
@@ -315,17 +415,22 @@ function consumePending() {
   const p = getProduct(id)
   if (!p) return
   jump(p.cat)
-  setTimeout(() => open(p), 260)
+  clearTimeout(pendingProductTimer)
+  pendingProductTimer = setTimeout(() => open(p), 460)
 }
 watch(() => state.ui.pendingProductId, consumePending)
 </script>
 
 <style lang="scss" scoped>
+.empty-menu { padding: 100rpx 32rpx; text-align: center; color: #856951; }
 $rail-width: 116rpx;
 
 .view {
   position: relative;
   height: 100vh;
+  /* #ifdef H5 */
+  height: 100dvh;
+  /* #endif */
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -362,6 +467,7 @@ $rail-width: 116rpx;
   height: 0;
 }
 .rail-track {
+  position: relative;
   border-top-right-radius: $rail-width 178rpx;
   background: $espresso;
 }
@@ -372,6 +478,7 @@ $rail-width: 116rpx;
   border-top-right-radius: $rail-width 178rpx;
   background: $espresso;
   box-shadow: 0 -3rpx 4rpx rgba($roast, 0.38);
+  transition: background-color 220ms ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -383,8 +490,13 @@ $rail-width: 116rpx;
   background: #80543A;
 }
 .rail-text {
+  opacity: 0.82;
+  transition: opacity 220ms ease;
   display: flex;
   align-items: center;
+}
+.rail-card.on .rail-text {
+  opacity: 1;
 }
 .rail-cn {
   display: flex;
@@ -405,17 +517,27 @@ $rail-width: 116rpx;
 }
 .rail-bar {
   position: absolute;
-  right: 7rpx;
-  top: 40%;
-  bottom: 40%;
-  width: 5rpx;
-  border-radius: 5rpx;
+  // Figma 53:26: 10px dot, 7px right / 6px bottom of the selected card.
+  // Convert the 390px canvas to 750rpx without rounding to whole rpx.
+  right: 13.461538rpx;
+  top: 0;
+  z-index: 2;
+  pointer-events: none;
+  width: 19.230769rpx;
+  height: 19.230769rpx;
+  border-radius: 50%;
   background: $paper;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: transform 240ms cubic-bezier(0.22, 0.8, 0.26, 1), opacity 0.2s ease;
+  will-change: transform;
 }
 .rail-bar.show {
   opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rail-bar, .rail-card, .rail-text {
+    transition: none;
+  }
 }
 /* ---------- 商品列表 ---------- */
 .list {
@@ -441,7 +563,7 @@ $rail-width: 116rpx;
   margin-left: 12rpx;
   font-size: 22rpx;
   color: $ink-3;
-  font-family: $font-latin;
+  font-family: $font-product-en;
 }
 .sec-desc {
   font-size: 22rpx;
@@ -545,5 +667,34 @@ $rail-width: 116rpx;
   font-size: 28rpx;
   font-weight: 700;
   color: $paper;
+}
+.table-bar {
+  margin: 14rpx 28rpx 0;
+  padding: 16rpx 24rpx;
+  border-radius: 26rpx;
+  background: #F4E9D8;
+  border: 1rpx solid #E2CEB1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+.tb-left {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  min-width: 0;
+  flex: 1;
+}
+.tb-t {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: $espresso;
+}
+.tb-clear {
+  font-size: 23rpx;
+  color: $toffee;
+  font-weight: 600;
+  flex-shrink: 0;
 }
 </style>

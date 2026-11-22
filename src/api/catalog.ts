@@ -85,6 +85,7 @@ export function toProduct(dto: ProductDto, categoryCode?: string): Product {
     desc: dto.description ?? '',
     price: centToYuan(dto.priceCent ?? 0),
     rating: dto.rating ?? 0,
+    cornerText: dto.cornerText?.trim() ?? '',
     sold: dto.soldCount ?? 0,
     ingredients: dto.ingredientsJson ?? [],
     specs: dto.specGroupsJson ?? [],
@@ -93,6 +94,8 @@ export function toProduct(dto: ProductDto, categoryCode?: string): Product {
     badge: normalizeBadges(dto.badge),
     // v1.5.0：保留后端相对路径，组件用 @/utils/media 的 mediaUrl() 统一拼 base
     coverUrl: dto.coverUrl ?? '',
-    gallery: toGallery(dto.gallery)
+    gallery: toGallery(dto.gallery),
+    // v1.6.0：stock == 0 由后端折算成 soldOut，前端只负责置灰 / 禁加购
+    soldOut: dto.soldOut === true
   }
 }

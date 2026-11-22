@@ -1,5 +1,5 @@
 /**
- * 小程序端 API 类型（手写自契约 `reference/cosen-api-v1.openapi.yaml` v1.3.0）。
+ * 小程序端 API 类型（手写自契约 `reference/cosen-api-v1.openapi.yaml` v1.6.0，24 operations）。
  *
  * 原则：
  *   - 字段名与契约逐字一致（含 Cent / Json 后缀），不在这里做展示态裁剪；
@@ -46,6 +46,7 @@ export interface ErrorResult {
 
 /** 契约 MemberProfile：对外脱敏模型（10 字段） */
 export interface MemberProfile {
+  realName?: string
   /** bigint 字符串 */
   id: string
   memberNo: string
@@ -64,6 +65,8 @@ export interface MemberProfile {
 }
 
 export interface LoginWechatReq {
+  nickname?: string
+  realName?: string
   /** wx.login 返回的 code */
   code: string
   /** 可选：getPhoneNumber 返回的 code */
@@ -79,6 +82,11 @@ export interface LoginMockReq {
 export interface BindPhoneReq {
   /** getPhoneNumber 返回的一次性 code */
   phoneCode: string
+}
+
+export interface UpdateProfileReq {
+  nickname?: string
+  avatarUrl?: string
 }
 
 export interface LoginResp {
@@ -120,8 +128,8 @@ export interface CategoryDto {
   sortNo?: number
 }
 
-/** 商品角标（契约枚举：招牌/人气/限定/新品/可森特调） */
-export type ProductBadge = '招牌' | '人气' | '限定' | '新品' | '可森特调'
+/** 商品的自定义标签 */
+export type ProductBadge = string
 
 /** 商品（契约 Product） */
 export interface ProductDto {
@@ -142,8 +150,9 @@ export interface ProductDto {
   /** 基础价（分） */
   priceCent?: number
   rating?: number
+  cornerText?: string
   soldCount?: number
-  /** v1.1.0 起为多选数组；无角标是空数组 */
+  /** 自定义标签，独立于右上角 cornerText */
   badge?: ProductBadge[] | null
   ingredientsJson?: string[]
   /** 规格组 key 数组（size/ice/sugar/milk/extra） */
@@ -154,6 +163,8 @@ export interface ProductDto {
   tileColorEnd?: string
   /** -1 不限库存 */
   stock?: number
+  /** v1.6.0：stock == 0（且不是 -1）时为 true；前端置灰不可加购 */
+  soldOut?: boolean
   /** 1 上架 / 0 下架 */
   status?: 0 | 1
   sortNo?: number
@@ -176,6 +187,7 @@ export type CouponSource = 'grant' | 'redeem' | 'transfer'
 
 /** 券背包 / 券详情（契约 CouponUser） */
 export interface CouponUserDto {
+  scope?: import('@/types').CouponScope | null
   id?: string
   couponNo: string
   title: string
@@ -209,13 +221,18 @@ export interface CouponUserDto {
 
 export type OrderPayMode = 'balance' | 'wechat' | 'mixed'
 export type OrderPayStatus = 'unpaid' | 'paid' | 'refunded' | 'closed'
-export type OrderStatus = 'created' | 'paid' | 'making' | 'ready' | 'completed' | 'cancelled'
+/**
+ * 订单状态（v1.6.0 起收敛为 4 态，删除 making / ready）。
+ * 制作进度、取餐状态不再流转；取餐号 pickupCode 仅用于叫号。
+ */
+export type OrderStatus = 'created' | 'paid' | 'completed' | 'refund_pending' | 'refunding' | 'refund_error' | 'refunded' | 'cancelled'
 
 /** 订单列表模型（契约 Order，脱敏；不含 items） */
 export interface OrderDto {
   id: string
   orderNo: string
   pickupCode?: string
+  tableNo?: string | null
   storeId?: string
   /** 契约仅 pickup */
   fulfillType: 'pickup'
@@ -231,8 +248,13 @@ export interface OrderDto {
   payStatus: OrderPayStatus
   orderStatus: OrderStatus
   remark?: string
+  refundReason?: string | null
   createTime: string
+  /** v1.6.0：支付截止时间（ISO-8601，created 后默认 15 分钟）；列表可能不返回 */
+  payDeadline?: string | null
   paidAt?: string | null
+  refundRequestedAt?: string | null
+  refundedAt?: string | null
   finishedAt?: string | null
   cancelledAt?: string | null
 }
@@ -273,6 +295,7 @@ export interface CreateOrderReq {
   /** 使用的用户券 couponNo（不是券 ID） */
   couponId?: string
   payMode?: OrderPayMode
+  tableNo?: string
   remark?: string
   /** 与 Header Idempotency-Key 二选一；前端两者都带同一个值 */
   idempotencyKey?: string
@@ -283,6 +306,15 @@ export interface PayOrderReq {
   payMode: OrderPayMode
   balancePayCent?: number
   wechatPayCent?: number
+}
+
+/**
+ * 支付响应（v1.6.0）：订单详情 + 微信 JSAPI 拉起参数。
+ * wechatPayParams 仅在 payMode=wechat / mixed 的微信部分返回；
+ * 拿到后客户端 wx.requestPayment，服务端由 /wxpay/notify 回调置 paid。
+ */
+export interface PayOrderResult extends OrderDetailDto {
+  wechatPayParams?: WechatPayParams | null
 }
 
 export interface OrderListQuery {
@@ -318,6 +350,8 @@ export type RechargeStatus = 'pending' | 'paid' | 'closed' | 'failed'
 /** 微信小程序支付拉起参数（仅创建充值单响应返回，勿缓存） */
 export interface WxPayParamsDto {
   prepayId: string
+  /** 真实通道由后端 JSAPI 签名参数一并返回 */
+  appId?: string
   /** 秒级时间戳（字符串） */
   timeStamp: string
   nonceStr: string
@@ -357,4 +391,137 @@ export interface RechargeOrderDto {
 export interface CreateRechargeReq {
   tierCode: string
   payMode?: 'wechat'
+}
+
+/* ---------------- v1.6.0 新增：微信支付 / 门店 / 评价 / 反馈 / 注销 ---------------- */
+
+/**
+ * 微信 JSAPI 支付参数（契约 WechatPayParams）。
+ * 仅 POST /app/orders/{orderNo}/pay 响应 data.wechatPayParams 返回，勿缓存。
+ */
+export interface WechatPayParams {
+  /** 小程序 appId */
+  appId: string
+  /** 秒级时间戳（字符串） */
+  timeStamp: string
+  nonceStr: string
+  /** prepay_id=xxx */
+  package: string
+  /** 契约示例为 RSA */
+  signType: string
+  paySign: string
+}
+
+/** 门店营业时段（days 如 mon-sun，时间 HH:mm） */
+export interface StoreBusinessHours {
+  days: string
+  open: string
+  close: string
+}
+
+/** 门店客服入口（type: wechat / phone …） */
+export interface StoreCustomerService {
+  type: string
+  value: string
+}
+
+/** 分场景订阅消息模板 ID 配置（GET /app/store） */
+export interface StoreSubscribeTemplates {
+  orderReceipt?: string
+  orderReady?: string
+  orderPaid?: string
+  orderRefund?: string
+}
+
+/** 订单订阅场景 */
+export type OrderSubscribeScene = 'order_pay' | 'order_refund' | 'order_detail'
+
+/** 微信 requestSubscribeMessage 单模板授权结果 */
+export type OrderSubscribeDecision = 'accept' | 'reject' | 'ban' | 'filter'
+
+/** 订单订阅上报请求（POST /app/orders/{orderNo}/subscribe） */
+export interface OrderSubscribeReq {
+  templateIds?: string[]
+  results?: Record<string, OrderSubscribeDecision>
+  scene?: OrderSubscribeScene
+}
+
+/** 订单订阅上报响应（POST /app/orders/{orderNo}/subscribe） */
+export interface OrderSubscribeResp {
+  subscribed: boolean
+  acceptedTemplateIds?: string[]
+  ignoredTemplateIds?: string[]
+  activeScenes?: string[]
+}
+
+/** 会员级订阅场景（POST /app/member/subscribe） */
+export type MemberSubscribeScene = 'member_center' | 'silent_refill' | 'recharge'
+
+/** 会员级订阅上报响应（POST /app/member/subscribe） */
+export interface MemberSubscribeResp {
+  subscribed: boolean
+  acceptedTemplateIds?: string[]
+  ignoredTemplateIds?: string[]
+  activeScenes?: string[]
+  remainingCount?: number
+}
+
+/** 门店信息（契约 StoreInfo），GET /app/store 公开接口 */
+export interface StoreInfo {
+  squareEnabled?: boolean
+  /** bigint 字符串 */
+  storeId?: string
+  name: string
+  address?: string
+  phone?: string
+  businessHours?: StoreBusinessHours[]
+  /** 休息日列表 */
+  closedDays?: string[]
+  announcements?: string[]
+  /** 当前是否营业中 */
+  openNow?: boolean
+  subscribeTemplateIds?: string[]
+  subscribeTemplates?: StoreSubscribeTemplates
+  customerService?: StoreCustomerService | null
+}
+
+/** 订单评价（契约 OrderReview，GET /app/orders/{orderNo}/review） */
+export interface OrderReview {
+  id?: string
+  orderNo: string
+  /** 1–5 */
+  rating: number
+  content?: string
+  images?: string[]
+  /** ISO-8601 */
+  createdAt?: string
+}
+
+/** 提交评价请求（POST /app/orders/{orderNo}/review） */
+export interface CreateOrderReviewReq {
+  /** 1–5，必填 */
+  rating: number
+  /** ≤500 */
+  content?: string
+  /** ≤3，可选 URL 列表 */
+  images?: string[]
+}
+
+/** 反馈类型（契约 FeedbackReq.type） */
+export type FeedbackType = 'product' | 'service' | 'other'
+
+/** 意见反馈请求（契约 FeedbackReq，POST /app/feedback） */
+export interface FeedbackReq {
+  type: FeedbackType
+  /** ≤1000，必填 */
+  content: string
+  /** 联系方式（可选） */
+  contact?: string
+  /** ≤3，可选 URL 列表 */
+  images?: string[]
+}
+
+/** 注销账号请求（POST /app/account/close，reason 可选 ≤200） */
+export interface CloseAccountReq {
+  reason?: string
 }

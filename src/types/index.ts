@@ -34,7 +34,7 @@ export interface SpecGroup {
   options: SpecOption[]
 }
 
-/** 商品角标：契约 v1.1.0 起为多选数组（招牌/人气/限定/新品/可森特调） */
+/** 商品自定义标签 */
 export type ProductBadge = string
 
 export interface Category {
@@ -52,6 +52,7 @@ export interface Product {
   desc: string
   price: number
   rating: number
+  cornerText?: string
   sold: number
   ingredients: string[]
   specs: string[]
@@ -66,6 +67,8 @@ export interface Product {
   coverUrl?: string
   /** 契约 v1.5.0 商品相册（相对路径数组，第一张即封面）；mock 数据缺省 */
   gallery?: string[]
+  /** 契约 v1.6.0：售罄（stock == 0）；前端置灰不可加购 */
+  soldOut?: boolean
 }
 
 export interface CartItem {
@@ -87,7 +90,13 @@ export type CouponType = 'cash' | 'discount' | 'gift'
 /** 契约 CouponUser.status 五态（unused 在前端映射成 available） */
 export type CouponStatus = 'unused' | 'used' | 'expired' | 'transferred' | 'frozen'
 
+export interface CouponScope {
+  kind: 'product' | 'category'
+  targets: { id: string; code: string; name: string }[]
+}
+
 export interface Coupon {
+  scope?: CouponScope | null
   /** mock 用本地 id；真实数据映射为 couponNo */
   id: string
   /** 契约券实例号（真实接口下单时作为 CreateOrderReq.couponId） */

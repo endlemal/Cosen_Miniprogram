@@ -1,6 +1,6 @@
 <!-- 悬浮底栏：图标、标签和当前页面指示 -->
 <template>
-  <view class="tabbar" :class="{ 'menu-dock': state.ui.tab === 'menu' }">
+  <view class="tabbar">
     <view
       v-for="t in tabs"
       :key="t.key"
@@ -21,18 +21,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import Icon from './Icon.vue'
 import { state, cartCount, switchTab } from '@/store'
+import { useMock } from '@/config/env'
+import { silentRefillSubscribe } from '@/api'
 import type { TabKey } from '@/types'
 
-const tabs: { key: TabKey; label: string; icon: string }[] = [
+const allTabs: { key: TabKey; label: string; icon: string }[] = [
   { key: 'square', label: '广场', icon: 'square' },
   { key: 'menu', label: '点单', icon: 'bag' },
   { key: 'mine', label: '我的', icon: 'user' }
 ]
 
+const tabs = computed(() => state.ui.squareEnabled ? allTabs : allTabs.filter(t => t.key !== 'square'))
+
 function go(k: TabKey) {
+  if (!useMock) silentRefillSubscribe('silent_refill')
   if (state.ui.tab === k) return
   switchTab(k)
   // #ifdef MP-WEIXIN
@@ -54,11 +59,13 @@ watch(
 <style lang="scss" scoped>
 .tabbar {
   position: fixed;
-  left: 50%;
+  left: 0;
+  right: 0;
+  box-sizing: border-box;
   bottom: calc(env(safe-area-inset-bottom) + 28rpx);
   width: 560rpx;
   height: 116rpx;
-  margin-left: -280rpx;
+  margin: 0 auto;
   padding: 0 18rpx;
   border-radius: 44rpx;
   background: $espresso;
@@ -67,9 +74,6 @@ watch(
   align-items: center;
   justify-content: space-between;
   z-index: 100;
-}
-.tabbar.menu-dock {
-  left: calc(50% + 36rpx);
 }
 .item {
   height: 84rpx;

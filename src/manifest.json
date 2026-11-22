@@ -51,7 +51,11 @@
     /* 小程序特有相关 */
     "mp-weixin" : {
         "appid" : "wxed1bd110520d4cfc",
+        "packOptions" : {
+            "include" : [{ "type" : "folder", "value" : "static" }]
+        },
         "setting" : {
+            "ignoreUploadUnusedFiles" : false,
             "urlCheck" : false,
             "es6" : true,
             "minified" : true

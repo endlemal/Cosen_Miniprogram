@@ -360,7 +360,9 @@ export const PRODUCTS: Product[] = [
       ice: true
     },
     tile: LATTE,
-    badge: ['新品']
+    badge: ['新品'],
+    // v1.6.0 售罄演示：ProductCard / ProductSheet 置灰不可加购
+    soldOut: true
   },
   // ---- 精酿 ----
   {
