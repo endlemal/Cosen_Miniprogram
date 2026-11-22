@@ -3,8 +3,8 @@
 契约来源：`reference/cosen-api-v1.openapi.yaml`（v1.4.0，19 接口），错误码口径见契约仓库 `docs/error-codes.md`。
 已接**全部 19 个接口**：第一组 9（认证 4 + 会员 2 + 商品目录 3）+ 第二组 7（券 2 + 订单/支付 5）+ 充值 3。
 
-当前仓库默认仍是 **纯 mock 版**：`useMock = true`，页面继续读 `src/mock/*`，请求层不会被调用。
-后端（8080/8081）没起时也能正常跑 `npm run build:h5`。
+本地开发默认仍是 **纯 mock 版**：`useMock = true`，页面继续读 `src/mock/*`，请求层不会被调用。
+生产构建默认加载仓库内的 `.env.production`，连接线上真实 API；构建本身不要求本机后端（8080/8081）运行。
 
 ---
 
@@ -39,7 +39,10 @@ src/api/index.ts         统一出口
 | `VITE_COSEN_USE_MOCK` | 缺省 = `true` | 只有显式 `false` / `0` / `off` 才切真实接口 |
 | `VITE_COSEN_API_BASE_URL` | `http://127.0.0.1:8080` | 契约 `servers[0]`；后端换端口时覆盖 |
 
-推荐本地建 `.env.local`（已被 `*.local` 忽略，不会提交）：
+### 2.1 本地 mock / 真后端联调
+
+不配置任何本机覆盖时，`npm run dev:h5` / `npm run dev:mp-weixin` 默认使用 mock。
+需要直连本机后端时可建 `.env.local`（已被 `*.local` 忽略，不会提交）：
 
 ```bash
 VITE_COSEN_USE_MOCK=false
@@ -47,10 +50,44 @@ VITE_COSEN_USE_MOCK=false
 VITE_COSEN_API_BASE_URL=http://127.0.0.1:8080
 ```
 
-然后照常用 `npm run dev:h5` / `npm run build:h5` / `npm run dev:mp-weixin`。
-注意：微信开发者工具里的 `http://127.0.0.1` 是开发者工具所在机器，不是手机；真机联调需换成局域网 IP 或域名，并在小程序后台配置 request 合法域名。
+H5 联调也可运行 `scripts/dev-real.sh start`，通过 Vite proxy 同源访问后端，避免 CORS。
+`VITE_COSEN_API_BASE_URL` 不含 `/app` 前缀；显式空串表示同源访问 `/app/**`。
+本地开发切回 mock：删掉 `.env.local`，或把 `VITE_COSEN_USE_MOCK` 改回 `true`；修改后需重启开发服务。
 
-切回 mock：删掉 `.env.local`，或把 `VITE_COSEN_USE_MOCK` 改回 `true`。
+### 2.2 线上真实环境（已纳入仓库）
+
+仓库根目录 `.env.production` 仅包含公开客户端配置：
+
+```bash
+VITE_COSEN_USE_MOCK=false
+VITE_COSEN_API_BASE_URL=https://cosen.tablejoker.com
+```
+
+以下命令默认使用 production 模式，自动加载该配置，无需另建 `.env.production.local`：
+
+```bash
+npm run build:h5
+npm run build:mp-weixin
+```
+
+如需在本地 H5 开发时连接线上环境，可显式使用相同模式：
+
+```bash
+npm run dev:h5 -- --mode production
+```
+
+**覆盖优先级（从高到低）**：命令行进程环境变量 → `.env.production.local` → `.env.production` → `.env.local` → `.env`。
+开发模式对应 `.env.development.local` / `.env.development`，不会自动读取 `.env.production`。
+原有 `.env.production.local` 可保留作为本机覆盖，但仍被 Git 忽略；不要将密钥或 Token 写入任何 `VITE_` 配置，它们会被打进客户端。
+
+生产模式切回 mock 请显式覆盖，而不是仅删除 `.env.local`（生产配置优先级更高）：
+
+```bash
+VITE_COSEN_USE_MOCK=true npm run build:h5
+VITE_COSEN_USE_MOCK=true npm run build:mp-weixin
+```
+
+注意：微信开发者工具里的 `http://127.0.0.1` 是开发者工具所在机器，不是手机；真机联调需换成局域网 IP 或域名，并在小程序后台配置 request 合法域名。线上 H5 跨域访问仍需后端允许 CORS，Vite 开发代理不随生产构建发布。
 
 ## 3. token 存在哪
 

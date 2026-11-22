@@ -14,7 +14,7 @@
 - **我的**集中展示近期订单、礼品券、会员储值与充值记录。演示兑换码为 `MOSS2026` 和 `MATCHA88`。
 
 当前版本使用本地演示数据。菜单包含咖啡、抹茶、精酿、经典鸡尾酒和可森特调。门店资料、订单、储值与微信支付均用于演示。
-请求层与「mock ↔ 真实接口」的切换方式见 [`src/api/README.md`](src/api/README.md)，默认仍是 mock。
+请求层与「mock ↔ 真实接口」的切换方式见 [`src/api/README.md`](src/api/README.md#2-如何切真实环境)。本地开发默认 mock；生产构建默认通过 [`.env.production`](.env.production) 连接 `https://cosen.tablejoker.com`，无需额外配置本机文件。
 
 ## 本地运行
 
