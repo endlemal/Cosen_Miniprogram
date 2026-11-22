@@ -24,7 +24,8 @@ paths:
   /app/auth/login/wechat:
     post:
       operationId: loginByWechat
-      summary: 微信静默登录
+      summary: 微信登录与手机号认领
+      description: 无 phoneCode 时使用当前微信静默建立会话，游客可微信支付下单；有 phoneCode 时仅接受微信服务端验证的号码。同号自动认领或共用会员余额、券及会员资料。付款使用本次会话的微信身份。
       tags:
       - app/认证
       responses:
@@ -212,7 +213,8 @@ paths:
   /app/auth/phone/bind:
     post:
       operationId: bindPhone
-      summary: 绑定手机号
+      summary: 验证手机号并认领会员
+      description: 只接受微信手机号授权码。同号自动共用会员，当前微信后续请求定位至已认领会员。
       tags:
       - app/认证
       responses:
@@ -368,7 +370,8 @@ paths:
   /app/member/profile:
     get:
       operationId: getMemberProfile
-      summary: 会员资料 + 可用余额
+      summary: 获取当前会员资料
+      description: 游客资料不含可消费资产；已认领微信共享会员资料、昵称、姓名、余额和券。
       tags:
       - app/会员
       responses:
@@ -459,9 +462,16 @@ paths:
     get:
       operationId: listBalanceFlows
       summary: 储值流水
+      description: 需要微信手机号验证，游客请求返回 HTTP 403、业务码 40310。
       tags:
       - app/会员
       responses:
+        '403':
+          description: 游客需要先通过微信验证手机号（40310）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
         '200':
           description: OK
           content:
@@ -909,9 +919,16 @@ paths:
     get:
       operationId: listMyCoupons
       summary: 我的券背包
+      description: 需要微信手机号验证，游客请求返回 HTTP 403、业务码 40310。
       tags:
       - app/优惠券
       responses:
+        '403':
+          description: 游客需要先通过微信验证手机号（40310）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
         '200':
           description: OK
           content:
@@ -1066,9 +1083,16 @@ paths:
     get:
       operationId: getCouponByNo
       summary: 券详情
+      description: 需要微信手机号验证，游客请求返回 HTTP 403、业务码 40310。
       tags:
       - app/优惠券
       responses:
+        '403':
+          description: 游客需要先通过微信验证手机号（40310）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
         '200':
           description: OK
           content:
@@ -2212,6 +2236,12 @@ paths:
                 tierCode: TIER_500_100
                 payMode: wechat
       responses:
+        '403':
+          description: 游客需要先通过微信验证手机号（40310）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
         '200':
           description: OK（新建或幂等重放原充值单）
           content:
@@ -2359,6 +2389,12 @@ paths:
           type: string
           pattern: '^RC[0-9]{14,20}$'
       responses:
+        '403':
+          description: 游客需要先通过微信验证手机号（40310）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
         '200':
           description: OK
           content:
@@ -2451,8 +2487,9 @@ components:
     MemberProfile:
       type: object
       title: MemberProfile
-      description: 会员侧对外脱敏模型（10 字段），不含 openid/unionid/明文手机号/version/deleted
+      description: 会员侧对外脱敏模型，不含 openid/unionid/明文手机号/version/deleted
       properties:
+        realName: {type: string, maxLength: 32, description: 会员选填姓名}
         id:
           type: string
           format: int64
@@ -2495,7 +2532,7 @@ components:
           description: 是否已绑定手机号
         phoneMasked:
           type: string
-          pattern: '^\d{3}\*{4}\d{4}$'
+          pattern: '^(?:\d{3}\*{4}\d{4})?$'
           description: 脱敏手机号，如 138****0817；未绑定时为空串
       required:
       - id
@@ -3194,6 +3231,8 @@ components:
       type: object
       title: LoginWechatReq
       properties:
+        nickname: {type: string, maxLength: 32, description: 手机号认领时选填的共享昵称}
+        realName: {type: string, maxLength: 32, description: 会员选填姓名}
         code:
           type: string
           maxLength: 128
@@ -3855,10 +3894,10 @@ components:
         data: null
         traceId: c8f1d2f5
     phoneAlreadyBound:
-      summary: 手机号已被其他会员绑定
+      summary: 当前微信已有另一份独立会员资产
       value:
         code: 40902
-        msg: 该手机号已绑定其他会员
+        msg: 当前微信已有独立会员资产，请联系门店核对
         data: null
         traceId: c8f1d2f6
     pageSizeExceeded:
