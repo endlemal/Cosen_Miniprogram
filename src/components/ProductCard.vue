@@ -1,6 +1,6 @@
 <!-- 商品卡：饮品插画叠在焦糖色底座和咖啡色信息面板上；v1.6.0 售罄置灰 -->
 <template>
-  <view class="pcard" :class="{ soldout: soldOut }" @tap="emit('open')">
+  <view class="pcard" :class="{ soldout: soldOut, 'has-cover': hasCover }" @tap="emit('open')">
     <view class="panel" :class="{ marked: product.cornerText }">
       <Notch v-if="product.cornerText" bg="#F8F0E3" :r="24" pad="6rpx 18rpx 10rpx 22rpx">
         <text class="badge">{{ product.cornerText }}</text>
@@ -18,8 +18,8 @@
     </view>
     <view class="tile" :style="{ background: tileBg }" />
     <!-- 正方形封面居中裁切，无图时按商品编码选猫。 -->
-    <view v-if="!coverSrc || coverBroken" class="art"><ProductImagePlaceholder :product-key="product.id" /></view>
-    <view v-if="coverSrc && !coverBroken" class="cover">
+    <view v-if="!hasCover" class="art"><ProductImagePlaceholder :product-key="product.id" /></view>
+    <view v-if="hasCover" class="cover">
       <image :key="coverSrc" class="cover-img" :class="{ ready: coverReady }" @load="coverReady = true" :src="coverSrc" mode="aspectFill" @error="onCoverError" />
     </view>
     <view v-if="soldOut" class="soldout-mask">
@@ -55,6 +55,7 @@ const useOriginal = ref(false)
 const coverSrc = computed(() => useOriginal.value ? originalCover.value : productThumbnail(originalCover.value))
 const coverBroken = ref(false)
 const coverReady = ref(false)
+const hasCover = computed(() => !!coverSrc.value && !coverBroken.value)
 watch(originalCover, () => {
   useOriginal.value = false
   coverReady.value = false
@@ -196,15 +197,36 @@ function onAdd() {
   color: $ink-3;
 }
 
-/* 封面图：占住原插画所在的焦糖底座位置（内缩 3rpx 露出纸边），圆角裁切 */
+/*
+ * 封面图：直接铺满底座，外轮廓只有封面自己的一圈 1px 纸色描边。
+ * 描边画在封面本身上（不再靠「底座露出 3rpx」拼出来），只有一条边、没有接缝，
+ * 内圆角由浏览器按 40rpx 减去描边自动算出，始终同心。
+ * 用 px 而不是 rpx：1rpx 在多数手机上只有 0.5px，会时有时无。
+ * 纸色在米色页面底上几乎看不见，只在压住咖啡色面板和深色图边时显出来，正好是需要分隔的地方。
+ */
+.has-cover .tile {
+  border: none;
+  background: transparent;
+}
 .cover {
   position: absolute;
-  left: 3rpx;
-  top: 47rpx;
-  width: 208rpx;
-  height: 250rpx;
-  border-radius: 37rpx;
+  left: 0;
+  top: 44rpx;
+  width: 214rpx;
+  height: 256rpx;
+  border: 1px solid $paper;
+  border-radius: 40rpx;
+  box-sizing: border-box;
   overflow: hidden;
+  /* 图片加载出来之前的底色 */
+  background: $latte;
+}
+.has-cover .soldout-mask {
+  left: 0;
+  top: 44rpx;
+  width: 214rpx;
+  height: 256rpx;
+  border-radius: 40rpx;
 }
 .cover-img.ready { opacity: 1; }
 .cover-img {
