@@ -1,9 +1,18 @@
 openapi: 3.1.0
 info:
   title: cosen 业务接口
-  version: 1.6.2
-  description: 可森小程序后端第一切片 API 契约（ETL 后的 DDL/model 对齐版），供 Apifox 审阅。后台管理接口见「RuoYi
-    基础接口」模块。v1.1.0：按飞书多维表格口径对齐，Product.badge 改为多选数组（招牌/人气/限定/新品/可森特调），CouponUser.source 枚举补 redeem（积分或活动兑换发放）；接口路径、参数、错误码语义不变。v1.2.0：错误码响应示例对齐 error-codes.md v1.0.0（新增 40106/40002/42902/50002/50301 与券冲突 40908–40910 示例，修正 40002 与 40003、42901 与 42902 的误用），接口路径、参数与错误码语义不变。v1.3.0：充值纳入第一切片，新增 3 个接口（档位列表 / 创建充值单 / 状态查询）、RechargeTier/RechargeOrder/WxPayParams 模型、40407 充值单不存在或非本人，以及 40904/40905/40906/42904 示例；既有 16 个接口不变。v1.4.0：成功响应补齐 traceId（AppResult/PageResult required + 19 个 200 示例），RechargeOrder 增加可选 failCode/failMsg，充值创建 409 移除回调专属 40906，products 的 category 参数明确为分类 code（非分类 ID）；接口路径与参数不变。v1.4.1：修正 40921 挂载（pay 专属，HTTP 400），从 POST /app/orders 的 409 移除。v1.5.0：Product 增加 coverUrl（相册第一张，相对路径）与 gallery（相册图片数组，第一张即封面）；商品图片由 Base「商品相册」附件同步落地为静态资源；既有接口路径与参数不变。v1.6.0：补齐 GET /app/store（含门店营业状态、squareEnabled 与分场景微信订阅消息模板 subscribeTemplateIds/subscribeTemplates）及 POST /app/orders/{orderNo}/subscribe（上报并落库微信一次性订阅消息 accept 授权结果，用于支付成功/取餐完成/退款结果推送）。v1.6.1：新增消费成功通知电子小票场景 orderReceipt（后台人工确认并携带最多 20 字自定义备注下发）。v1.6.2：新增 POST /app/member/subscribe 会员级微信订阅消息额度上报接口（用于「我的」页开启小票通知、充值提交及勾选「总是保持」后的零弹窗静默攒次数，供后台代客下单等场景发送电子小票）。
+  version: 1.7.0
+  description: 可森小程序后端第一切片 API 契约（ETL 后的 DDL/model 对齐版），供 Apifox 审阅。后台管理接口见「RuoYi 基础接口」模块。v1.1.0：按飞书多维表格口径对齐，Product.badge
+    改为多选数组（招牌/人气/限定/新品/可森特调），CouponUser.source 枚举补 redeem（积分或活动兑换发放）；接口路径、参数、错误码语义不变。v1.2.0：错误码响应示例对齐 error-codes.md v1.0.0（新增
+    40106/40002/42902/50002/50301 与券冲突 40908–40910 示例，修正 40002 与 40003、42901 与 42902 的误用），接口路径、参数与错误码语义不变。v1.3.0：充值纳入第一切片，新增
+    3 个接口（档位列表 / 创建充值单 / 状态查询）、RechargeTier/RechargeOrder/WxPayParams 模型、40407 充值单不存在或非本人，以及 40904/40905/40906/42904 示例；既有
+    16 个接口不变。v1.4.0：成功响应补齐 traceId（AppResult/PageResult required + 19 个 200 示例），RechargeOrder 增加可选 failCode/failMsg，充值创建 409
+    移除回调专属 40906，products 的 category 参数明确为分类 code（非分类 ID）；接口路径与参数不变。v1.4.1：修正 40921 挂载（pay 专属，HTTP 400），从 POST /app/orders
+    的 409 移除。v1.5.0：Product 增加 coverUrl（相册第一张，相对路径）与 gallery（相册图片数组，第一张即封面）；商品图片由 Base「商品相册」附件同步落地为静态资源；既有接口路径与参数不变。v1.6.0：补齐
+    GET /app/store（含门店营业状态、squareEnabled 与分场景微信订阅消息模板 subscribeTemplateIds/subscribeTemplates）及 POST /app/orders/{orderNo}/subscribe（上报并落库微信一次性订阅消息
+    accept 授权结果，用于支付成功/取餐完成/退款结果推送）。v1.6.1：新增消费成功通知电子小票场景 orderReceipt（后台人工确认并携带最多 20 字自定义备注下发）。v1.6.2：新增 POST /app/member/subscribe
+    会员级微信订阅消息额度上报接口（用于「我的」页开启小票通知、充值提交及勾选「总是保持」后的零弹窗静默攒次数，供后台代客下单等场景发送电子小票）。 v1.7.0：按实时实现补齐资料更新、退款、评价、反馈、当前微信身份注销、门店收款及扫码入口；补齐微信支付参数、退款状态与订单字段、40310、soldOut
+    和 OAS 3.1 可空类型。文档覆盖不等于生产写链路验收，头像目前仅保存 URL，暂无小程序上传闭环。
 servers:
 - url: http://127.0.0.1:8080
   description: macbook 本机
@@ -22,6 +31,11 @@ tags:
   description: 下单 / 支付 / 查询 / 取消
 - name: app/充值
   description: 储值档位 / 创建充值单 / 充值状态查询
+- name: app/订单评价
+- name: app/反馈
+- name: app/账号
+- name: app/门店收款
+- name: app/门店入口
 paths:
   /app/auth/login/wechat:
     post:
@@ -64,7 +78,7 @@ paths:
                         balanceCent: 51200
                         giftBalanceCent: 1200
                         phoneBound: true
-                        phoneMasked: '138****0817'
+                        phoneMasked: 138****0817
         '400':
           description: 参数缺失/格式错误/取值非法/幂等键非法（400xx）
           content:
@@ -118,6 +132,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/LoginWechatReq'
+      security: []
   /app/auth/login/mock:
     post:
       operationId: loginByMock
@@ -158,7 +173,7 @@ paths:
                         balanceCent: 51200
                         giftBalanceCent: 1200
                         phoneBound: true
-                        phoneMasked: '138****0817'
+                        phoneMasked: 138****0817
         '400':
           description: 参数缺失/格式错误/取值非法/幂等键非法（400xx）
           content:
@@ -212,6 +227,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/LoginMockReq'
+      security: []
   /app/auth/phone/bind:
     post:
       operationId: bindPhone
@@ -250,7 +266,7 @@ paths:
                       balanceCent: 51200
                       giftBalanceCent: 1200
                       phoneBound: true
-                      phoneMasked: '138****0817'
+                      phoneMasked: 138****0817
         '401':
           description: 认证失败（401xx：token 无效/过期/类型错误/已注销、微信登录失败、手机号解密失败）
           content:
@@ -407,7 +423,7 @@ paths:
                       balanceCent: 51200
                       giftBalanceCent: 1200
                       phoneBound: true
-                      phoneMasked: '138****0817'
+                      phoneMasked: 138****0817
         '401':
           description: 认证失败（401xx：token 无效/过期/类型错误/已注销、微信登录失败、手机号解密失败）
           content:
@@ -460,6 +476,100 @@ paths:
                 serviceUnavailable:
                   $ref: '#/components/examples/serviceUnavailable'
       security: *id001
+    put:
+      operationId: updateMyMemberProfile
+      summary: 修改昵称或头像 URL
+      tags:
+      - app/会员
+      description: '登录身份（包括游客）可修改资料。nickname 与 avatarUrl 至少一个非 null；传入字符串先 trim。
+
+        nickname 去空白后非空且不超过 32 字符，avatarUrl 去空白后不超过 500 字符，可用空串清除。
+
+        phone 非 null 一律拒绝，请使用微信手机号绑定接口；realName 不属于此更新 DTO。
+
+        此接口仅存储 URL 字符串，不上传图片、不将微信临时路径转换为永久 URL，不能替代文件上传。
+
+        '
+      security: &id002
+      - bearerAuth: []
+      requestBody: &id003
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMemberProfileReq'
+            example:
+              nickname: 微信用户
+              avatarUrl: https://example.com/avatar.png
+      responses: &id004
+        '200':
+          description: 更新后的会员资料（AppResult 信封）
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/AppResult'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/MemberProfile'
+                  required:
+                  - data
+        '400': &id007
+          description: 参数缺失或非法（40001/40002/40003；各接口详见描述）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              example:
+                code: 40002
+                msg: 参数格式错误
+                data: null
+                traceId: example00001
+        '401': &id008
+          description: 登录缺失/失败、过期、类型错误、撤销或账号已注销（40101/40102/40104/40105/40106/40108；依接口适用）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              example:
+                code: 40101
+                msg: 请先登录
+                data: null
+                traceId: example00002
+        '404':
+          description: 会员不存在（40405）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+        '409':
+          description: 会员已停用（40901）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+        '500': &id009
+          description: 服务端错误（50001）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+        '503': &id010
+          description: 数据库或 Redis 等依赖不可用（50302）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+    post:
+      operationId: updateMyMemberProfileCompat
+      summary: 修改资料（POST 兼容别名）
+      tags:
+      - app/会员
+      description: 与 PUT /app/member/profile 调用同一实现，仅为兼容别名，不代表新增业务能力；新调用建议使用 PUT。
+      security: *id002
+      requestBody: *id003
+      responses: *id004
   /app/member/subscribe:
     post:
       operationId: subscribeMemberMessage
@@ -649,7 +759,7 @@ paths:
                 serviceUnavailable:
                   $ref: '#/components/examples/serviceUnavailable'
       parameters:
-      - &id002
+      - &id005
         name: pageNum
         in: query
         description: 页码，从 1 开始
@@ -657,7 +767,7 @@ paths:
           type: integer
           minimum: 1
           default: 1
-      - &id003
+      - &id006
         name: pageSize
         in: query
         description: 每页条数，最大 100
@@ -736,6 +846,7 @@ paths:
               examples:
                 serviceUnavailable:
                   $ref: '#/components/examples/serviceUnavailable'
+      security: []
   /app/catalog/products:
     get:
       operationId: listProducts
@@ -779,7 +890,8 @@ paths:
                       priceCent: 3200
                       rating: 9.6
                       soldCount: 2380
-                      badge: ["招牌"]
+                      badge:
+                      - 招牌
                       ingredientsJson:
                       - 宇治抹茶
                       - 鲜牛奶
@@ -875,14 +987,15 @@ paths:
                 serviceUnavailable:
                   $ref: '#/components/examples/serviceUnavailable'
       parameters:
-      - *id002
-      - *id003
+      - *id005
+      - *id006
       - name: category
         in: query
         description: 分类 code（与 Category.code/Product.code 同一套编码，如 matcha / craft），不是分类 ID；未知 code 返回 200 + 空列表
         schema:
           type: string
-          pattern: '^[a-z0-9-]{1,32}$'
+          pattern: ^[a-z0-9-]{1,32}$
+      security: []
   /app/catalog/products/{code}:
     get:
       operationId: getProductByCode
@@ -924,7 +1037,8 @@ paths:
                       priceCent: 3200
                       rating: 9.6
                       soldCount: 2380
-                      badge: ["招牌"]
+                      badge:
+                      - 招牌
                       ingredientsJson:
                       - 宇治抹茶
                       - 鲜牛奶
@@ -987,7 +1101,8 @@ paths:
         description: 商品编码，如 m1
         schema:
           type: string
-          pattern: '^[a-z0-9-]{1,32}$'
+          pattern: ^[a-z0-9-]{1,32}$
+      security: []
   /app/coupons:
     get:
       operationId: listMyCoupons
@@ -1263,16 +1378,19 @@ paths:
         description: 券实例号，如 CP20260001
         schema:
           type: string
-          pattern: '^[A-Za-z0-9-]{8,40}$'
+          pattern: ^[A-Za-z0-9-]{8,40}$
       security: *id001
   /app/orders:
     post:
       operationId: createOrder
       summary: 创建订单（自取）
-      description: |
-        幂等：Header `Idempotency-Key` 或 body.idempotencyKey 二选一必填（UUID 或 8..64 位），
+      description: '幂等：Header `Idempotency-Key` 或 body.idempotencyKey 二选一必填（UUID 或 8..64 位），
+
         同 key 同 payload 重放返回 HTTP 200 + code 40925（返回原订单）；同 key 不同 payload 返回 40007。
+
         金额一律由服务端按商品价重算，不信任前端传入的金额。
+
+        游客仅可不用券的普通微信支付；用券、余额或组合支付需已验证手机号，否则 HTTP 403 / 40310。'
       tags:
       - app/订单
       parameters:
@@ -1482,6 +1600,15 @@ paths:
               examples:
                 serviceUnavailable:
                   $ref: '#/components/examples/serviceUnavailable'
+        '403':
+          description: 需先验证手机号（40310）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                phoneRequired:
+                  $ref: '#/components/examples/phoneRequired'
       requestBody:
         required: true
         content:
@@ -1644,11 +1771,11 @@ paths:
                 serviceUnavailable:
                   $ref: '#/components/examples/serviceUnavailable'
       parameters:
-      - *id002
-      - *id003
+      - *id005
+      - *id006
       - name: orderStatus
         in: query
-        description: 订单状态筛选
+        description: 订单状态筛选；含退款状态，making/ready 仅为兼容值。
         schema:
           type: string
           enum:
@@ -1657,6 +1784,10 @@ paths:
           - making
           - ready
           - completed
+          - refund_pending
+          - refunding
+          - refund_error
+          - refunded
           - cancelled
       security: *id001
   /app/orders/{orderNo}:
@@ -1788,32 +1919,36 @@ paths:
         description: 16 位订单号
         schema:
           type: string
-          pattern: '^\d{16}$'
+          pattern: ^\d{16}$
       security: *id001
   /app/orders/{orderNo}/pay:
     post:
       operationId: payOrder
       summary: 支付（储值/微信/组合）
-      description: |
-        `mixed` 组合支付强校验：`balancePayCent` 与 `wechatPayCent` 必须均 > 0，
-        且 `balancePayCent + wechatPayCent = payableCent`，否则 40921 / 40920。
-        重复支付回调按 orderNo + 微信单号幂等，HTTP 200 + code 40926。
+      description: 'mixed 组合支付要求 balancePayCent 与 wechatPayCent 均 > 0，且相加等于 payableCent，否则 HTTP 400/code 40921 或 HTTP 409/code
+        40920。
+
+        游客仅可不用券的普通微信支付；用券、余额或组合支付需已验证手机号，否则 HTTP 403/code 40310。
+
+        真实微信/组合支付返回 wechatPayParams 供 wx.requestPayment；预支付不等于 paid，应查询最终状态。同一共享会员已有预支付须由原付款微信继续；已有预支付按订单和付款 openid 检查/复用，本接口不接受客户端幂等键。
+
+        默认已支付订单重复请求返回 HTTP 409/code 40917；遗留 X-Pay-Callback:true 兼容头可使已支付分支返回 HTTP 200/code 40926，并非仅内部可达，也不是微信回调验签或新支付成功证明。小程序不应发送该头，真实回调走独立微信支付通知处理。'
       tags:
       - app/订单
       responses:
         '200':
-          description: OK（支付成功或幂等回调）
+          description: 支付结果：余额支付完成，或微信/组合预支付参数（尚未支付完成）
           content:
             application/json:
               schema:
                 type: object
-                description: 订单详情
+                description: 支付结果（订单详情 + 可选微信参数）
                 allOf:
                 - $ref: '#/components/schemas/AppResult'
                 - type: object
                   properties:
                     data:
-                      $ref: '#/components/schemas/OrderDetail'
+                      $ref: '#/components/schemas/PayOrderResult'
               examples:
                 success:
                   summary: 支付成功（seed order 1，储值全付）
@@ -1867,56 +2002,6 @@ paths:
                         unitPriceCent: 3100
                         qty: 1
                         amountCent: 3100
-                mixedSuccess:
-                  summary: 组合支付成功（seed order 2，储值 3000 + 微信 3600）
-                  value:
-                    traceId: c8f1e011
-                    code: 200
-                    msg: ok
-                    data:
-                      id: '2'
-                      orderNo: '2026110715302208'
-                      pickupCode: A019
-                      storeId: '1'
-                      fulfillType: pickup
-                      itemCount: 2
-                      subtotalCent: 6600
-                      couponOffCent: 0
-                      payableCent: 6600
-                      balancePayCent: 3000
-                      wechatPayCent: 3600
-                      couponId: null
-                      payMode: mixed
-                      payStatus: paid
-                      orderStatus: paid
-                      remark: 少冰
-                      createTime: '2026-11-13T22:53:50+08:00'
-                      paidAt: '2026-11-13T22:53:50+08:00'
-                      items:
-                      - id: '3'
-                        productCode: f1
-                        productName: 焦糖漩涡星冰乐
-                        productNameEn: Caramel Swirl Frappuccino
-                        specText: 中杯 / 正常冰 / 标准甜 / 鲜牛奶
-                        specJson:
-                          size: 中杯
-                          temp: 正常冰
-                          sugar: 标准甜
-                          milk: 鲜牛奶
-                        unitPriceCent: 3300
-                        qty: 2
-                        amountCent: 6600
-                        artJson:
-                          cup: tall
-                          liquid:
-                          - '#C99B6C'
-                          - '#86562F'
-                          milk: '#F3E8D8'
-                          milkRatio: 18
-                          topping: cream
-                          toppingColor: '#F7EFE4'
-                          drizzle: '#A8682F'
-                          marble: true
                 duplicateCallback:
                   summary: 重复支付回调（幂等成功，HTTP 200 + code 40926）
                   value:
@@ -1956,6 +2041,120 @@ paths:
                         unitPriceCent: 3300
                         qty: 2
                         amountCent: 6600
+                mixedPrepay:
+                  summary: 组合预支付成功，仍未支付；示例参数不能发起支付
+                  value:
+                    traceId: c8f1e011
+                    code: 200
+                    msg: ok
+                    data:
+                      id: '2'
+                      orderNo: '2026110715302208'
+                      pickupCode: A019
+                      storeId: '1'
+                      fulfillType: pickup
+                      itemCount: 2
+                      subtotalCent: 6600
+                      couponOffCent: 0
+                      payableCent: 6600
+                      balancePayCent: 3000
+                      wechatPayCent: 3600
+                      couponId: null
+                      payMode: mixed
+                      payStatus: unpaid
+                      orderStatus: created
+                      remark: 少冰
+                      createTime: '2026-11-13T22:53:50+08:00'
+                      paidAt: null
+                      items:
+                      - id: '3'
+                        productCode: f1
+                        productName: 焦糖漩涡星冰乐
+                        productNameEn: Caramel Swirl Frappuccino
+                        specText: 中杯 / 正常冰 / 标准甜 / 鲜牛奶
+                        specJson:
+                          size: 中杯
+                          temp: 正常冰
+                          sugar: 标准甜
+                          milk: 鲜牛奶
+                        unitPriceCent: 3300
+                        qty: 2
+                        amountCent: 6600
+                        artJson:
+                          cup: tall
+                          liquid:
+                          - '#C99B6C'
+                          - '#86562F'
+                          milk: '#F3E8D8'
+                          milkRatio: 18
+                          topping: cream
+                          toppingColor: '#F7EFE4'
+                          drizzle: '#A8682F'
+                          marble: true
+                      wechatPayParams:
+                        timeStamp: '1795392000'
+                        nonceStr: demo-not-valid
+                        package: prepay_id=demo-not-valid
+                        signType: RSA
+                        paySign: DEMO_NOT_A_VALID_SIGNATURE
+                        appId: wx_demo_not_valid
+                wechatPrepay:
+                  summary: 微信预支付成功，等待客户端拉起支付与回调
+                  value:
+                    traceId: c8f1e011
+                    code: 200
+                    msg: ok
+                    data:
+                      id: '2'
+                      orderNo: '2026110715302208'
+                      pickupCode: A019
+                      storeId: '1'
+                      fulfillType: pickup
+                      itemCount: 2
+                      subtotalCent: 6600
+                      couponOffCent: 0
+                      payableCent: 6600
+                      balancePayCent: 0
+                      wechatPayCent: 6600
+                      couponId: null
+                      payMode: wechat
+                      payStatus: unpaid
+                      orderStatus: created
+                      remark: 少冰
+                      createTime: '2026-11-13T22:53:50+08:00'
+                      paidAt: null
+                      items:
+                      - id: '3'
+                        productCode: f1
+                        productName: 焦糖漩涡星冰乐
+                        productNameEn: Caramel Swirl Frappuccino
+                        specText: 中杯 / 正常冰 / 标准甜 / 鲜牛奶
+                        specJson:
+                          size: 中杯
+                          temp: 正常冰
+                          sugar: 标准甜
+                          milk: 鲜牛奶
+                        unitPriceCent: 3300
+                        qty: 2
+                        amountCent: 6600
+                        artJson:
+                          cup: tall
+                          liquid:
+                          - '#C99B6C'
+                          - '#86562F'
+                          milk: '#F3E8D8'
+                          milkRatio: 18
+                          topping: cream
+                          toppingColor: '#F7EFE4'
+                          drizzle: '#A8682F'
+                          marble: true
+                      wechatPayParams:
+                        timeStamp: '1795392000'
+                        nonceStr: demo-not-valid
+                        package: prepay_id=demo-not-valid
+                        signType: RSA
+                        paySign: DEMO_NOT_A_VALID_SIGNATURE
+                        appId: wx_demo_not_valid
         '400':
           description: 参数缺失/格式错误/支付方式与拆分列不匹配（400xx）
           content:
@@ -2054,6 +2253,15 @@ paths:
                   $ref: '#/components/examples/serviceUnavailable'
                 wechatUnavailable:
                   $ref: '#/components/examples/wechatUnavailable'
+        '403':
+          description: 需先验证手机号（40310）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                phoneRequired:
+                  $ref: '#/components/examples/phoneRequired'
       parameters:
       - name: orderNo
         in: path
@@ -2061,7 +2269,17 @@ paths:
         description: 16 位订单号
         schema:
           type: string
-          pattern: '^\d{16}$'
+          pattern: ^\d{16}$
+      - name: X-Pay-Callback
+        in: header
+        required: false
+        deprecated: true
+        description: 遗留兼容开关；true 改变已支付分支的幂等响应，不能代替微信验签。普通客户端应省略。
+        schema:
+          type: string
+          enum:
+          - 'true'
+          - 'false'
       requestBody:
         required: true
         content:
@@ -2073,9 +2291,11 @@ paths:
     post:
       operationId: cancelOrder
       summary: 取消订单
-      description: |
-        仅 created/unpaid 可取消；已取消重复取消幂等返回 HTTP 200（原订单），
+      description: '仅 created/unpaid 可取消；已取消重复取消幂等返回 HTTP 200（原订单），
+
         已支付/制作中/待取返回 40916，已完成返回 40918。
+
+        '
       tags:
       - app/订单
       responses:
@@ -2199,13 +2419,15 @@ paths:
         description: 16 位订单号
         schema:
           type: string
-          pattern: '^\d{16}$'
+          pattern: ^\d{16}$
       security: *id001
   /app/orders/{orderNo}/subscribe:
     post:
       operationId: subscribeOrderMessage
       summary: 上报订单微信订阅消息授权
-      description: 小程序在用户点击手势内调用 wx.requestSubscribeMessage 后，将各模板的真实授权结果（accept/reject/ban/filter）上报给后端；后端仅持久化已配置且用户 accept 的模板授权至 cosen_order_subscribe，后续在支付成功（order_paid）、制作完成/取餐（order_ready）、退款通过或驳回（order_refund）事务提交后自动通过微信 subscribe/send 下发。
+      description: 小程序在用户点击手势内调用 wx.requestSubscribeMessage 后，将各模板的真实授权结果（accept/reject/ban/filter）上报给后端；后端仅持久化已配置且用户 accept
+        的模板授权至 cosen_order_subscribe，后续在支付成功（order_paid）、制作完成/取餐（order_ready）、退款通过或驳回（order_refund）事务提交后自动通过微信 subscribe/send
+        下发。
       tags:
       - app/订单
       parameters:
@@ -2215,7 +2437,7 @@ paths:
         description: 16 位订单号
         schema:
           type: string
-          pattern: '^\d{16}$'
+          pattern: ^\d{16}$
       requestBody:
         required: false
         content:
@@ -2328,7 +2550,7 @@ paths:
                       openNow: true
                       businessHours:
                       - days: mon-sun
-                        open: '08:00'
+                        open: 08:00
                         close: '21:30'
                       closedDays: []
                       announcements:
@@ -2353,6 +2575,7 @@ paths:
               examples:
                 internalError:
                   $ref: '#/components/examples/internalError'
+      security: []
   /app/recharge/tiers:
     get:
       operationId: listRechargeTiers
@@ -2419,14 +2642,18 @@ paths:
               examples:
                 serviceUnavailable:
                   $ref: '#/components/examples/serviceUnavailable'
+      security: []
   /app/recharges:
     post:
       operationId: createRecharge
       summary: 创建充值单
-      description: |
-        创建储值充值单并拉起微信支付。金额单位分；档位按 tierCode 由服务端校验，不信任前端金额。
+      description: '创建储值充值单并拉起微信支付。金额单位分；档位按 tierCode 由服务端校验，不信任前端金额。
+
         幂等：Header Idempotency-Key 必填；同 key 同 payload 重放返回 HTTP 200 + 原充值单（不新增单据、不用 40925）；同 key 不同 payload 返回 40007。
+
         充值成功触发会员等级重算（累计实充只计本金，满 2000 元升级深焙）。
+
+        '
       tags:
       - app/充值
       parameters:
@@ -2612,7 +2839,7 @@ paths:
         description: 充值单号，如 RC20261118000001
         schema:
           type: string
-          pattern: '^RC[0-9]{14,20}$'
+          pattern: ^RC[0-9]{14,20}$
       responses:
         '403':
           description: 游客需要先通过微信验证手机号（40310）
@@ -2706,7 +2933,564 @@ paths:
                   $ref: '#/components/examples/serviceUnavailable'
       security:
       - bearerAuth: []
+  /app/orders/{orderNo}/refund:
+    post:
+      operationId: requestMyOrderRefund
+      summary: 申请订单退款
+      tags:
+      - app/订单
+      description: '仅本人订单可操作。payStatus 必须为 paid，orderStatus 为 paid/making/ready/completed 时进入 refund_pending，
 
+        仅表示已提交申请，非退款已完成；退款审批与执行不属于本接口。
+
+        已处于 refund_pending/refunding/refund_error/refunded 时直接返回原订单，reason 不再校验或覆盖。
+
+        reason 可省略或 null，去首尾空白后最多 200 字符；空值采用“用户申请退款”。
+
+        实现会把非 null 的 reason 通过 String.valueOf 转字符串；客户端应按字符串发送。
+
+        '
+      security: *id002
+      parameters:
+      - &id011
+        name: orderNo
+        in: path
+        required: true
+        description: 16 位订单号，格式错误、不存在或非本人均按 40404 处理
+        schema:
+          type: string
+          pattern: ^\d{16}$
+        example: '2026110800000001'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRefundReq'
+            example:
+              reason: 不再需要
+      responses:
+        '200':
+          description: 当前订单详情；新申请状态为 refund_pending，重复申请返回原退款状态
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/AppResult'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/OrderDetail'
+                  required:
+                  - data
+        '400': *id007
+        '401': *id008
+        '404':
+          description: 订单不存在或非本人（40404）；会员不存在（40405）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+        '409':
+          description: 会员停用（40901）或订单状态不允许退款/并发更新失败（40916）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              example:
+                code: 40916
+                msg: 订单状态不允许该操作
+                data: null
+                traceId: example00003
+        '500': *id009
+        '503': *id010
+  /app/orders/{orderNo}/review:
+    post:
+      operationId: submitMyOrderReview
+      summary: 提交本人订单评价
+      tags:
+      - app/订单评价
+      description: '仅订单状态 paid 或 completed 允许评价（不是只允许 completed，making/ready 也不在当前允许列表）。
+
+        每订单只可提交一次，重复或并发重复均返回 40928。rating 必填，1..5 整数；content 可省略/null，按空串存储，不 trim。
+
+        images 可省略/null，按空数组处理，最多 3 个；每个 URL trim 后非空、长度最多 500，且以 http://、https:// 或 / 开头。
+
+        此接口仅接收已有图片 URL，不上传文件。
+
+        '
+      security: *id002
+      parameters:
+      - *id011
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitOrderReviewReq'
+            example:
+              rating: 5
+              content: 味道很好
+              images: []
+      responses:
+        '200': &id012
+          description: 订单评价（AppResult 信封）
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/AppResult'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/OrderReview'
+                  required:
+                  - data
+              example:
+                code: 200
+                msg: ok
+                traceId: example00004
+                data:
+                  id: '1'
+                  orderNo: '2026110800000001'
+                  rating: 5
+                  content: 味道很好
+                  images: []
+                  createdAt: '2026-11-23T08:00:00+08:00'
+        '400': *id007
+        '401': *id008
+        '404':
+          description: 订单号格式错误、订单不存在或非本人（40404）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+        '409':
+          description: 订单状态不可评价（40927）或订单已评价（40928）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              examples:
+                notAllowed:
+                  value:
+                    code: 40927
+                    msg: 订单不可评价
+                    data: null
+                    traceId: example00005
+                duplicate:
+                  value:
+                    code: 40928
+                    msg: 订单已评价
+                    data: null
+                    traceId: example00006
+        '500': *id009
+        '503': *id010
+    get:
+      operationId: getMyOrderReview
+      summary: 查询本人订单评价
+      tags:
+      - app/订单评价
+      description: 无评价返回 HTTP 404 + code 40409，不返回成功 null；订单不存在/非本人/订单号非法返回 40404。
+      security: *id002
+      parameters:
+      - *id011
+      responses:
+        '200': *id012
+        '401': *id008
+        '404':
+          description: 订单非法/不存在/非本人（40404）或尚无评价（40409）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              example:
+                code: 40409
+                msg: 评价不存在
+                data: null
+                traceId: example00007
+        '500': *id009
+        '503': *id010
+  /app/feedback:
+    post:
+      operationId: submitMyFeedback
+      summary: 提交意见反馈
+      tags:
+      - app/反馈
+      description: '需要登录会话，游客可提交，不要求先验证手机号。type、content 必填，去首尾空白后校验；contact 可省略/null。
+
+        images 可省略/null，最多 3 个；URL 校验与订单评价相同，仅接收 URL，不提供上传能力。
+
+        '
+      security: *id002
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitFeedbackReq'
+            example:
+              type: service
+              content: 希望增加营业时间
+              contact: ''
+              images: []
+      responses:
+        '200':
+          description: 反馈已记录，返回反馈 ID
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/AppResult'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/FeedbackCreated'
+                  required:
+                  - data
+              example:
+                code: 200
+                msg: ok
+                traceId: example00008
+                data:
+                  id: '1'
+        '400': *id007
+        '401': *id008
+        '500': *id009
+        '503': *id010
+  /app/account/close:
+    post:
+      operationId: closeMyAccount
+      summary: 注销当前微信身份
+      tags:
+      - app/账号
+      description: '需要有效登录会话；当前微信身份的 openid 解绑，清除当前 token。
+
+        同一会员仍有其他活跃微信身份时不关闭该共享会员；仅最后一个活跃身份解绑时设置会员 closed_at。
+
+        订单、流水、余额等资产历史保留，不做清零、物理删除或退款；reason 仅校验长度，不落库。
+
+        旧 mock/兼容会话没有 identity 时直接关闭会员并清当前 token。
+
+        不保证客户端重复请求成功：首次注销后原 token/identity 已撤销，重试可返回 40106/40108。
+
+        '
+      security: *id002
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CloseMyAccountReq'
+            example:
+              reason: 暂不使用
+      responses:
+        '200':
+          description: 当前身份已解绑、当前 token 已清除；data 为 null
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/AppResult'
+                - type: object
+                  properties:
+                    data:
+                      type: 'null'
+                  required:
+                  - data
+              example:
+                code: 200
+                msg: ok
+                traceId: example00009
+                data: null
+        '400': *id007
+        '401': *id008
+        '404':
+          description: 会员不存在或已删除（40405）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+        '500': *id009
+        '503': *id010
+  /app/store/collection:
+    get:
+      operationId: getStoreCollectionEntry
+      summary: 校验门店收款场景
+      tags:
+      - app/门店收款
+      description: 公开接口，无需会员 token；scene 必须与当前启用的收款码场景完全相等。
+      security: []
+      parameters:
+      - &id014
+        name: scene
+        in: query
+        required: true
+        description: 门店收款码当前 scene（不是会员 token）
+        schema:
+          type: string
+        example: example-scene
+      responses:
+        '200':
+          description: 收款页面标题
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/AppResult'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/CollectionEntry'
+                  required:
+                  - data
+              example:
+                code: 200
+                msg: ok
+                traceId: example00010
+                data:
+                  title: 可森 COSEN 门店收款
+        '400': *id007
+        '404': &id013
+          description: 收款码已更换/场景不匹配（40410）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+              example:
+                code: 40410
+                msg: 收款码已更换，请扫描门店最新收款码
+                data: null
+                traceId: example00011
+        '500': *id009
+        '503': *id010
+  /app/store/collection/prepay:
+    post:
+      operationId: prepayStoreCollection
+      summary: 发起门店扫码收款微信支付
+      tags:
+      - app/门店收款
+      description: '公开接口，不使用会员 bearer。以当次 uni.login 获得的 code 换取 openid。
+
+        scene 必须是当前收款码；intent 由客户端生成，同 scene+openid+intent 确定同一个 payNo，重试复用预支付单。
+
+        相同 intent 更改金额返回 HTTP 400/code 40007；保留首次到期时间（30 分钟），过期不自动延长。
+
+        pending 响应带 wechatPayParams，客户端调起支付后仍须查询 receipt 确认；不是支付成功即刻回执。
+
+        已 paid/refunding/refunded/refund_error 时幂等返回原状态，不再带 wechatPayParams。
+
+        receiptKey 是查询回执的凭据，应妥善保存，不可公开或写入日志。
+
+        '
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectionPrepayReq'
+            example:
+              scene: example-scene
+              code: example-wechat-login-code
+              intent: example-intent-0001
+              amountCent: 100
+      responses:
+        '200':
+          description: 预支付参数或已存在收款状态
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/AppResult'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/CollectionPrepayResult'
+                  required:
+                  - data
+              example:
+                code: 200
+                msg: ok
+                traceId: example00012
+                data:
+                  payNo: QR000000000000000000000000000000
+                  receiptKey: '00000000000000000000000000000000'
+                  status: pending
+                  amountCent: 100
+                  wechatPayParams:
+                    timeStamp: '1795392000'
+                    nonceStr: example-nonce
+                    package: prepay_id=example
+                    signType: RSA
+                    paySign: example-signature
+        '400':
+          description: 参数非法/金额不是整数（40002），或同 intent 金额不一致（40007）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+        '401':
+          description: 微信 code 换取 openid 失败（40102）；并非要求会员 bearer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+        '404': *id013
+        '409':
+          description: 本次付款已过期（40929）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+        '502':
+          description: 微信支付下单失败（业务码 40922）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+        '503':
+          description: 微信支付未配置或不可用（50305），微信依赖不可用（50301），数据库/Redis 依赖不可用（50302）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+        '500': *id009
+  /app/store/collection/receipts/{no}:
+    get:
+      operationId: getStoreCollectionReceipt
+      summary: 查询门店扫码付款回执
+      tags:
+      - app/门店收款
+      description: '不要求会员 bearer，但必须提供与 payNo 匹配的 X-Receipt-Key。
+
+        服务端注解虽 required=false，业务会拒绝缺失/格式错误/不匹配的凭据，均返回 40404，防止枚举。
+
+        pending 时会尝试查询微信支付后返回当前状态，不保证客户端请求时已经完成结算。
+
+        '
+      security: []
+      parameters:
+      - name: 'no'
+        in: path
+        required: true
+        description: prepay 返回的 payNo
+        schema:
+          type: string
+          pattern: ^QR[0-9a-f]{30}$
+        example: QR000000000000000000000000000000
+      - name: X-Receipt-Key
+        in: header
+        required: true
+        description: prepay 返回的 receiptKey，32 位小写十六进制；不是会员 token
+        schema:
+          type: string
+          pattern: ^[0-9a-f]{32}$
+        example: '00000000000000000000000000000000'
+      responses:
+        '200':
+          description: 当前收款状态及金额
+          content:
+            application/json:
+              schema:
+                allOf:
+                - $ref: '#/components/schemas/AppResult'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/CollectionReceipt'
+                  required:
+                  - data
+              example:
+                code: 200
+                msg: ok
+                traceId: example00013
+                data:
+                  status: paid
+                  amountCent: 100
+        '404':
+          description: 收款回执不存在、编号格式错误或查询凭据无效（40404）；不使用会员身份判断归属。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+        '500': *id009
+        '503': *id010
+  /app/store/table-entrance:
+    get:
+      operationId: openStoreTableEntrance
+      summary: 打开桌码小程序入口（HTML/跳转）
+      tags:
+      - app/门店入口
+      description: 兼容已印桌码。公开浏览器入口，正常响应不是 AppResult；优先跳转微信链接，微信链接不可用时返回正式小程序码 HTML。
+      security: []
+      parameters:
+      - name: tableNo
+        in: query
+        required: true
+        description: 必须是启用中的桌位
+        schema:
+          type: string
+          pattern: ^[A-Z0-9_-]{1,24}$
+        example: A01
+      responses:
+        '200': &id015
+          description: 包含正式小程序码图片的 HTML 兜底页
+          content:
+            text/html:
+              schema:
+                type: string
+              example: <html lang="zh"><title>可森小程序码</title><img alt="可森小程序码" src="data:image/png;base64,..."></html>
+        '302': &id016
+          description: 跳转微信小程序 URL Link
+          headers:
+            Location:
+              description: 微信 wxaurl.cn URL
+              schema:
+                type: string
+                format: uri
+              example: https://wxaurl.cn/example
+            Cache-Control:
+              description: 禁止缓存入口跳转
+              schema:
+                type: string
+              example: no-store
+        '400':
+          description: 桌位格式错误、不存在或停用（40002）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+        '500': *id009
+        '503': &id017
+          description: 链接及小程序码均无法获取时，微信依赖不可用（50301/50302）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResult'
+  /app/store/collection-entrance:
+    get:
+      operationId: openStoreCollectionEntrance
+      summary: 打开收款码小程序入口（HTML/跳转）
+      tags:
+      - app/门店入口
+      description: 公开浏览器入口，优先跳转微信小程序收款页；链接不可用时返回正式小程序码 HTML；过期 scene 返回 HTTP 410 HTML 而不是 40410 JSON。
+      security: []
+      parameters:
+      - *id014
+      responses:
+        '200': *id015
+        '302': *id016
+        '410':
+          description: 该收款码已更换
+          content:
+            text/html:
+              schema:
+                type: string
+              example: <html lang="zh"><title>可森收款码</title><h1>该收款码已更换</h1></html>
+        '400': *id007
+        '500': *id009
+        '503': *id017
 components:
   schemas:
     StoreSubscribeTemplates:
@@ -2751,7 +3535,9 @@ components:
           description: 门店联系电话
         status:
           type: string
-          enum: ['on', 'off']
+          enum:
+          - 'on'
+          - 'off'
           description: 营业开关
         openNow:
           type: boolean
@@ -2761,24 +3547,32 @@ components:
           items:
             type: object
             properties:
-              days: {type: string}
-              open: {type: string}
-              close: {type: string}
+              days:
+                type: string
+              open:
+                type: string
+              close:
+                type: string
         closedDays:
           type: array
-          items: {type: string}
+          items:
+            type: string
         announcements:
           type: array
-          items: {type: string}
+          items:
+            type: string
         customerService:
           type: object
           properties:
-            type: {type: string}
-            value: {type: string}
+            type:
+              type: string
+            value:
+              type: string
         subscribeTemplateIds:
           type: array
           description: 去重后的已配置微信订阅消息模板 ID 列表
-          items: {type: string}
+          items:
+            type: string
         subscribeTemplates:
           $ref: '#/components/schemas/StoreSubscribeTemplates'
       required:
@@ -2794,16 +3588,24 @@ components:
           type: array
           description: 用户同意（accept）的模板 ID 列表（兼容旧版客户端仅传该字段）
           maxItems: 3
-          items: {type: string}
+          items:
+            type: string
         results:
           type: object
           description: 微信 requestSubscribeMessage 返回的各模板真实结果（键为 templateId，值为 accept/reject/ban/filter）
           additionalProperties:
             type: string
-            enum: [accept, reject, ban, filter]
+            enum:
+            - accept
+            - reject
+            - ban
+            - filter
         scene:
           type: string
-          enum: [order_pay, order_refund, order_detail]
+          enum:
+          - order_pay
+          - order_refund
+          - order_detail
           description: 小程序触发订阅的页面场景
     OrderSubscribeResp:
       type: object
@@ -2816,17 +3618,24 @@ components:
         acceptedTemplateIds:
           type: array
           description: 已校验配置并落库的模板 ID 列表
-          items: {type: string}
+          items:
+            type: string
         ignoredTemplateIds:
           type: array
           description: 被用户拒绝、未在后端配置或缺少 openid 而忽略的模板 ID 列表
-          items: {type: string}
+          items:
+            type: string
         activeScenes:
           type: array
           description: 本次生效的业务通知场景列表
           items:
             type: string
-            enum: [order_receipt, order_ready, order_paid, order_refund, general]
+            enum:
+            - order_receipt
+            - order_ready
+            - order_paid
+            - order_refund
+            - general
       required:
       - subscribed
       - acceptedTemplateIds
@@ -2841,17 +3650,25 @@ components:
           type: array
           description: 用户同意授权的模板 ID 列表（最多 3 个）
           maxItems: 3
-          items: {type: string}
+          items:
+            type: string
         results:
           type: object
           description: 各模板真实授权决策（accept/reject/ban/filter）
           additionalProperties:
             type: string
-            enum: [accept, reject, ban, filter]
+            enum:
+            - accept
+            - reject
+            - ban
+            - filter
         scene:
           type: string
           description: 触发场景
-          enum: [member_center, silent_refill, recharge]
+          enum:
+          - member_center
+          - silent_refill
+          - recharge
     MemberSubscribeResp:
       type: object
       title: MemberSubscribeResp
@@ -2863,17 +3680,24 @@ components:
         acceptedTemplateIds:
           type: array
           description: 已校验配置并累加额度的模板 ID 列表
-          items: {type: string}
+          items:
+            type: string
         ignoredTemplateIds:
           type: array
           description: 被拒绝、未配置或缺少 openid 而忽略的模板 ID 列表
-          items: {type: string}
+          items:
+            type: string
         activeScenes:
           type: array
           description: 本次生效的业务通知场景列表
           items:
             type: string
-            enum: [order_receipt, order_ready, order_paid, order_refund, general]
+            enum:
+            - order_receipt
+            - order_ready
+            - order_paid
+            - order_refund
+            - general
         remainingCount:
           type: integer
           minimum: 0
@@ -2889,7 +3713,10 @@ components:
       title: MemberProfile
       description: 会员侧对外脱敏模型，不含 openid/unionid/明文手机号/version/deleted
       properties:
-        realName: {type: string, maxLength: 32, description: 会员选填姓名}
+        realName:
+          type: string
+          maxLength: 32
+          description: 会员选填姓名
         id:
           type: string
           format: int64
@@ -2910,7 +3737,10 @@ components:
         level:
           type: integer
           format: int32
-          enum: [1, 2, 3]
+          enum:
+          - 1
+          - 2
+          - 3
           description: 1可森 2醇香 3深焙
         points:
           type: integer
@@ -2932,7 +3762,7 @@ components:
           description: 是否已绑定手机号
         phoneMasked:
           type: string
-          pattern: '^(?:\d{3}\*{4}\d{4})?$'
+          pattern: ^(?:\d{3}\*{4}\d{4})?$
           description: 脱敏手机号，如 138****0817；未绑定时为空串
       required:
       - id
@@ -3139,7 +3969,7 @@ components:
         code:
           type: string
           maxLength: 32
-          pattern: '^[a-z0-9-]{1,32}$'
+          pattern: ^[a-z0-9-]{1,32}$
           description: 分类编码（前端 mock cat，如 matcha/craft）
         name:
           type: string
@@ -3183,7 +4013,7 @@ components:
         code:
           type: string
           maxLength: 32
-          pattern: '^[a-z0-9-]{1,32}$'
+          pattern: ^[a-z0-9-]{1,32}$
           description: 商品编码（前端 mock id，如 m1/craft-pale）
         categoryId:
           type: string
@@ -3275,6 +4105,9 @@ components:
           type: integer
           format: int32
           description: 排序
+        soldOut:
+          type: boolean
+          description: 是否售罄；true 时不可下单。
       x-table: cosen_product
       required:
       - code
@@ -3291,21 +4124,27 @@ components:
           description: 用户券ID（bigint ID，JSON 用字符串避免精度丢失）
           readOnly: true
         scope:
-          type: object
-          nullable: true
+          type:
+          - object
+          - 'null'
           description: 发布时选定的分类或单品；空值沿用历史券规则
           properties:
             kind:
               type: string
-              enum: [category, product]
+              enum:
+              - category
+              - product
             targets:
               type: array
               items:
                 type: object
                 properties:
-                  id: {type: string}
-                  code: {type: string}
-                  name: {type: string}
+                  id:
+                    type: string
+                  code:
+                    type: string
+                  name:
+                    type: string
         couponNo:
           type: string
           maxLength: 40
@@ -3323,11 +4162,15 @@ components:
           maxLength: 16
           description: cash 满减 / discount 折扣 / gift 赠品券（固定面额，到店核销，无兑换码）
         valueCent:
-          type: integer
+          type:
+          - integer
+          - 'null'
           format: int64
           description: cash/gift 面额（分）；discount 时为 NULL（bigint，单位：分/计数）
         discountRate:
-          type: number
+          type:
+          - number
+          - 'null'
           format: double
           description: 折扣率，如 0.8500（仅 discount）
         thresholdCent:
@@ -3335,7 +4178,9 @@ components:
           format: int64
           description: 门槛（分），0 无门槛（bigint，单位：分/计数）
         maxOffCent:
-          type: integer
+          type:
+          - integer
+          - 'null'
           format: int64
           description: 折扣券最高减（分）（bigint，单位：分/计数）
         issuer:
@@ -3365,11 +4210,15 @@ components:
           maxLength: 16
           description: unused/used/expired/transferred/frozen
         usedAt:
-          type: string
+          type:
+          - string
+          - 'null'
           format: date-time
           description: 核销时间
         orderId:
-          type: string
+          type:
+          - string
+          - 'null'
           format: int64
           description: 核销订单ID（bigint ID，JSON 用字符串避免精度丢失）
         source:
@@ -3381,15 +4230,21 @@ components:
           maxLength: 16
           description: grant 后台发放 / redeem 积分或活动兑换发放 / transfer 好友转赠；redeem 仅表示发放来源，券仍无兑换码字段与兑换接口（红线不变）
         transferNo:
-          type: string
+          type:
+          - string
+          - 'null'
           maxLength: 40
           description: 转赠单号
         transferAt:
-          type: string
+          type:
+          - string
+          - 'null'
           format: date-time
           description: 转出时间
         acceptAt:
-          type: string
+          type:
+          - string
+          - 'null'
           format: date-time
           description: 接收时间
         createTime:
@@ -3421,12 +4276,12 @@ components:
           description: 订单ID（bigint ID，JSON 用字符串避免精度丢失）
         orderNo:
           type: string
-          pattern: '^\d{16}$'
+          pattern: ^\d{16}$
           maxLength: 32
           description: 订单号（16 位数字）
         pickupCode:
           type: string
-          pattern: '^[A-Z]\d{3}$'
+          pattern: ^[A-Z]\d{3}$
           maxLength: 8
           description: 取餐号，如 A018
         storeId:
@@ -3470,9 +4325,10 @@ components:
           minimum: 0
           description: 微信支付（分）
         couponId:
-          type: string
+          type:
+          - string
+          - 'null'
           format: int64
-          nullable: true
           description: 使用的用户券ID，未用券为 null
         payMode:
           type: string
@@ -3499,9 +4355,13 @@ components:
           - making
           - ready
           - completed
+          - refund_pending
+          - refunding
+          - refund_error
+          - refunded
           - cancelled
           maxLength: 16
-          description: 订单状态机
+          description: 订单状态；making/ready 为后端兼容值，当前小程序不推进制作/取餐状态。退款申请、退款中、失败和完成分别为 refund_pending/refunding/refund_error/refunded。
         remark:
           type: string
           maxLength: 255
@@ -3512,20 +4372,47 @@ components:
           readOnly: true
           description: 创建时间（ISO-8601 +08:00）
         paidAt:
-          type: string
+          type:
+          - string
+          - 'null'
           format: date-time
-          nullable: true
           description: 支付完成时间
         finishedAt:
-          type: string
+          type:
+          - string
+          - 'null'
           format: date-time
-          nullable: true
           description: 完成/取餐时间
         cancelledAt:
-          type: string
+          type:
+          - string
+          - 'null'
           format: date-time
-          nullable: true
           description: 取消时间
+        tableNo:
+          type: string
+          description: 桌号；未关联桌位时为空串。
+        refundReason:
+          type: string
+          description: 退款原因；未申请时为空串。
+        refundRequestedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+          description: 申请退款时间
+        refundedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+          description: 退款完成时间
+        payDeadline:
+          type:
+          - string
+          - 'null'
+          format: date-time
+          description: 支付截止时间；按创建时间和服务端超时配置计算，不能据此推断支付成功
       required:
       - id
       - orderNo
@@ -3546,7 +4433,7 @@ components:
           description: 明细ID（bigint ID，JSON 用字符串避免精度丢失）
         productCode:
           type: string
-          pattern: '^[a-z0-9-]{1,32}$'
+          pattern: ^[a-z0-9-]{1,32}$
           maxLength: 32
           description: 商品编码快照（m1…）
         productName:
@@ -3609,9 +4496,7 @@ components:
           type: string
           description: 服务端链路 ID（每请求生成，12 位；成功与错误都带）
         data:
-          type: object
-          nullable: true
-          additionalProperties: true
+          description: 业务数据，具体类型由各接口定义；允许对象、数组、标量或 null。
       required:
       - code
       - msg
@@ -3646,8 +4531,14 @@ components:
       type: object
       title: LoginWechatReq
       properties:
-        nickname: {type: string, maxLength: 32, description: 手机号认领时选填的共享昵称}
-        realName: {type: string, maxLength: 32, description: 会员选填姓名}
+        nickname:
+          type: string
+          maxLength: 32
+          description: 手机号认领时选填的共享昵称
+        realName:
+          type: string
+          maxLength: 32
+          description: 会员选填姓名
         code:
           type: string
           maxLength: 128
@@ -3667,7 +4558,7 @@ components:
       properties:
         phone:
           type: string
-          pattern: '^1[3-9]\d{9}$'
+          pattern: ^1[3-9]\d{9}$
           example: '13800000817'
           description: 大陆手机号（11 位）
         nickname:
@@ -3708,7 +4599,7 @@ components:
       properties:
         productCode:
           type: string
-          pattern: '^[a-z0-9-]{1,32}$'
+          pattern: ^[a-z0-9-]{1,32}$
           maxLength: 32
           example: m1
           description: 商品编码（m1/h1/f1/c1…）
@@ -3759,6 +4650,12 @@ components:
           minLength: 8
           maxLength: 64
           description: 下单幂等键，与 Header Idempotency-Key 二选一必填；缺失/非法返回 40007
+        tableNo:
+          type:
+          - string
+          - 'null'
+          maxLength: 32
+          description: 可选桌号，trim 后空串按未选择；非空时必须匹配 [A-Z0-9_-]{1,24} 且为已启用桌位，否则 40002。
       required:
       - items
     PayOrderReq:
@@ -3796,12 +4693,12 @@ components:
           description: 订单ID（bigint ID，JSON 用字符串避免精度丢失）
         orderNo:
           type: string
-          pattern: '^\d{16}$'
+          pattern: ^\d{16}$
           maxLength: 32
           description: 订单号（16 位数字）
         pickupCode:
           type: string
-          pattern: '^[A-Z]\d{3}$'
+          pattern: ^[A-Z]\d{3}$
           maxLength: 8
           description: 取餐号，如 A018
         storeId:
@@ -3845,9 +4742,10 @@ components:
           minimum: 0
           description: 微信支付（分）；已支付时与 balancePayCent 之和须等于 payableCent
         couponId:
-          type: string
+          type:
+          - string
+          - 'null'
           format: int64
-          nullable: true
           description: 使用的用户券ID，未用券为 null
         payMode:
           type: string
@@ -3874,9 +4772,13 @@ components:
           - making
           - ready
           - completed
+          - refund_pending
+          - refunding
+          - refund_error
+          - refunded
           - cancelled
           maxLength: 16
-          description: 订单状态机
+          description: 订单状态；making/ready 为后端兼容值，当前小程序不推进制作/取餐状态。退款申请、退款中、失败和完成分别为 refund_pending/refunding/refund_error/refunded。
         remark:
           type: string
           maxLength: 255
@@ -3887,19 +4789,22 @@ components:
           readOnly: true
           description: 创建时间（ISO-8601 +08:00）
         paidAt:
-          type: string
+          type:
+          - string
+          - 'null'
           format: date-time
-          nullable: true
           description: 支付完成时间
         finishedAt:
-          type: string
+          type:
+          - string
+          - 'null'
           format: date-time
-          nullable: true
           description: 完成/取餐时间
         cancelledAt:
-          type: string
+          type:
+          - string
+          - 'null'
           format: date-time
-          nullable: true
           description: 取消时间
         items:
           type: array
@@ -3908,6 +4813,30 @@ components:
           description: 订单明细，1..50 条
           items:
             $ref: '#/components/schemas/OrderItem'
+        tableNo:
+          type: string
+          description: 桌号；未关联桌位时为空串。
+        refundReason:
+          type: string
+          description: 退款原因；未申请时为空串。
+        refundRequestedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+          description: 申请退款时间
+        refundedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+          description: 退款完成时间
+        payDeadline:
+          type:
+          - string
+          - 'null'
+          format: date-time
+          description: 支付截止时间；按创建时间和服务端超时配置计算，不能据此推断支付成功
       required:
       - id
       - orderNo
@@ -3933,9 +4862,10 @@ components:
           type: string
           description: 错误文案（面向用户/前端）
         data:
-          type: object
+          type:
+          - object
+          - 'null'
           description: 错误时固定为 null
-          nullable: true
         traceId:
           type: string
           description: 服务端链路 ID
@@ -3947,7 +4877,7 @@ components:
         tierCode:
           type: string
           maxLength: 32
-          pattern: '^TIER_[A-Z0-9_]{1,27}$'
+          pattern: ^TIER_[A-Z0-9_]{1,27}$
           description: 档位编码，如 TIER_500_100
         name:
           type: string
@@ -3992,12 +4922,12 @@ components:
     WxPayParams:
       type: object
       title: WxPayParams
-      description: 微信小程序支付拉起参数（仅创建充值单响应返回，勿缓存）
+      description: 微信小程序支付拉起参数，订单支付、充值创建和门店收款预支付复用；示例为不可用演示值，勿缓存或记录真实支付签名。取得参数不代表已支付。
       properties:
         prepayId:
           type: string
           maxLength: 64
-          description: 微信预支付 ID
+          description: 充值响应可附带的微信预支付 ID；订单与门店收款使用 package，不单独返回此字段。
         timeStamp:
           type: string
           maxLength: 16
@@ -4009,7 +4939,7 @@ components:
         package:
           type: string
           maxLength: 128
-          description: 'prepay_id=xxx'
+          description: prepay_id=xxx
         signType:
           type: string
           enum:
@@ -4020,8 +4950,10 @@ components:
           type: string
           maxLength: 512
           description: 支付签名
+        appId:
+          type: string
+          description: 微信小程序 AppID；真实支付网关返回，mock 充值响应可省略。
       required:
-      - prepayId
       - timeStamp
       - nonceStr
       - package
@@ -4035,7 +4967,7 @@ components:
         rechargeNo:
           type: string
           maxLength: 40
-          pattern: '^RC[0-9]{14,20}$'
+          pattern: ^RC[0-9]{14,20}$
           description: 充值单号（微信 out_trade_no）
         tierCode:
           type: string
@@ -4074,23 +5006,33 @@ components:
           - failed
           description: pending 待支付 / paid 已到账 / closed 已关闭 / failed 支付失败
         failCode:
-          type: integer
+          type:
+          - integer
+          - 'null'
           format: int32
-          description: 失败业务码（仅 status=failed 时有值，如 40922；成功/pending 时为 null）
+          description: 失败业务码预留字段；当前实现返回 null，不应依赖此字段判断状态。
         failMsg:
-          type: string
+          type:
+          - string
+          - 'null'
           maxLength: 128
-          description: 失败原因文案（仅 status=failed 时有值）
+          description: 失败文案预留字段；当前实现返回 null。
         expireAt:
-          type: string
+          type:
+          - string
+          - 'null'
           format: date-time
           description: 支付超时时间（仅 pending 期间有意义）
         paidAt:
-          type: string
+          type:
+          - string
+          - 'null'
           format: date-time
           description: 到账时间
         flowNo:
-          type: string
+          type:
+          - string
+          - 'null'
           maxLength: 40
           description: 对应账本流水号（cosen_member_balance_flow.flow_no）
         balanceAfterCent:
@@ -4112,7 +5054,242 @@ components:
       - totalCent
       - payMode
       - status
-
+    PayOrderResult:
+      title: PayOrderResult
+      description: 订单详情及可选微信支付参数；余额支付可直接 paid，真实微信/组合预支付仍为 created/unpaid，最终状态由微信回调更新。
+      allOf:
+      - $ref: '#/components/schemas/OrderDetail'
+      - type: object
+        properties:
+          wechatPayParams:
+            oneOf:
+            - $ref: '#/components/schemas/WxPayParams'
+            - type: 'null'
+            description: 真实微信/组合预支付返回；余额支付通常省略。须使用当前付款微信身份拉起支付。
+    UpdateMemberProfileReq:
+      type: object
+      description: 昵称或头像至少一个非 null。phone 非 null 不允许；不包含文件上传。 客户端应发送规范化字符串（去除允许 trim 字段的首尾空白）；本模型的长度、枚举和 URL 前缀约束针对规范化值，是推荐请求子集，不枚举服务端所有宽松输入。
+      properties:
+        nickname:
+          type:
+          - string
+          - 'null'
+          minLength: 1
+          maxLength: 32
+          description: trim 后非空且最多 32 字符
+        avatarUrl:
+          type:
+          - string
+          - 'null'
+          maxLength: 500
+          description: trim 后长度最多 500；空串可清除；实现不验证 URL 格式
+        phone:
+          type: 'null'
+          description: 非 null 一律拒绝；绑定手机号请使用专用微信验证接口
+      anyOf:
+      - required:
+        - nickname
+        properties:
+          nickname:
+            type: string
+      - required:
+        - avatarUrl
+        properties:
+          avatarUrl:
+            type: string
+    OrderRefundReq:
+      type: object
+      properties:
+        reason:
+          type:
+          - string
+          - 'null'
+          maxLength: 200
+          description: trim 后最多 200；省略/null/空串采用用户申请退款；退款态重放不重新校验
+      description: ' 客户端应发送规范化字符串；长度、枚举与 URL 前缀约束针对规范化值，是推荐请求子集，不枚举服务端所有宽松输入。'
+    SubmitOrderReviewReq:
+      type: object
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        content:
+          type:
+          - string
+          - 'null'
+          maxLength: 500
+          default: ''
+          description: 不 trim，null 按空串处理
+        images: &id018
+          type:
+          - array
+          - 'null'
+          maxItems: 3
+          description: 已上传图片 URL；元素先 trim，再验证长度/前缀。不是文件内容。
+          items:
+            type: string
+            minLength: 1
+            maxLength: 500
+            pattern: ^(https?://|/).+
+      required:
+      - rating
+      description: ' 客户端应发送规范化字符串；长度、枚举与 URL 前缀约束针对规范化值，是推荐请求子集，不枚举服务端所有宽松输入。'
+    OrderReview:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 评价 ID
+        orderNo:
+          type: string
+          pattern: ^\d{16}$
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        content:
+          type: string
+          maxLength: 500
+        images:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+          description: 创建时间；历史缺失时间可为 null
+      required:
+      - id
+      - orderNo
+      - rating
+      - content
+      - images
+      - createdAt
+    SubmitFeedbackReq:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+          - product
+          - service
+          - other
+          description: trim 后校验
+        content:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: trim 后非空且最多 1000 字符
+        contact:
+          type:
+          - string
+          - 'null'
+          maxLength: 64
+          default: ''
+          description: trim 后最多 64；null 按空串处理
+        images: *id018
+      required:
+      - type
+      - content
+      description: ' 客户端应发送规范化字符串（去除允许 trim 字段的首尾空白）；本模型的长度、枚举和 URL 前缀约束针对规范化值，是推荐请求子集，不枚举服务端所有宽松输入。'
+    FeedbackCreated:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 反馈 ID
+      required:
+      - id
+    CloseMyAccountReq:
+      type: object
+      properties:
+        reason:
+          type:
+          - string
+          - 'null'
+          maxLength: 200
+          description: 不 trim，仅校验长度，不存储
+    CollectionEntry:
+      type: object
+      properties:
+        title:
+          type: string
+          const: 可森 COSEN 门店收款
+      required:
+      - title
+    CollectionPrepayReq:
+      type: object
+      properties:
+        scene:
+          type: string
+          description: 必须等于当前启用收款码的 scene
+        code:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: uni.login 得到的一次性微信登录 code；不可为空白
+        intent:
+          type: string
+          pattern: ^[a-zA-Z0-9-]{16,64}$
+          description: 客户端幂等意图标识；相同 scene+openid+intent 不得改变金额
+        amountCent:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 10000000
+          description: 付款金额（分），必须为 JSON 整数，100.0 不被 isIntegralNumber 接受
+      required:
+      - scene
+      - code
+      - intent
+      - amountCent
+    CollectionPrepayResult:
+      type: object
+      properties:
+        payNo:
+          type: string
+          pattern: ^QR[0-9a-f]{30}$
+        receiptKey:
+          type: string
+          pattern: ^[0-9a-f]{32}$
+          description: 查询回执的凭据；不能公开
+        status:
+          type: string
+          enum:
+          - pending
+          - paid
+          - refunding
+          - refunded
+          - refund_error
+        amountCent:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 10000000
+        wechatPayParams:
+          $ref: '#/components/schemas/WxPayParams'
+      required:
+      - payNo
+      - receiptKey
+      - status
+      - amountCent
+    CollectionReceipt:
+      type: object
+      properties:
+        status:
+          type: string
+          description: 当前收款状态，已知 pending/paid/closed/refunding/refunded/refund_error；不限制枚举以兼容账务扩展
+        amountCent:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 10000000
+      required:
+      - status
+      - amountCent
   securitySchemes:
     bearerAuth:
       type: http
@@ -4441,3 +5618,9 @@ components:
         msg: 操作过于频繁，请稍后重试
         data: null
         traceId: c8f1e206
+    phoneRequired:
+      value:
+        code: 40310
+        msg: 请先验证手机号
+        data: null
+        traceId: demo-phone-required

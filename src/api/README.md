@@ -1,7 +1,33 @@
 # 小程序请求层（`src/api`）
 
-契约来源：`reference/cosen-api-v1.openapi.yaml`（v1.4.0，19 接口），错误码口径见契约仓库 `docs/error-codes.md`。
-已接**全部 19 个接口**：第一组 9（认证 4 + 会员 2 + 商品目录 3）+ 第二组 7（券 2 + 订单/支付 5）+ 充值 3。
+契约来源：[小程序 OpenAPI](../../reference/cosen-api-v1.openapi.yaml) **v1.7.0：30 paths / 34 operations / 40 schemas**（2026-11-23 按实时前后端源码核对）。
+当前前端有 **31 个规范化 METHOD + path 调用，全部已收录**：请求层 28 个、收款页面 3 个；另收录资料更新 POST 兼容别名和 2 个 HTML/302 扫码入口。Mock 登录只在后端明确开启时可用，不代表生产开放。
+错误响应使用真实 HTTP 状态及业务 code，不能按业务码前缀推断 HTTP 状态（如 40922 对应 HTTP 502）。
+
+### 契约回归与验收边界
+
+在项目根目录安装独立的 Python 校验依赖后运行（不需要启动后端、不访问业务网络）：
+
+```bash
+python3 -m venv /tmp/cosen-contract-venv
+/tmp/cosen-contract-venv/bin/python -m pip install -r reference/requirements-contract.txt
+/tmp/cosen-contract-venv/bin/python scripts/check-app-contract.py
+# 如果当前 python3 已有依赖，也可用 npm run check:contract
+```
+
+[离线校验脚本](../../scripts/check-app-contract.py) 检查重复 YAML 键、内部引用、JSON Schema 2020-12 语法和所有媒体示例、operationId/分组/鉴权/路径参数、当前前端请求覆盖，以及支付/退款/可空字段/回执凭据/HTML 入口等回归不变量。
+[GitHub Actions](../../.github/workflows/app-contract.yml) 对契约、校验器及前端调用改动运行同一检查；不会发送支付、退款或注销请求。
+请求覆盖提取器针对当前字面量/模板字符串和收款回执拼接写法，不是通用 TypeScript 解析器；改为动态拼装 URL 或新的请求封装时，需同步扩展提取器并人工复核。此检查不是完整 OpenAPI 标准认证，也不启用 date-time/URI 等 format 的强校验。
+
+本轮 v1.7.0 增补：资料 PUT/POST、退款、评价读写、反馈、当前微信身份注销、收款校验/预支付/凭据查询、桌码与收款码 HTML 入口；修正微信预支付返回参数、退款状态/时间与桌号、40310，以及充值/券的实际 null 值。
+
+- 微信/混合**预支付不等于支付成功**：真实预支付通常返回 created/unpaid + wechatPayParams，随后拉起微信并查询最终状态；独立 prepayId 为可选，订单/门店收款使用 package。
+- 游客可以不用券进行普通微信支付；券、余额、混合支付和充值等会员能力需验证手机号，缺少时为 HTTP 403/code 40310。
+- 后端仍接受 making/ready 兼容状态；退款新增 refund_pending/refunding/refund_error/refunded，不应在客户端误判为支付失败。
+- 注销解绑的是当前微信身份；仅最后一个活跃身份解绑才关闭会员，资产及订单历史仍保留。原 token 重试可能 401。
+- 头像更新目前**仅保存 URL**，不会上传微信临时文件；选择头像到永久存储的链路尚未闭环，本契约不虚构上传接口。
+- 生产业务基址为 `https://cosen.tablejoker.com`，不追加 `/api` 或 `/app`；小程序 HTTPS/合法域名与 H5 CORS/开发代理边界见下文。
+- 本地契约通过和 Git push 成功均不等于 Apifox 已同步，也不等于登录、支付、退款等生产/真机链路验收通过。Apifox 同步须在业务模块回读路径/模型核实，不能只看 Git 连接存在。
 
 本地开发默认仍是 **纯 mock 版**：`useMock = true`，页面继续读 `src/mock/*`，请求层不会被调用。
 生产构建默认加载仓库内的 `.env.production`，连接线上真实 API；构建本身不要求本机后端（8080/8081）运行。
@@ -19,14 +45,19 @@ src/api/types.ts         契约 DTO（手写 TS interface，金额字段一律�
 src/api/money.ts         分 ↔ 元工具：centToYuan / yuanToCent / centText / centText2
 src/api/auth.ts          POST /app/auth/login/wechat、/app/auth/login/mock、
                          /app/auth/phone/bind、/app/auth/logout
-src/api/member.ts        GET /app/member/profile、GET /app/member/balance/flows
+src/api/member.ts        GET/PUT /app/member/profile、GET /app/member/balance/flows
 src/api/catalog.ts       GET /app/catalog/categories、/app/catalog/products、
                          /app/catalog/products/{code}（含 DTO → 页面模型适配）
 src/api/coupon.ts        GET /app/coupons、/app/coupons/{couponNo}（含五态映射）
 src/api/order.ts         POST /app/orders、GET /app/orders、/app/orders/{orderNo}、
-                         pay、cancel（含 DTO → 页面模型与状态文案）
+                         pay、cancel、refund、订单/会员订阅上报（含 DTO → 页面模型与状态文案）
 src/api/recharge.ts      GET /app/recharge/tiers、POST /app/recharges、
                          GET /app/recharges/{rechargeNo}（含充值独立幂等键前缀）
+src/api/review.ts        GET/POST /app/orders/{orderNo}/review
+src/api/feedback.ts      POST /app/feedback
+src/api/account.ts       POST /app/account/close（当前微信身份注销）
+src/api/store.ts         GET /app/store
+src/pages/collect/       直接调用门店收款校验、预支付及带凭据的回执查询
 src/api/index.ts         统一出口
 ```
 

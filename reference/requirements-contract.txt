@@ -1,0 +1,4 @@
+# Offline OpenAPI regression gate; CI uses Python 3.12.
+PyYAML==6.0.3
+jsonschema==4.19.2
+referencing==0.36.2
