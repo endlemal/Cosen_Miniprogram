@@ -78,7 +78,7 @@ import type { MemberProfile } from '@/api/types'
 import { setMemberProfile } from '@/store/member'
 import NavBar from '@/components/NavBar.vue'
 import { useMock } from '@/config/env'
-import { getMemberProfile, hasToken, isSignedOut, loginByWechat, setToken, updateMemberProfile } from '@/api'
+import { getMemberProfile, hasToken, isLocalTempAvatar, isSignedOut, loginByWechat, setToken, updateMemberProfile, uploadMemberAvatar } from '@/api'
 
 const instance = getCurrentInstance()
 
@@ -192,8 +192,13 @@ const displayName = computed(() => {
   return '可森' + (profile.value?.id ? String(profile.value.id).padStart(6, '0') : visitor)
 })
 const avatarUrl = computed(() => {
-  const url = pendingAvatar.value.trim() || localAvatar.value.trim() || profile.value?.avatarUrl?.trim() || ''
-  return /^(wxfile:|file:|blob:|data:|\/static\/)/.test(url) ? url : mediaUrl(url)
+  const pending = pendingAvatar.value.trim()
+  if (pending) return isLocalTempAvatar(pending) || /^(data:|\/static\/)/.test(pending) ? pending : mediaUrl(pending)
+  const local = localAvatar.value.trim()
+  if (local) return isLocalTempAvatar(local) || /^(data:|\/static\/)/.test(local) ? local : mediaUrl(local)
+  const saved = profile.value?.avatarUrl?.trim() || ''
+  if (!saved || isLocalTempAvatar(saved)) return ''
+  return /^(data:|\/static\/)/.test(saved) ? saved : mediaUrl(saved)
 })
 const catPosition = computed(() => {
   const index = catIndex(profile.value?.memberNo || String(profile.value?.id || visitor))
@@ -262,7 +267,9 @@ async function persistAvatar(url: string) {
   if (savingAvatar.value) return
   savingAvatar.value = true
   try {
-    const updated = await updateMemberProfile({ avatarUrl: url })
+    const updated = isLocalTempAvatar(url)
+      ? await uploadMemberAvatar(url)
+      : await updateMemberProfile({ avatarUrl: url })
     applyProfile(updated)
     pendingAvatar.value = ''
     toast('头像已更新')

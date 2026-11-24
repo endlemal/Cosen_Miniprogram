@@ -38,6 +38,38 @@ export function getToken(): string {
   return isSignedOut() ? '' : cachedToken
 }
 
+/**
+ * 登录态变化订阅。
+ *
+ * 为什么需要：会员资料（余额 / 券 / phoneBound）缓存在 store 里，登录态被清空
+ * （退出、401 过期、扫码代客订单重置会话）时必须一起清掉，否则游客会继续看到
+ * 只有登录会员才有的余额支付 / 礼品券入口，点开才提示「请先登录」。
+ */
+export interface SessionSnapshot {
+  token: string
+  signedOut: boolean
+}
+type SessionListener = (snapshot: SessionSnapshot) => void
+const sessionListeners = new Set<SessionListener>()
+
+export function onSessionChange(listener: SessionListener): () => void {
+  sessionListeners.add(listener)
+  return () => {
+    sessionListeners.delete(listener)
+  }
+}
+
+function notifySessionChange(): void {
+  const snapshot: SessionSnapshot = { token: cachedToken, signedOut: cachedToken === SIGNED_OUT }
+  for (const listener of [...sessionListeners]) {
+    try {
+      listener(snapshot)
+    } catch (e) {
+      // 订阅方异常不能影响登录态写入
+    }
+  }
+}
+
 function writeSession(token: string): void {
   cachedToken = token || ''
   loaded = true
@@ -47,6 +79,7 @@ function writeSession(token: string): void {
   } catch (e) {
     // 写入失败不阻断请求，内存里仍保留本次会话的 token
   }
+  notifySessionChange()
 }
 
 export function setToken(token: string): void {

@@ -222,6 +222,7 @@ import { mediaCover } from '@/utils/media'
 import ProductImagePlaceholder from '@/components/ProductImagePlaceholder.vue'
 import { STORE } from '@/mock/products'
 import { useMock } from '@/config/env'
+import { isSignedOut, setToken } from '@/api/token'
 import {
   applyOrderRefund,
   cancelOrder,
@@ -257,6 +258,8 @@ const listLoading = ref(false)
 const detailLoading = ref(false)
 const busy = ref(false)
 const subscribedOnce = ref(false)
+const autoPayOnEntry = ref(false)
+const autoPayTriggered = ref(false)
 const now = ref(Date.now())
 let timer: ReturnType<typeof setInterval> | null = null
 
@@ -407,6 +410,11 @@ const orderList = computed<OrderListItem[]>(() => {
 onLoad((q) => {
   const no = (q?.no as string) || ''
   const id = (q?.id as string) || ''
+  autoPayOnEntry.value = q?.autopay === '1' || q?.autopay === 'true'
+  if (autoPayOnEntry.value && isSignedOut()) {
+    // 扫码代客订单付款时，即使此前点过退出登录也自动解除拦截，由 request 层通过 uni.login 静默建立游客微信会话直接拉起收银台
+    setToken('')
+  }
   timer = setInterval(() => (now.value = Date.now()), 1000)
   if (no) {
     detailNo.value = no
@@ -447,6 +455,10 @@ async function loadDetail(no: string) {
     realOrder.value = null
   } finally {
     detailLoading.value = false
+  }
+  if (autoPayOnEntry.value && !autoPayTriggered.value && canPay.value && order.value?.pay === 'wechat') {
+    autoPayTriggered.value = true
+    void executePay(false)
   }
   await loadReview()
 }
@@ -511,6 +523,10 @@ function cancelNow() {
  * 取消 / 失败 / 超时都给明确提示，订单保持待支付可重试。
  */
 async function payNow() {
+  await executePay(true)
+}
+
+async function executePay(fromUserGesture: boolean) {
   if (busy.value || !detailNo.value || !order.value) return
   if (expired.value) {
     uni.showToast({ title: '订单已超时取消', icon: 'none' })
@@ -523,11 +539,13 @@ async function payNow() {
     return
   }
   busy.value = true
-  // 必须在点击手势内同步触发订阅弹窗，再发起支付
-  const subResult = await promptOrderSubscribe('order_pay')
-  if (Object.keys(subResult.results).length) {
-    const ok = await reportOrderSubscribe(detailNo.value, subResult, 'order_pay')
-    if (ok) subscribedOnce.value = true
+  if (fromUserGesture) {
+    // 仅在用户点击手势内同步触发订阅弹窗，自动拉起收银台时跳过以免阻塞 wx.requestPayment
+    const subResult = await promptOrderSubscribe('order_pay')
+    if (Object.keys(subResult.results).length) {
+      const ok = await reportOrderSubscribe(detailNo.value, subResult, 'order_pay')
+      if (ok) subscribedOnce.value = true
+    }
   }
   uni.showLoading({ title: mode === 'wechat' ? '正在拉起支付' : '余额支付中', mask: true })
   try {

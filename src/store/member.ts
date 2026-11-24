@@ -9,7 +9,7 @@
  */
 import { ref } from 'vue'
 import { useMock } from '@/config/env'
-import { isSignedOut } from '@/api/token'
+import { isSignedOut, onSessionChange } from '@/api/token'
 import { getMemberProfile } from '@/api/member'
 import { centToYuan } from '@/api/money'
 import type { MemberProfile } from '@/api/types'
@@ -39,3 +39,9 @@ export async function syncMemberProfile(): Promise<MemberProfile | null> {
     return null
   }
 }
+
+// 登录态一旦失效（主动退出 / 401 过期 / 静默会话被重置），立刻丢掉会员资料。
+// 否则游客在结算页仍会看到「会员余额」「礼品券」，点开却提示需要登录。
+onSessionChange(({ token, signedOut }) => {
+  if (signedOut || !token) setMemberProfile(null)
+})

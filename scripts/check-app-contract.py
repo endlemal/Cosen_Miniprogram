@@ -215,7 +215,7 @@ class ContractChecks(unittest.TestCase):
     def test_frontend_coverage(self):
         calls = frontend_operations()
         documented = {(method.upper(), normalize(path)) for path, method, _ in OPS}
-        self.assertGreaterEqual(len(calls), 31, 'Request extractor needs review after frontend refactor')
+        self.assertGreaterEqual(len(calls), 30, 'Request extractor needs review after frontend refactor (2026-11-24: 注销账号已下线，/app/account/close 不再由小程序调用)')
         self.assertFalse(calls - documented, f'Undocumented frontend requests: {sorted(calls - documented)}')
 
     def test_pay_refund_and_nullable_fields(self):

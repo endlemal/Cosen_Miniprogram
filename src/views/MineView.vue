@@ -13,16 +13,18 @@
       <!-- 个人信息 -->
       <view class="me" hover-class="tap-on" @tap="openProfileEditor">
         <view class="avatar">
-          <image v-if="profile?.avatarUrl" class="avatar-img" :src="profile.avatarUrl" mode="aspectFill" />
+          <image
+            v-if="profileAvatarSrc && failedProfileAvatar !== profileAvatarSrc"
+            class="avatar-img"
+            :src="profileAvatarSrc"
+            mode="aspectFill"
+            @error="failedProfileAvatar = profileAvatarSrc"
+          />
           <text v-else class="avatar-t">{{ displayName.slice(0, 1) }}</text>
         </view>
         <view class="me-info">
           <text class="me-name">{{ displayName }}</text>
           <view class="me-row">
-            <view class="level">
-              <Icon name="crown" :size="22" color="#462719" :stroke="2.2" />
-              <text class="level-t">{{ displayLevel }}</text>
-            </view>
             <text class="me-phone">{{ displayPhone || '未绑定手机号' }}</text>
           </view>
         </view>
@@ -169,14 +171,6 @@
           <text class="set-t">{{ signingOut ? '正在退出…' : '退出登录' }}</text>
           <Icon name="right" :size="28" color="#856951" />
         </view>
-        <view v-if="hasToken()" class="set-line" />
-        <view class="set-row" hover-class="tap-on" @tap="onCloseAccount">
-          <view class="set-ic">
-            <Icon name="trash" :size="34" color="#9C8574" />
-          </view>
-          <text class="set-t danger">注销账号</text>
-          <Icon name="right" :size="28" color="#856951" />
-        </view>
       </view>
 
       <view v-if="useMock" class="reset" hover-class="tap-on" @tap="onReset">
@@ -191,14 +185,21 @@
       <view class="pf-sheet">
         <view class="pf-av-row">
           <view class="pf-av-preview">
-            <image v-if="editAvatarUrl" class="avatar-img" :src="editAvatarUrl" mode="aspectFill" />
+            <image
+              v-if="editAvatarPreview && failedEditAvatar !== editAvatarPreview"
+              class="avatar-img"
+              :src="editAvatarPreview"
+              mode="aspectFill"
+              @error="failedEditAvatar = editAvatarPreview"
+            />
             <text v-else class="pf-av-ch">{{ (editNickname || displayName).slice(0, 1) }}</text>
           </view>
           <view class="pf-av-actions">
             <!-- #ifdef MP-WEIXIN -->
             <button class="pf-wx-sm" open-type="chooseAvatar" @chooseavatar="onChooseAvatar">获取微信头像</button>
             <!-- #endif -->
-            <input v-model="editAvatarUrl" class="pf-in pf-in-sm" placeholder="或填入头像图片链接（选填）" />
+            <text v-if="editAvatarTemp" class="pf-av-tip">已选择微信头像，点击下方保存上传</text>
+            <input v-else v-model="editAvatarUrl" class="pf-in pf-in-sm" placeholder="或填入头像图片链接（选填）" />
           </view>
         </view>
         <view class="pf-field">
@@ -236,9 +237,8 @@ import { LOGIN_PAGE, useMock } from '@/config/env'
 import {
   centToYuan,
   checkAlwaysAcceptedTemplates,
-  clearToken,
-  closeAccount,
   hasToken,
+  isLocalTempAvatar,
   isSignedOut,
   logout,
   listMyOrders,
@@ -248,15 +248,15 @@ import {
   silentRefillSubscribe,
   toOrderListItem,
   updateMemberProfile,
+  uploadMemberAvatar,
   type OrderListItem
 } from '@/api'
+import { mediaUrl } from '@/utils/media'
 import {
   state,
-  memberLevel,
   availableCouponCount,
   newCouponCount,
   couponState,
-  clearLocalCache,
   mockOrderStatus,
   resetDemo,
   switchTab
@@ -269,14 +269,10 @@ const scrolled = ref(false)
 
 /* ---- 真实环境分支：useMock=false 时用会员接口覆盖展示（mock 默认不请求） ---- */
 const profile = memberProfile
-const LEVEL_NAMES: Record<number, string> = { 1: '可森会员', 2: '醇香会员', 3: '深焙会员' }
 const displayName = computed(() => profile.value?.nickname || (useMock ? USER.name : '可森会员'))
 const displayPhone = computed(() => profile.value?.phoneMasked || (useMock ? USER.phone : ''))
 const displayBalance = computed(() => (profile.value ? centToYuan(profile.value.balanceCent ?? 0) : state.balance))
 const displayPoints = computed(() => (profile.value ? profile.value.points ?? 0 : state.points))
-const displayLevel = computed(() =>
-  profile.value?.level ? LEVEL_NAMES[profile.value.level] || memberLevel.value.name : memberLevel.value.name
-)
 
 const realOrders = ref<OrderListItem[]>([])
 const realOrderTotal = ref(0)
@@ -389,17 +385,45 @@ const profileOpen = ref(false)
 const profileSaving = ref(false)
 const editNickname = ref('')
 const editAvatarUrl = ref('')
+const editAvatarTemp = ref('')
+const failedProfileAvatar = ref('')
+const failedEditAvatar = ref('')
+
+const profileAvatarSrc = computed(() => {
+  const raw = profile.value?.avatarUrl?.trim() || ''
+  if (!raw || isLocalTempAvatar(raw)) return ''
+  return /^(data:|\/static\/)/.test(raw) ? raw : mediaUrl(raw)
+})
+
+const editAvatarPreview = computed(() => {
+  if (editAvatarTemp.value) return editAvatarTemp.value
+  const raw = editAvatarUrl.value.trim()
+  if (!raw || isLocalTempAvatar(raw)) return ''
+  return /^(data:|\/static\/)/.test(raw) ? raw : mediaUrl(raw)
+})
 
 function openProfileEditor() {
   if (isSignedOut()) return goToPhoneLogin()
   editNickname.value = profile.value?.nickname || (useMock ? USER.name : '')
-  editAvatarUrl.value = profile.value?.avatarUrl || ''
+  const saved = profile.value?.avatarUrl?.trim() || ''
+  editAvatarUrl.value = isLocalTempAvatar(saved) ? '' : saved
+  editAvatarTemp.value = ''
+  failedEditAvatar.value = ''
   profileOpen.value = true
 }
 
 function onChooseAvatar(e: any) {
   const url = e?.detail?.avatarUrl
-  if (typeof url === 'string' && url) editAvatarUrl.value = url
+  if (typeof url === 'string' && url.trim()) {
+    const clean = url.trim()
+    failedEditAvatar.value = ''
+    if (isLocalTempAvatar(clean)) {
+      editAvatarTemp.value = clean
+    } else {
+      editAvatarTemp.value = ''
+      editAvatarUrl.value = clean
+    }
+  }
 }
 
 function goToPhoneLogin() {
@@ -409,8 +433,12 @@ function goToPhoneLogin() {
 
 async function saveProfile() {
   const nickname = editNickname.value.trim()
-  const avatarUrl = editAvatarUrl.value.trim()
-  if (!nickname && !avatarUrl) {
+  const tempFile = editAvatarTemp.value.trim()
+  const manualAvatar = editAvatarUrl.value.trim()
+  const savedAvatar = profile.value?.avatarUrl?.trim() || ''
+  const avatarChanged = !tempFile && manualAvatar !== savedAvatar && !isLocalTempAvatar(manualAvatar)
+  const nicknameChanged = !!nickname && nickname !== (profile.value?.nickname || '').trim()
+  if (!tempFile && !nickname && !manualAvatar) {
     uni.showToast({ title: '请填写要修改的内容', icon: 'none' })
     return
   }
@@ -422,11 +450,26 @@ async function saveProfile() {
   if (profileSaving.value) return
   profileSaving.value = true
   try {
-    const updated = await updateMemberProfile({
-      nickname: nickname || undefined,
-      avatarUrl: avatarUrl || undefined
-    })
-    setMemberProfile(updated)
+    let latest = profile.value
+    if (tempFile) {
+      latest = await uploadMemberAvatar(tempFile)
+      setMemberProfile(latest)
+      failedProfileAvatar.value = ''
+      editAvatarTemp.value = ''
+      editAvatarUrl.value = latest.avatarUrl || ''
+    }
+    if (nicknameChanged || avatarChanged || (!tempFile && (nickname || manualAvatar))) {
+      const payload: { nickname?: string; avatarUrl?: string } = {}
+      if (nickname) payload.nickname = nickname
+      if (!tempFile && manualAvatar && !isLocalTempAvatar(manualAvatar)) {
+        payload.avatarUrl = manualAvatar
+      }
+      if (payload.nickname || payload.avatarUrl) {
+        latest = await updateMemberProfile(payload)
+        setMemberProfile(latest)
+        failedProfileAvatar.value = ''
+      }
+    }
     profileOpen.value = false
     uni.showToast({ title: '资料已更新', icon: 'success' })
   } catch {
@@ -484,49 +527,6 @@ async function onLogout() {
   }
 }
 
-/** 注销账号：二次确认 → /app/account/close → 清 token/缓存 → 跳登录 */
-function onCloseAccount() {
-  uni.showModal({
-    title: '注销账号？',
-    content: '注销会解除当前微信与会员的绑定。如果这是最后一个绑定的微信，会员账户也会注销。',
-    confirmText: '继续',
-    confirmColor: '#D9483B',
-    success: (first) => {
-      if (!first.confirm) return
-      uni.showModal({
-        title: '再次确认注销',
-        content: '确认后账号立即失效且不可恢复，确定注销吗？',
-        confirmText: '确认注销',
-        confirmColor: '#D9483B',
-        success: (second) => {
-          if (second.confirm) void doCloseAccount()
-        }
-      })
-    }
-  })
-}
-
-const closing = ref(false)
-async function doCloseAccount() {
-  if (closing.value) return
-  closing.value = true
-  uni.showLoading({ title: '正在注销', mask: true })
-  try {
-    // mock 模式没有后端，仅清本地登录态，保持纯 mock 可演示
-    if (!useMock) await closeAccount({})
-    setMemberProfile(null)
-    clearToken()
-    clearLocalCache()
-    uni.hideLoading()
-    uni.showToast({ title: '账号已注销', icon: 'none', duration: 1600 })
-    setTimeout(() => uni.reLaunch({ url: LOGIN_PAGE }), 700)
-  } catch {
-    // 40108 / 5xx 等由请求层提示；失败保留登录态，避免「注销失败却丢登录」
-    uni.hideLoading()
-  } finally {
-    closing.value = false
-  }
-}
 function onReset() {
   uni.showModal({
     title: '重置演示数据？',
@@ -610,22 +610,7 @@ function onReset() {
   display: flex;
   align-items: center;
 }
-.level {
-  height: 42rpx;
-  padding: 0 16rpx 0 12rpx;
-  border-radius: 14rpx;
-  background: $caramel;
-  display: flex;
-  align-items: center;
-}
-.level-t {
-  margin-left: 6rpx;
-  font-size: 21rpx;
-  font-weight: 700;
-  color: $roast;
-}
 .me-phone {
-  margin-left: 16rpx;
   font-size: 23rpx;
   color: $ink-3;
   @include num;
@@ -1002,6 +987,12 @@ function onReset() {
   display: flex;
   align-items: center;
   gap: 20rpx;
+}
+.pf-av-tip {
+  display: block;
+  font-size: 22rpx;
+  color: $ink-3;
+  margin-top: 8rpx;
 }
 .pf-av-preview {
   width: 96rpx;

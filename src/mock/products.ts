@@ -2,10 +2,9 @@ import type { Category, Product, SpecGroup } from '@/types'
 
 export const STORE = {
   name: '可森',
-  address: '黄陂南路 383 弄 12 号 1F',
-  distance: '1.2km',
-  hours: '08:00 – 21:30',
-  phone: '021-6333-0817'
+  address: '湖山路733号领新科创园',
+  hours: '09:00 – 18:00',
+  phone: '15156216518'
 }
 
 export const CATEGORIES: Category[] = [

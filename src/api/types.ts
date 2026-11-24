@@ -521,7 +521,3 @@ export interface FeedbackReq {
   images?: string[]
 }
 
-/** 注销账号请求（POST /app/account/close，reason 可选 ≤200） */
-export interface CloseAccountReq {
-  reason?: string
-}

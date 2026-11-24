@@ -87,11 +87,11 @@ function mockStore(): StoreInfo {
     name: STORE.name,
     address: STORE.address,
     phone: STORE.phone,
-    businessHours: [{ days: 'mon-sun', open: '08:00', close: '21:30' }],
+    businessHours: [{ days: 'mon-sun', open: '09:00', close: '18:00' }],
     closedDays: [],
-    announcements: ['到店自取免排队，报取餐号即可', '工作日 8:00–10:00 早安券可用'],
-    openNow: true,
-    customerService: { type: 'wechat', value: 'cosen_service' }
+    announcements: [],
+    openNow: false,
+    customerService: { type: 'wechat', value: 'cosen0817' }
   }
 }
 

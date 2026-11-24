@@ -365,6 +365,102 @@ export async function request<T = unknown>(path: string, options: RequestOptions
   return body as T
 }
 
+function sendUpload(
+  url: string,
+  filePath: string,
+  name: string,
+  header: Record<string, string>,
+  timeout: number
+): Promise<RawResponse> {
+  return new Promise((resolve, reject) => {
+    uni.uploadFile({
+      url,
+      filePath,
+      name,
+      header,
+      timeout,
+      success: (res) => {
+        let parsed: unknown = res.data
+        if (typeof res.data === 'string' && res.data.trim()) {
+          try { parsed = JSON.parse(res.data) } catch { parsed = res.data }
+        }
+        resolve({ statusCode: res.statusCode, data: parsed })
+      },
+      fail: () => reject(new Error('network-error'))
+    })
+  })
+}
+
+async function executeUpload(
+  path: string,
+  filePath: string,
+  name: string,
+  options: { silent?: boolean; timeout?: number } = {},
+  renewed = false
+): Promise<unknown> {
+  const generation = logoutGeneration
+  const silent = options.silent === true
+  if (isSignedOut()) {
+    redirectToLogin()
+    throw makeError(40101, '', 401, '')
+  }
+  // #ifdef MP-WEIXIN
+  if (!getToken()) {
+    await silentWechatSession()
+    if (generation !== logoutGeneration) throw makeError(40101, '', 401, '')
+  }
+  // #endif
+  const token = getToken()
+  const header: Record<string, string> = { Accept: 'application/json' }
+  if (token) header.Authorization = `Bearer ${token}`
+
+  let response: RawResponse
+  try {
+    response = await sendUpload(buildUrl(path), filePath, name, header, options.timeout ?? 20000)
+  } catch {
+    const err = new ApiError(0, '头像上传失败，请检查网络后重试', 'retry')
+    if (!silent) toast(err.message)
+    throw err
+  }
+
+  if (generation !== logoutGeneration) throw makeError(40101, '', 401, '')
+  const body = asRecord(response.data)
+  const rawCode = body?.code
+  const code = typeof rawCode === 'number' ? rawCode : undefined
+  const serverMsg = typeof body?.msg === 'string' ? body.msg : ''
+  const traceId = typeof body?.traceId === 'string' ? body.traceId : ''
+  const httpOk = response.statusCode >= 200 && response.statusCode < 300
+
+  if (httpOk && (code === undefined || code === 200)) {
+    return response.data
+  }
+
+  const err = makeError(code ?? statusToCode(response.statusCode, !!token), serverMsg, response.statusCode, traceId)
+  // #ifdef MP-WEIXIN
+  if (!renewed && [40101, 40104, 40106].includes(err.code)) {
+    if (token === getToken()) await silentWechatSession()
+    return executeUpload(path, filePath, name, options, true)
+  }
+  // #endif
+  handleError(err, silent, false)
+  throw err
+}
+
+/**
+ * 文件上传接口（multipart/form-data）：返回 body.data。
+ */
+export async function uploadFile<T = unknown>(
+  path: string,
+  filePath: string,
+  name = 'file',
+  options: { silent?: boolean; timeout?: number } = {}
+): Promise<T> {
+  const body = await executeUpload(path, filePath, name, options)
+  const record = asRecord(body)
+  if (record && 'data' in record) return (record.data ?? null) as T
+  return body as T
+}
+
 /**
  * 分页接口：返回 { total, rows }（PageResult 的 total/rows 在顶层，不在 data 里）。
  */

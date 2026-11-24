@@ -17,7 +17,6 @@
  *   store    门店信息（GET /app/store）
  *   review   订单评价提交 / 查询
  *   feedback 意见反馈
- *   account  账号注销
  *   payment  支付链路辅助（wx.requestPayment 拉起 + 订单轮询），非独立接口
  */
 export * from './request'
@@ -33,5 +32,4 @@ export * from './recharge'
 export * from './store'
 export * from './review'
 export * from './feedback'
-export * from './account'
 export * from './payment'

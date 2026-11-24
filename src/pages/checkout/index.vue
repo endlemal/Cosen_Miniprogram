@@ -23,7 +23,7 @@
       <!-- 自取门店信息；外送地址块（原 delivery 分支）已随契约 fulfillType 收敛移除 -->
       <view class="box where">
         <text class="w-t">{{ STORE.name }}</text>
-        <text class="w-s">{{ STORE.address }}，距你 {{ STORE.distance }}</text>
+        <text class="w-s">{{ STORE.address }} · 到店自取</text>
         <view v-if="state.tableNo" class="w-table">
           <Icon name="pin" :size="26" color="#663A24" />
           <text class="w-table-t">扫码桌位：{{ state.tableNo }} 号桌（下单自动关联桌号）</text>
@@ -54,13 +54,15 @@
 
       <!-- 优惠与费用 -->
       <view class="box">
-        <view v-if="canUseMember" class="row" hover-class="tap-on" @tap="couponOpen = true">
+        <!-- 游客也展示礼品券入口，但只有登录会员能真正选券；游客点击提示登录 -->
+        <view class="row" :class="{ locked: !canUseMember }" hover-class="tap-on" @tap="onCouponTap">
           <view class="row-l">
             <Icon name="ticket" :size="32" color="#663A24" />
             <text class="row-t">礼品券</text>
           </view>
           <view class="row-r">
             <text v-if="chosen" class="off">−¥{{ money(discount) }}</text>
+            <text v-else-if="!canUseMember" class="row-v lock-v">登录后可查看</text>
             <text v-else class="row-v">{{ usableCount ? usableCount + ' 张可用' : '暂无可用' }}</text>
             <Icon name="right" :size="28" color="#856951" />
           </view>
@@ -76,24 +78,33 @@
         </view>
       </view>
 
-      <!-- 支付方式 -->
+      <!-- 支付方式：游客也展示「会员余额」入口，点击提示登录；默认仍走微信支付 -->
       <view class="box">
         <text class="box-t">支付方式</text>
-        <view v-if="canUseMember" class="pay" :class="{ on: pay === 'balance', off: !balanceEnough }" @tap="pickBalance">
+        <view
+          class="pay"
+          :class="{ on: canUseMember && pay === 'balance', off: canUseMember && !balanceEnough, locked: !canUseMember }"
+          @tap="pickBalance"
+        >
           <view class="pay-ic forest">
             <Icon name="wallet" :size="34" color="#FFF9F0" />
           </view>
           <view class="pay-info">
             <text class="pay-t">会员余额</text>
-            <text class="pay-s" :class="{ warn: !balanceEnough }">
-              {{ !balanceSynced ? '余额加载中…' : balanceEnough ? '可用 ¥' + money2(state.balance) : '余额 ¥' + money2(state.balance) + '，不够支付本单' }}
+            <text class="pay-s" :class="{ warn: canUseMember && !balanceEnough }">
+              {{ !canUseMember ? '登录后可查看余额并使用余额支付' : !balanceSynced ? '余额加载中…' : balanceEnough ? '可用 ¥' + money2(state.balance) : '余额 ¥' + money2(state.balance) + '，不够支付本单' }}
             </text>
           </view>
-          <view v-if="!balanceEnough" class="pay-topup" hover-class="tap-on" @tap.stop="toRecharge">
-            <text class="pay-topup-t">去充值</text>
-          </view>
-          <view v-else class="radio" :class="{ on: pay === 'balance' }">
-            <Icon v-if="pay === 'balance'" name="check" :size="24" color="#FFF9F0" :stroke="3" />
+          <template v-if="canUseMember">
+            <view v-if="!balanceEnough" class="pay-topup" hover-class="tap-on" @tap.stop="toRecharge">
+              <text class="pay-topup-t">去充值</text>
+            </view>
+            <view v-else class="radio" :class="{ on: pay === 'balance' }">
+              <Icon v-if="pay === 'balance'" name="check" :size="24" color="#FFF9F0" :stroke="3" />
+            </view>
+          </template>
+          <view v-else class="pay-login" hover-class="tap-on">
+            <text class="pay-login-t">去登录</text>
           </view>
         </view>
         <view class="pay" :class="{ on: pay === 'wechat' }" @tap="pay = 'wechat'">
@@ -161,15 +172,18 @@ import Sheet from '@/components/Sheet.vue'
 import ProductImagePlaceholder from '@/components/ProductImagePlaceholder.vue'
 import CouponCard from '@/components/CouponCard.vue'
 import { STORE } from '@/mock/products'
-import { useMock } from '@/config/env'
+import { LOGIN_PAGE, useMock } from '@/config/env'
 import {
   ApiError,
   createOrder,
   genIdempotencyKey,
+  hasToken,
+  isSignedOut,
   listMyCoupons,
   payOrderFlow,
   promptOrderSubscribe,
   reportOrderSubscribe,
+  setToken,
   toCoupons,
   type CreateOrderReq,
   type SubscribePromptResult
@@ -188,7 +202,12 @@ state.mode = 'pickup'
 const fee = computed(() => 0)
 
 /* ---- 礼品券：mock 读本地；真实模式读 GET /app/coupons，默认自动选优惠最大的一张 ---- */
-const canUseMember = computed(() => useMock || !!memberProfile.value?.phoneBound)
+// 礼品券与「会员余额」入口对所有人展示：游客看得到选项，点击时提示登录（先看后登）。
+// 是否真正可用仍由 canUseMember 决定；不能只看 memberProfile —— 401 过期或退出登录后
+// 旧资料可能还留在内存里，会让游客误以为能用会员资产，所以同时要求有效会话 + 资料已同步 + 手机号已绑定。
+const canUseMember = computed(
+  () => useMock || (hasToken() && !isSignedOut() && balanceSynced.value && !!memberProfile.value?.phoneBound)
+)
 const couponId = ref('')
 const couponOpen = ref(false)
 const realCoupons = ref<Coupon[]>([])
@@ -233,6 +252,14 @@ watch(subtotal, () => {
   if (chosen.value && !evalCoupon(chosen.value, items.value, subtotal.value).ok) couponId.value = ''
 })
 
+// 会话中途失效（401 / 退出 / 静默会话被重置）时清掉会员券，避免游客仍带着券优惠
+watch(canUseMember, (ok) => {
+  if (ok) return
+  couponId.value = ''
+  realCoupons.value = []
+  if (pay.value === 'balance') pay.value = 'wechat'
+})
+
 const total = computed(() => Math.max(0, Math.round((subtotal.value - discount.value + fee.value) * 100) / 100))
 
 /* ---- 支付 ---- */
@@ -261,9 +288,33 @@ const remark = ref('')
 const busy = ref(false)
 
 function pickBalance() {
+  if (!canUseMember.value) return requireLogin('会员余额')
   payTouched = true
   if (balanceEnough.value) pay.value = 'balance'
   else uni.showToast({ title: '余额不足，可先充值或改用微信支付', icon: 'none' })
+}
+/**
+ * 游客点击会员入口：入口可见，但需要登录后才能查看/使用，弹窗引导去登录页。
+ * 登录页成功后回首页（购物车持久化），用户可再次进入结算继续下单。
+ */
+function requireLogin(feature: '会员余额' | '礼品券') {
+  uni.showModal({
+    title: '登录后可用',
+    content:
+      feature === '礼品券'
+        ? '使用微信手机号登录后可查看并选择礼品券，是否现在去登录？'
+        : '使用微信手机号登录后可查看会员余额并使用余额支付，是否现在去登录？',
+    confirmText: '去登录',
+    cancelText: '稍后',
+    confirmColor: '#663A24',
+    success: (res) => {
+      if (res.confirm) uni.navigateTo({ url: LOGIN_PAGE })
+    }
+  })
+}
+function onCouponTap() {
+  if (!canUseMember.value) return requireLogin('礼品券')
+  couponOpen.value = true
 }
 function pickCoupon(id: string) {
   couponId.value = id
@@ -360,6 +411,10 @@ function submit() {
     submitMock()
     return
   }
+  // 游客直接下单：点过「退出登录」后本地还留着 signedOut 标记，会把下单/支付请求
+  // 直接重定向到登录页。用户已明确点了支付，这里解除该标记，让请求层用 uni.login
+  // 静默建立微信会话（游客或本人会员）后继续下单；不登录就不能有会员会话。
+  if (isSignedOut()) setToken('')
   // 必须在用户点击手势内同步触发 wx.requestSubscribeMessage，避免异步后丢失手势上下文
   promptOrderSubscribe('order_pay')
     .then((subResult) => {
@@ -576,6 +631,14 @@ function submit() {
     @include num;
   }
 }
+/* 游客可看但不可用的提示文字 */
+.lock-v {
+  color: $toffee;
+  font-weight: 600;
+}
+.row.locked .row-t {
+  color: $ink-2;
+}
 .off {
   font-size: 30rpx;
   font-weight: 800;
@@ -604,6 +667,10 @@ function submit() {
   padding: 18rpx 0;
   &.off .pay-t {
     color: $ink-3;
+  }
+  /* 游客：入口保留、标题保持可读，右侧换成「去登录」 */
+  &.locked .pay-t {
+    color: $ink-2;
   }
 }
 .pay-ic {
@@ -650,6 +717,19 @@ function submit() {
   font-size: 23rpx;
   font-weight: 700;
   color: $roast;
+}
+.pay-login {
+  height: 56rpx;
+  padding: 0 24rpx;
+  border-radius: 20rpx;
+  background: $latte;
+  display: flex;
+  align-items: center;
+}
+.pay-login-t {
+  font-size: 23rpx;
+  font-weight: 700;
+  color: $toffee;
 }
 .radio {
   width: 44rpx;

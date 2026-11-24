@@ -19,12 +19,12 @@ python3 -m venv /tmp/cosen-contract-venv
 [GitHub Actions](../../.github/workflows/app-contract.yml) 对契约、校验器及前端调用改动运行同一检查；不会发送支付、退款或注销请求。
 请求覆盖提取器针对当前字面量/模板字符串和收款回执拼接写法，不是通用 TypeScript 解析器；改为动态拼装 URL 或新的请求封装时，需同步扩展提取器并人工复核。此检查不是完整 OpenAPI 标准认证，也不启用 date-time/URI 等 format 的强校验。
 
-本轮 v1.7.0 增补：资料 PUT/POST、退款、评价读写、反馈、当前微信身份注销、收款校验/预支付/凭据查询、桌码与收款码 HTML 入口；修正微信预支付返回参数、退款状态/时间与桌号、40310，以及充值/券的实际 null 值。
+本轮 v1.7.0 增补：资料 PUT/POST、退款、评价读写、反馈、收款校验/预支付/凭据查询、桌码与收款码 HTML 入口；修正微信预支付返回参数、退款状态/时间与桌号、40310，以及充值/券的实际 null 值。2026-11-24 起小程序下线「注销账号」，只保留退出登录；`POST /app/account/close` 兼容旧客户端时仅退出登录，不再解绑微信或注销会员。
 
 - 微信/混合**预支付不等于支付成功**：真实预支付通常返回 created/unpaid + wechatPayParams，随后拉起微信并查询最终状态；独立 prepayId 为可选，订单/门店收款使用 package。
 - 游客可以不用券进行普通微信支付；券、余额、混合支付和充值等会员能力需验证手机号，缺少时为 HTTP 403/code 40310。
 - 后端仍接受 making/ready 兼容状态；退款新增 refund_pending/refunding/refund_error/refunded，不应在客户端误判为支付失败。
-- 注销解绑的是当前微信身份；仅最后一个活跃身份解绑才关闭会员，资产及订单历史仍保留。原 token 重试可能 401。
+- 2026-11-24 起小程序只提供「退出登录」，不再提供账号注销；旧客户端调用 `POST /app/account/close` 只清当前 token，不再解绑微信或关闭会员。
 - 头像更新目前**仅保存 URL**，不会上传微信临时文件；选择头像到永久存储的链路尚未闭环，本契约不虚构上传接口。
 - 生产业务基址为 `https://cosen.tablejoker.com`，不追加 `/api` 或 `/app`；小程序 HTTPS/合法域名与 H5 CORS/开发代理边界见下文。
 - 本地契约通过和 Git push 成功均不等于 Apifox 已同步，也不等于登录、支付、退款等生产/真机链路验收通过。Apifox 同步须在业务模块回读路径/模型核实，不能只看 Git 连接存在。
@@ -55,7 +55,6 @@ src/api/recharge.ts      GET /app/recharge/tiers、POST /app/recharges、
                          GET /app/recharges/{rechargeNo}（含充值独立幂等键前缀）
 src/api/review.ts        GET/POST /app/orders/{orderNo}/review
 src/api/feedback.ts      POST /app/feedback
-src/api/account.ts       POST /app/account/close（当前微信身份注销）
 src/api/store.ts         GET /app/store
 src/pages/collect/       直接调用门店收款校验、预支付及带凭据的回执查询
 src/api/index.ts         统一出口
